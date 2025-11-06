@@ -1,0 +1,152 @@
+{
+  "name": "timeit",
+  "displayName": "TimeIt",
+  "description": "A time logger, to track your coding session. ",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.105.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onCommand:timeit.startTimeTracking",
+    "onCommand:timeit.stopTimeTracking",
+    "onCommand:timeit.showTimeLog",
+    "onCommand:timeit.clearTimeLog",
+    "onCommand:timeit.toggle",
+    "onCommand:timeit.openCsv",
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "codetime.startTimeTracking",
+        "title": "Start Time Tracking"
+      },
+      {
+        "command": "codetime.stopTimeTracking",
+        "title": "Stop Time Tracking"
+      },
+      {
+        "command": "codetime.timeit.showTimeLog",
+        "title": "Show Time Log"
+      },
+      {
+        "command": "codetime.timeit.clearTimeLog",
+        "title": "Clear Time Log"
+      },
+      {
+        "command": "codetime.timeit.toggle",
+        "title": "Toggle Time Tracking"
+      }
+    ],
+    "configuration": {
+      "title": "",
+      "properties": {
+        "timeit.enableJira": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable Jira integration for time tracking."
+        },
+        "timeit.jira.apiToken": {
+          "type": "string",
+          "default": "",
+          "description": "Jira API token for authentication."
+        },
+        "timeit.jira.email": {
+          "type": "string",
+          "default": "",
+          "description": "Email associated with your Jira account."
+        },
+        "timeit.jira.domain": {
+          "type": "string",
+          "default": "",
+          "description": "Your Jira domain (e.g., your-domain.atlassian.net)."
+        },
+        "timeit.csv.outputDirectory": {
+          "type": "string",
+          "default": "",
+          "description": "Directory to save CSV time logs. Leave empty to use workspace root."
+        },
+        "timeit.csv.filename": {
+          "type": "string",
+          "default": "time_log.csv",
+          "description": "Filename for the CSV time log."
+        },
+        "timeit.csv.addHeaderIfMissing": {
+          "type": "boolean",
+          "default": true,
+          "description": "Add header row to CSV file if it's missing."
+        },
+        "timeit.autoStartOnLaunch": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically start time tracking when VSCode launches."
+        },
+        "timeit.idleTimeoutMinutes": {
+          "type": "number",
+          "default": 5,
+          "description": "Number of idle minutes before pausing time tracking."
+        },
+        "timeit.showNotifications": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show notifications for time tracking events."
+        },
+        "timeit.notion.enableNotion": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable Notion integration for time tracking."
+        },
+        "timeit.notion.pageId": {
+          "type": "string",
+          "default": "",
+          "description": "Notion Page ID where time logs will be recorded."
+        },
+        "timeit.notion.apiToken": {
+          "type": "string",
+          "default": "",
+          "description": "Notion API token for authentication."
+        },
+        "timeit.notion.databaseId": {
+          "type": "string",
+          "default": "",
+          "description": "Notion Database ID for logging time entries."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "test:watch": "jest --watch",
+    "vscode:prepublish": "yarn run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "yarn run compile && yarn run lint",
+    "lint": "eslint src",
+    "test": "jest --runInBand"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.12",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^22.19.0",
+    "@types/vscode": "^1.105.0",
+    "@typescript-eslint/eslint-plugin": "^8.45.0",
+    "@typescript-eslint/parser": "^8.45.0",
+    "@vscode/test-cli": "^0.0.11",
+    "@vscode/test-electron": "^2.5.2",
+    "eslint": "^9.36.0",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.2.5",
+    "typescript": "^5.9.3",
+    "vsce": "2.15.0"
+  },
+  "packageManager": "yarn@4.9.2+sha512.1fc009bc09d13cfd0e19efa44cbfc2b9cf6ca61482725eb35bbc5e257e093ebf4130db6dfe15d604ff4b79efd8e1e8e99b25fa7d0a6197c9f9826358d4d65c3c",
+  "dependencies": {
+    "fs": "^0.0.1-security",
+    "os": "^0.1.2",
+    "path": "^0.12.7",
+    "ts-node": "^10.9.2"
+  }
+}
