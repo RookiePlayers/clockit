@@ -15,24 +15,29 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Use Node.js 20.x
-        uses: actions/setup-node@v4
+      - name: Enable Corepack and Yarn 4
+        run: |
+              corepack enable
+              corepack prepare yarn@4.9.1 --activate
+      - name: Setup Node
+        uses: actions/setup-node@v3
         with:
-          node-version: '20.x'   
+          node-version: 20.x
+          cache: 'yarn'
 
       - name: Cache npm dependencies
         uses: actions/cache@v3
         with:
           path: ~/.npm
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          key: ${{ runner.os }}-node-${{ hashFiles('**/yarn.lock','**/package-lock.json') }}
           restore-keys: |
             ${{ runner.os }}-node-
 
       - name: Install dependencies  
-        run: npm install --immutable
+        run: yarn install --immutable
 
       - name: Lint
-        run: npm run lint
+        run: yarn lint
           
   commitlint:
     name: Commitlint
@@ -43,20 +48,27 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Use Node.js 20.x
-        uses: actions/setup-node@v4
+
+      - name: Enable Corepack and Yarn 4
+        run: |
+              corepack enable
+              corepack prepare yarn@4.9.1 --activate
+      - name: Setup Node
+        uses: actions/setup-node@v3
         with:
-          node-version: '20.x'
+          node-version: 20.x
+          cache: 'yarn'
+
       - name: Cache npm dependencies
         uses: actions/cache@v3
         with:
           path: ~/.npm
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          key: ${{ runner.os }}-node-${{ hashFiles('**/yarn.lock','**/package-lock.json') }}
           restore-keys: |
             ${{ runner.os }}-node-
 
-      - name: Install dependencies
-        run: npm install --immutable
+      - name: Install dependencies  
+        run: yarn install --immutable
 
       - name: Validate current commit (last commit) with commitlint
         if: github.event_name == 'push'
@@ -74,20 +86,27 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Use Node.js 20.x
+
+      - name: Enable Corepack and Yarn 4
+        run: |
+              corepack enable
+              corepack prepare yarn@4.9.1 --activate
+      - name: Setup Node
         uses: actions/setup-node@v3
         with:
-          node-version: '20.x'
+          node-version: 20.x
+          cache: 'yarn'
+
       - name: Cache npm dependencies
         uses: actions/cache@v3
         with:
           path: ~/.npm
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          key: ${{ runner.os }}-node-${{ hashFiles('**/yarn.lock','**/package-lock.json') }}
           restore-keys: |
             ${{ runner.os }}-node-
 
-      - name: Install dependencies
-        run: npm install --immutable
+      - name: Install dependencies  
+        run: yarn install --immutable
 
       - name: Run unit tests
-        run: npm test
+        run: yarn test
