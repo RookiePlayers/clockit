@@ -1,14 +1,14 @@
 # Clockit – Developer-Friendly Time Tracker for VS Code
 
 <p align="center">
-  <a href="https://marketplace.visualstudio.com/items?itemName=rookieplayers.timeit">
-    <img src="https://img.shields.io/visual-studio-marketplace/v/rookieplayers.timeit?label=VS%20Code%20Marketplace&color=007acc&logo=visualstudiocode" alt="Marketplace Version">
+  <a href="https://marketplace.visualstudio.com/items?itemName=octech.clockit">
+    <img src="https://img.shields.io/visual-studio-marketplace/v/octech.clockit?label=VS%20Code%20Marketplace&color=007acc&logo=visualstudiocode" alt="Marketplace Version">
   </a>
-  <a href="https://marketplace.visualstudio.com/items?itemName=rookieplayers.timeit">
-    <img src="https://img.shields.io/visual-studio-marketplace/i/rookieplayers.timeit?label=Installs&color=brightgreen&logo=visualstudiocode" alt="Installs">
+  <a href="https://marketplace.visualstudio.com/items?itemName=octech.clockit">
+    <img src="https://img.shields.io/visual-studio-marketplace/i/octech.clockit?label=Installs&color=brightgreen&logo=visualstudiocode" alt="Installs">
   </a>
-  <a href="https://marketplace.visualstudio.com/items?itemName=rookieplayers.timeit">
-    <img src="https://img.shields.io/visual-studio-marketplace/r/rookieplayers.timeit?label=Rating&color=ffb300&logo=starship&logoColor=white" alt="Rating">
+  <a href="https://marketplace.visualstudio.com/items?itemName=octech.clockit">
+    <img src="https://img.shields.io/visual-studio-marketplace/r/octech.clockit?label=Rating&color=ffb300&logo=starship&logoColor=white" alt="Rating">
   </a>
   <br />
   <a href="https://github.com/RookiePlayers/timeit/actions/workflows/test.yml">
