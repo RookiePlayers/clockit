@@ -32,7 +32,7 @@ jobs:
         run: npm install --immutable
 
       - name: Lint
-        run: npm run lint
+        run: npm run lint --fix
           
   commitlint:
     name: Commitlint

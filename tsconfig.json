@@ -8,6 +8,6 @@
     "skipLibCheck": true,
     "sourceMap": true,
     "noEmit": true,
-    "types": ["node", "vscode"]
+    "types": ["node", "vscode","jest"]
   }
 }

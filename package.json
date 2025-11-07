@@ -5,34 +5,85 @@
   "version": "0.0.2",
   "publisher": "octech",
   "license": "MIT",
+  "repository": "https://github.com/RookiePlayers/timeit.git",
+  "homepage": "https://github.com/RookiePlayers/timeit.git",
   "engines": {
     "vscode": "^1.105.0"
   },
-  "categories": ["Other"],
-  "activationEvents": ["onStartupFinished"],
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
-      { "command": "timeit.startTimeTracking", "title": "TimeIt: Start Time Tracking" },
-      { "command": "timeit.stopTimeTracking", "title": "TimeIt: Stop Time Tracking" },
-      { "command": "timeit.showTimeLog", "title": "TimeIt: Show Time Log" },
-      { "command": "timeit.clearTimeLog", "title": "TimeIt: Clear Time Log" },
-      { "command": "timeit.toggle", "title": "TimeIt: Toggle Time Tracking" },
-      { "command": "timeit.openCsv", "title": "TimeIt: Open CSV Log" },
-      { "command": "timeit.chooseCsvFolder", "title": "TimeIt: Choose CSV Output Folder" },
-      { "command": "timeit.chooseSinks", "title": "TimeIt: Choose Sinks" },
-      { "command": "timeit.editCredentials", "title": "TimeIt: Edit Credentials" },
-      { "command": "timeit.clearCredentials", "title": "TimeIt: Clear Credentials" },
-      { "command": "timeit.signIn.jira", "title": "TimeIt: Sign in to Jira (Coming Soon)" },
-      { "command": "timeit.signIn.notion", "title": "TimeIt: Sign in to Notion (Coming Soon)" }
+      {
+        "command": "timeit.startTimeTracking",
+        "title": "TimeIt: Start Time Tracking"
+      },
+      {
+        "command": "timeit.stopTimeTracking",
+        "title": "TimeIt: Stop Time Tracking"
+      },
+      {
+        "command": "timeit.showTimeLog",
+        "title": "TimeIt: Show Time Log"
+      },
+      {
+        "command": "timeit.clearTimeLog",
+        "title": "TimeIt: Clear Time Log"
+      },
+      {
+        "command": "timeit.toggle",
+        "title": "TimeIt: Toggle Time Tracking"
+      },
+      {
+        "command": "timeit.openCsv",
+        "title": "TimeIt: Open CSV Log"
+      },
+      {
+        "command": "timeit.chooseCsvFolder",
+        "title": "TimeIt: Choose CSV Output Folder"
+      },
+      {
+        "command": "timeit.chooseSinks",
+        "title": "TimeIt: Choose Sinks"
+      },
+      {
+        "command": "timeit.editCredentials",
+        "title": "TimeIt: Edit Credentials"
+      },
+      {
+        "command": "timeit.clearCredentials",
+        "title": "TimeIt: Clear Credentials"
+      },
+      {
+        "command": "timeit.signIn.jira",
+        "title": "TimeIt: Sign in to Jira (Coming Soon)"
+      },
+      {
+        "command": "timeit.signIn.notion",
+        "title": "TimeIt: Sign in to Notion (Coming Soon)"
+      }
     ],
     "configuration": {
       "title": "TimeIt Settings",
       "properties": {
         "timeit.enabledSinks": {
           "type": "array",
-          "items": { "type": "string", "enum": ["csv", "jira", "notion"] },
-          "default": ["csv"],
+          "items": {
+            "type": "string",
+            "enum": [
+              "csv",
+              "jira",
+              "notion"
+            ]
+          },
+          "default": [
+            "csv"
+          ],
           "description": "Select which sinks to use for exporting sessions."
         },
         "timeit.askSinksEachTime": {
@@ -133,7 +184,7 @@
     "@semantic-release/changelog": "^6.0.3",
     "@semantic-release/git": "^10.0.1",
     "@semantic-release/npm": "^12.0.2",
-    "@types/jest": "^29.5.12",
+    "@types/jest": "^29.5.14",
     "@types/mocha": "^10.0.10",
     "@types/node": "^22.19.0",
     "@types/vscode": "^1.105.0",

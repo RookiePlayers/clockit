@@ -10,7 +10,7 @@
     "**/__tests__/**",
     "**/*.test.ts",
     "jest.config.ts",
-    "jest.config.js",
+    "*.config.*",
     "scripts/**",
     "coverage/**",
     ".vscode/**"
