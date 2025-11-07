@@ -1,8 +1,10 @@
 {
   "name": "timeit",
   "displayName": "TimeIt",
-  "description": "A time logger, to track your coding session. ",
-  "version": "0.0.1",
+  "description": "A time logger to track your coding sessions.",
+  "version": "0.0.2",
+  "publisher": "octech",
+  "license": "MIT",
   "engines": {
     "vscode": "^1.105.0"
   },
@@ -10,41 +12,65 @@
     "Other"
   ],
   "activationEvents": [
-    "onCommand:timeit.startTimeTracking",
-    "onCommand:timeit.stopTimeTracking",
-    "onCommand:timeit.showTimeLog",
-    "onCommand:timeit.clearTimeLog",
-    "onCommand:timeit.toggle",
-    "onCommand:timeit.openCsv",
     "onStartupFinished"
   ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
       {
-        "command": "codetime.startTimeTracking",
-        "title": "Start Time Tracking"
+        "command": "timeit.startTimeTracking",
+        "title": "TimeIt: Start Time Tracking"
       },
       {
-        "command": "codetime.stopTimeTracking",
-        "title": "Stop Time Tracking"
+        "command": "timeit.stopTimeTracking",
+        "title": "TimeIt: Stop Time Tracking"
       },
       {
-        "command": "codetime.timeit.showTimeLog",
-        "title": "Show Time Log"
+        "command": "timeit.showTimeLog",
+        "title": "TimeIt: Show Time Log"
       },
       {
-        "command": "codetime.timeit.clearTimeLog",
-        "title": "Clear Time Log"
+        "command": "timeit.clearTimeLog",
+        "title": "TimeIt: Clear Time Log"
       },
       {
-        "command": "codetime.timeit.toggle",
-        "title": "Toggle Time Tracking"
+        "command": "timeit.toggle",
+        "title": "TimeIt: Toggle Time Tracking"
+      },
+      {
+        "command": "timeit.openCsv",
+        "title": "TimeIt: Open CSV Log"
+      },
+      {
+        "command": "timeit.chooseCsvFolder",
+        "title": "TimeIt: Choose CSV Output Folder"
+      },
+      { "command": "timeit.chooseSinks", "title": "TimeIt: Choose Sinks" },
+      { "command": "timeit.editCredentials", "title": "TimeIt: Edit Credentials" },
+      { "command": "timeit.clearCredentials", "title": "TimeIt: Clear Credentials" },
+      {
+        "command": "timeit.signIn.jira",
+        "title": "TimeIt: Sign in to Jira (Experimental)"
+      },
+      {
+        "command": "timeit.signIn.notion",
+        "title": "TimeIt: Sign in to Notion (Experimental)"
       }
     ],
     "configuration": {
-      "title": "",
+      "title": "TimeIt Settings",
       "properties": {
+        "timeit.enabledSinks": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["csv", "jira", "notion"] },
+          "default": ["csv"],
+          "description": "Select which sinks to use for exporting sessions."
+        },
+        "timeit.askSinksEachTime": {
+          "type": "boolean",
+          "default": true,
+          "description": "Always prompt which sinks to use before exporting."
+        },
         "timeit.enableJira": {
           "type": "boolean",
           "default": false,
@@ -79,6 +105,11 @@
           "type": "boolean",
           "default": true,
           "description": "Add header row to CSV file if it's missing."
+        },
+        "timeit.csv.ensureDirectory": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically create the output directory if it doesn't exist."
         },
         "timeit.autoStartOnLaunch": {
           "type": "boolean",
@@ -121,8 +152,8 @@
   "scripts": {
     "test:watch": "jest --watch",
     "vscode:prepublish": "yarn run compile",
-    "compile": "tsc -p ./",
-    "watch": "tsc -watch -p ./",
+    "compile": "tsc -p tsconfig.json",
+    "watch": "tsc -watch -p tsconfig.json",
     "pretest": "yarn run compile && yarn run lint",
     "lint": "eslint src",
     "test": "jest --runInBand"
@@ -142,11 +173,12 @@
     "typescript": "^5.9.3",
     "vsce": "2.15.0"
   },
-  "packageManager": "yarn@4.9.2+sha512.1fc009bc09d13cfd0e19efa44cbfc2b9cf6ca61482725eb35bbc5e257e093ebf4130db6dfe15d604ff4b79efd8e1e8e99b25fa7d0a6197c9f9826358d4d65c3c",
   "dependencies": {
+    "dotenv": "^17.2.3",
     "fs": "^0.0.1-security",
     "os": "^0.1.2",
     "path": "^0.12.7",
     "ts-node": "^10.9.2"
-  }
+  },
+  "packageManager": "yarn@4.9.2"
 }

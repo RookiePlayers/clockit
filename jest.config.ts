@@ -12,5 +12,6 @@ const config: Config = {
   clearMocks: true,
   resetMocks: true,
   restoreMocks: true,
+  testMatch: ['**/__tests__/**/*.test.ts', '**/__tests__/**/**.test.ts'],
 };
 export default config;

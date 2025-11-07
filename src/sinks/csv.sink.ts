@@ -17,18 +17,32 @@ export class CsvSink extends BaseSink {
     return p;
   }
   async export(s: Session): Promise<Result> {
-    const dir = this.expand(String(this.options.outputDirectory || '')) ||
-      process.env.WORKSPACE_ROOT || path.join(os.homedir(), '.timeit');
-    const file = String(this.options.filename || 'time_log.csv');
-    const addHeader = Boolean(this.options.addHeaderIfMissing ?? true);
+  const ensureDir = Boolean(this.options.ensureDirectory ?? true);
 
-    await fs.mkdir(dir, { recursive: true });
-    const p = path.join(dir, file);
+  const dir = this.expand(String(this.options.outputDirectory || '')) ||
+    process.env.WORKSPACE_ROOT ||
+    path.join(os.homedir(), '.timeit');
 
-    const header = 'startedIso,endedIso,durationSeconds,workspace,repoPath,branch,issueKey,comment\n';
+  const file = String(this.options.filename || 'time_log.csv');
+  const addHeader = Boolean(this.options.addHeaderIfMissing ?? true);
+  const p = path.join(dir, file);
+
+  try {
+    if (ensureDir) {
+      await fs.mkdir(dir, { recursive: true });
+    } else {
+      // verify exists if we’re not allowed to create
+      await fs.access(dir);
+    }
+  } catch (e: any) {
+    return { ok: false, message: `CSV directory not available: ${dir}`, error: e };
+  }
+
+  const header = 'startedIso,endedIso,durationSeconds,workspace,repoPath,branch,issueKey,comment\n';
     try {
       let exists = true;
       try { await fs.access(p); } catch { exists = false; }
+
       const row = [
         s.startedIso, s.endedIso, s.durationSeconds,
         s.workspace ?? '', s.repoPath ?? '', s.branch ?? '', s.issueKey ?? '', s.comment ?? ''
@@ -36,6 +50,7 @@ export class CsvSink extends BaseSink {
         const str = String(v ?? '');
         return /[",\n]/.test(str) ? `"${str.replace(/"/g, '""')}"` : str;
       }).join(',') + '\n';
+
       const chunk = (!exists && addHeader ? header : '') + row;
       await fs.appendFile(p, chunk, 'utf8');
       return { ok: true, message: `CSV -> ${p}` };

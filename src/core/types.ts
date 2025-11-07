@@ -19,4 +19,5 @@ export interface Result {
   message?: string;
   data?: unknown;
   error?: Error;
+  missing?: string[];
 }

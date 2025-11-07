@@ -9,16 +9,28 @@ export class SinkRegistry {
     if (this.factories.has(kind)) {throw new Error(`Sink "${kind}" already registered`);}
     this.factories.set(kind, factory);
   }
-  create(cfgs: TimeSinkConfig[]): TimeSink[] {
-    return cfgs
-      .filter(c => c.enabled)
-      .map(c => {
-        const f = this.factories.get(c.kind);
-        if (!f) {throw new Error(`No sink factory for "${c.kind}"`);}
-        const sink = f(c);
-        const res = sink.validate();
-        if (!res.ok) {throw res.error ?? new Error(res.message || `Invalid config for ${c.kind}`);}
-        return sink;
-      });
+ /**
+   * Instantiate sinks for the given configs.
+   * NOTE: No validation here — hydration/prompting happens in the orchestrator.
+   */
+  create(configs: TimeSinkConfig[]): TimeSink[] {
+    const out: TimeSink[] = [];
+    for (const c of configs) {
+      if (!c?.enabled) {continue;}
+
+      const factory = this.factories.get(c.kind);
+      if (!factory) {
+        console.warn(`TimeIt: no factory for kind=${c.kind}, skipping`);
+        continue;
+      }
+
+      try {
+        const sink = factory(c);
+        out.push(sink);
+      } catch (e) {
+        console.warn(`TimeIt: failed to construct sink kind=${c.kind}:`, e);
+      }
+    }
+    return out;
   }
 }

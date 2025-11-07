@@ -1,7 +1,10 @@
-import { BaseSink, TimeSinkConfig } from '../core/sink';
+import { OAuthProvider } from '../core/oauth';
+import { BaseSink, FieldSpec, TimeSinkConfig } from '../core/sink';
 import { Session, Result } from '../core/types';
+import { BaseOAuthSink } from './base-oauth-sink';
 
-export class NotionSink extends BaseSink {
+export class NotionSink extends BaseOAuthSink {
+  kind = 'notion';
   constructor(cfg: TimeSinkConfig) { super({ ...cfg, kind: 'notion' }); }
   validate(): Result {
     const token = String(this.options.apiToken || '');
@@ -10,6 +13,32 @@ export class NotionSink extends BaseSink {
       {return { ok: false, message: 'Set databaseId or pageId' };}
     return { ok: true };
   }
+   protected provider(): OAuthProvider {
+    const REDIRECT = 'vscode://yourpublisher.timeit/oauth/callback';
+    return {
+      id: 'notion',
+      authUrl: 'https://api.notion.com/v1/oauth/authorize',
+      tokenUrl: 'https://api.notion.com/v1/oauth/token',
+      clientId: '<NOTION_CLIENT_ID>',
+      clientSecret: '<NOTION_CLIENT_SECRET>', // Notion typically requires secret
+      scopes: [], // Notion uses capabilities; leave blank
+      redirectUri: REDIRECT,
+    };
+  }
+
+  protected async exportWithToken(accessToken: string, s: Session): Promise<Result> {
+    // Example: write a page or db item with Bearer token
+    return { ok: true, message: 'Notion export not implemented yet' };
+  }
+
+  requirements(): FieldSpec[] {
+      return [
+        { key: 'notion.apiToken',  label: 'Notion API Token', type: 'secret', scope: 'setup', required: true },
+        { key: 'notion.databaseId', label: 'Notion Database ID', type: 'string', scope: 'setup', required: false },
+        { key: 'notion.pageId', label: 'Notion Page ID', type: 'string', scope: 'setup', required: false,
+          description: 'Provide either Database ID or Page ID.' },
+      ];
+    }
   private headers() {
     return {
       'Authorization': `Bearer ${this.options.apiToken}`,
