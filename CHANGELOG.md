@@ -1,3 +1,10 @@
+# [1.1.0](https://github.com/RookiePlayers/timeit/compare/v1.0.0...v1.1.0) (2025-11-07)
+
+
+### Features
+
+* Add icon.png to package.json for improved branding ([45ef89f](https://github.com/RookiePlayers/timeit/commit/45ef89fcf1bca485e65b73138c9eb68c46f0f44c))
+
 # 1.0.0 (2025-11-07)
 
 
