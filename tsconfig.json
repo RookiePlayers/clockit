@@ -8,16 +8,17 @@
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "sourceMap": true
+    "sourceMap": true,
+    "noEmit": false
   },
-  "include": ["src/**/*.ts"],
+  "include": ["src/**/*"],
   "exclude": [
-    "node_modules",
-    "out",
-    "dist",
-    "*.config.ts",
-    ".vscode-test",
-    "__tests__",
-    "__test__"
+    "**/__tests__/**",
+    "**/*.test.ts",
+    "jest.config.ts",
+    "jest.config.js",
+    "scripts/**",
+    "coverage/**",
+    ".vscode/**"
   ]
 }
