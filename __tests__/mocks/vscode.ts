@@ -1,18 +1,18 @@
 // Minimal VS Code API mock for unit tests
 const config: Record<string, any> = {
-  'timeit.csv.outputDirectory': '',
-  'timeit.csv.filename': 'time_log.csv',
-  'timeit.csv.addHeaderIfMissing': true,
-  'timeit.enableJira': false,
-  'timeit.jira.domain': '',
-  'timeit.jira.email': '',
-  'timeit.jira.apiToken': '',
-  'timeit.notion.enableNotion': false,
-  'timeit.notion.apiToken': '',
-  'timeit.notion.databaseId': '',
-  'timeit.notion.pageId': '',
-  'timeit.idleTimeoutMinutes': 5,
-  'timeit.showNotifications': false,
+  'timeit_logger.csv.outputDirectory': '',
+  'timeit_logger.csv.filename': 'time_log.csv',
+  'timeit_logger.csv.addHeaderIfMissing': true,
+  'timeit_logger.enableJira': false,
+  'timeit_logger.jira.domain': '',
+  'timeit_logger.jira.email': '',
+  'timeit_logger.jira.apiToken': '',
+  'timeit_logger.notion.enableNotion': false,
+  'timeit_logger.notion.apiToken': '',
+  'timeit_logger.notion.databaseId': '',
+  'timeit_logger.notion.pageId': '',
+  'timeit_logger.idleTimeoutMinutes': 5,
+  'timeit_logger.showNotifications': false,
 };
 
 export const workspace: any = {

@@ -1,4 +1,5 @@
 // src/core/sink.ts
+import { SuggestionItem } from './prompts';
 import { Result, Session } from './types';
 
 export type RequirementScope = 'setup' | 'runtime';
@@ -26,22 +27,43 @@ export interface FieldSpec {
    */
   validate?: (value: unknown) => string | undefined;
 
-  /** Where to store/read non-secret values in VS Code settings (optional but recommended), e.g. 'timeit.jira.domain' */
+  /** Where to store/read non-secret values in VS Code settings (optional but recommended), e.g. 'timeit_logger.jira.domain' */
   settingKey?: string;
 
   /**
    * Where to store/read secret values in SecretStorage.
-   * Default: 'timeit.<key>' (e.g. 'timeit.jira.apiToken')
+   * Default: 'timeit_logger.<key>' (e.g. 'timeit_logger.jira.apiToken')
    */
   secretKey?: string;
 
   /**
    * Persistence behavior:
    * - 'settings' (default for non-secrets): save to workspace settings via `settingKey` or `key`
-   * - 'secret'   (default for secrets): save to SecretStorage via `secretKey` or 'timeit.<key>'
+   * - 'secret'   (default for secrets): save to SecretStorage via `secretKey` or 'timeit_logger.<key>'
    * - 'memory'   : do not persist; only use for this run
    */
   persist?: 'settings' | 'secret' | 'memory';
+  remember?: boolean;        // default true. If false -> never persist.
+  implicitSetting?: boolean; // default false. If true, allow using `spec.key` for settings when no `settingKey`
+   // NEW: selection UI
+  ui?: 'input' | 'select'; // default 'input'
+  select?: {
+    // Optional static items (no search)
+    staticOptions?: Array<{ label: string; description?: string; value: string }>;
+
+    // Remote/search options (sink-provided)
+    // Return a page of choices, given the current query + cursor
+    fetchPage?: (query: string, cursor?: string, signal?: AbortSignal) => Promise<{
+      items: SuggestionItem[];
+      nextCursor?: string | undefined;
+    }>;
+
+    // If true, allow free text even if not in list
+    allowArbitrary?: boolean;
+    // page size hint (just for load-more label, your fetch decides)
+    pageSizeHint?: number;
+  };
+  cacheTtlMs?: number, // 1 minute for this field
 }
 
 export interface TimeSinkConfig {

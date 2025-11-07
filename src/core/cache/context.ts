@@ -1,4 +1,5 @@
-import { Session } from './types';
+import { Session } from "../types";
+
 /**
  * Example resolvers you can add:
 	•	GitResolver (branch, repoPath, workspace)

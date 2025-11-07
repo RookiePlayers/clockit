@@ -4,14 +4,8 @@ import type { TimeSink, FieldSpec } from './sink';
 import type { OAuthManager } from './oauth';
 import type { PromptService } from './prompts';
 
-/**
- * ExportOrchestrator
- * - Collects each sink's FieldSpec requirements()
- * - Resolves required fields via PromptService (with persistence handled by PromptService)
- * - Injects resolved values into sink.options (if present)
- * - Validates each sink; skips gracefully if still invalid
- * - Exports the session to each sink (passing OAuthManager when supported)
- */
+const MAX_EXPORT_RETRIES = 3;
+
 export class ExportOrchestrator {
   constructor(
     private readonly sinks: TimeSink[],
@@ -19,44 +13,47 @@ export class ExportOrchestrator {
     private readonly oauth?: OAuthManager
   ) {}
 
-  /**
-   * Hydrates sinks (prompts for missing required fields) and exports the given session.
-   * Returns per-sink results (kind + Result).
-   */
   async hydrateAndExport(session: Session): Promise<Array<{ kind: string } & Result>> {
     const results: Array<{ kind: string } & Result> = [];
 
     for (const sink of this.sinks) {
       const kind = sink.kind;
-
       try {
-        // 1) Gather requirement specs from sink (if any)
-        const reqs: FieldSpec[] = (typeof sink.requirements === 'function')
-          ? (sink.requirements() || [])
-          : [];
+        const reqs: FieldSpec[] =
+          typeof sink.requirements === 'function' ? (sink.requirements() || []) : [];
 
-        // 2) Resolve required fields via PromptService
-        //    We only prompt for fields that are missing/empty on the sink.options.
-        //    PromptService handles persistence (SecretStorage / settings) based on FieldSpec.
+        // 1) Resolve + inject
         await this.resolveAndInjectRequirements(sink, reqs, session);
 
-        // 3) Validate post-hydration (if sink exposes validate)
+        // 2) Guard: if any required fields are still missing → skip this sink
+        const missingAfterHydrate = this.requiredMissing(reqs, sink, session);
+        if (missingAfterHydrate.length > 0) {
+          const msg = `Skipped: missing required fields (${missingAfterHydrate.join(', ')})`;
+          results.push({ kind, ok: true, message: msg });
+          continue;
+        }
+
+        // 3) Validate if sink exposes validate()
         if (typeof sink.validate === 'function') {
           const v = sink.validate();
           if (!v?.ok) {
             const missing = (v?.missing || []).join(', ');
-            console.warn(`TimeIt: ${kind} invalid after hydrate; missing: ${missing}`);
-            results.push({ kind, ok: true, message: `Skipped: invalid config (${missing})` });
+            const msg = missing
+              ? `Skipped: invalid config (${missing})`
+              : 'Skipped: invalid config';
+            results.push({ kind, ok: true, message: msg });
             continue;
           }
         }
 
-        // 4) Export — pass OAuthManager when supported (arity >= 2)
-        //    (session, oauth) signature is used by BaseOAuthSink; legacy sinks use (session)
+        // 4) Export with retry-on-server-rejection
         const usesOAuth = (sink as any).export.length >= 2;
-        const res: Result = usesOAuth && this.oauth
-          ? await (sink as any).export(session, this.oauth)
-          : await sink.export(session);
+        const res = await this.attemptWithReentryOnServerRejection(
+          sink,
+          session,
+          reqs,
+          usesOAuth ? this.oauth : undefined
+        );
 
         results.push({ kind, ...res });
       } catch (e: any) {
@@ -69,71 +66,154 @@ export class ExportOrchestrator {
     return results;
   }
 
-  /**
-   * Resolve required fields using PromptService and inject them into sink.options.
-   * - setup-scoped fields (e.g., API keys, domains, emails) are prompted once and persisted.
-   * - runtime-scoped fields (e.g., issueKey, comment) may be prompted every run unless FieldSpec.persist says otherwise.
-   */
   private async resolveAndInjectRequirements(
     sink: TimeSink,
     specs: FieldSpec[],
     session: Session
   ): Promise<void> {
-    if (!specs?.length) {return;}
+    if (!specs?.length) return;
 
-    // Ensure we have a mutable options bag we can hydrate
     const opts = ((sink as any).options = (sink as any).options ?? {});
 
-    for (const spec of specs) {
-      // For runtime fields, we might have value already on session — let that count as "current"
-      const currentFromSession = this.valueFromSession(session, spec.key);
-      const current = this.pickExistingValue(opts[spec.key], currentFromSession);
+// src/core/orchestrator.ts  (inside resolveAndInjectRequirements loop)
 
-      // If required & missing/empty → prompt via PromptService
-      const needsValue = spec.required && this.isEmpty(current);
+    for (const spec of specs) {
+      const currentFromSession = this.valueFromSession(session, spec.key);
+      const current = this.pickExistingValue((opts as any)[spec.key], currentFromSession);
+
+      //NEW: if we have a value but it fails the sink's validate(), force a prompt
+      const currentInvalid =
+        spec.required &&
+        !this.isEmpty(current) &&
+        typeof spec.validate === 'function' &&
+        !!spec.validate(current);
+
+      const needsValue = spec.required && (this.isEmpty(current) || currentInvalid);
+
       const resolved = needsValue
-        ? await this.prompts.resolveField(spec, current)
+        ? await this.prompts.resolveField(spec, this.isEmpty(current) ? undefined : current)
         : (current ?? undefined);
 
-      // If user canceled a required prompt → skip sink gracefully later (leave it missing)
       if (spec.required && this.isEmpty(resolved)) {
-        // Do not throw; let validate() handle skip messaging
+        // don’t throw; allow validate() or retryable flow to decide; leave missing
         continue;
       }
 
-      // Inject into sink.options only if something is resolved or pre-existing value was present
       if (!this.isEmpty(resolved)) {
-        opts[spec.key] = resolved;
+        (opts as any)[spec.key] = resolved;
       } else if (!this.isEmpty(current)) {
-        opts[spec.key] = current;
+        (opts as any)[spec.key] = current;
       }
     }
   }
 
   /**
-   * Helper: prefer explicit options value; otherwise session-derived value.
+   * Retry loop that handles sinks returning { ok:false, retryable:true, field:'...', hint?:string }.
+   * Works for both OAuth and non-OAuth sinks.
    */
+  private async attemptWithReentryOnServerRejection(
+    sink: TimeSink,
+    session: Session,
+    reqs: FieldSpec[],
+    oauth?: OAuthManager
+  ): Promise<Result> {
+    let attempts = 0;
+
+    const callExport = () =>
+      oauth && (sink as any).export.length >= 2
+        ? (sink as any).export(session, oauth) as Promise<Result>
+        : sink.export(session);
+
+    let res = await callExport();
+
+    while (
+      attempts < MAX_EXPORT_RETRIES &&
+      !res.ok &&
+      (res as any).retryable &&
+      (res as any).field
+    ) {
+      const fieldKey = String((res as any).field);
+      const spec = reqs.find(s => s.key === fieldKey);
+      if (!spec) break;
+
+      // Force re-prompt with the sink/session’s current value as "current"
+      const currentVal = this._readCurrent(spec, sink, session);
+      const newVal = await this.prompts.resolveField(
+        { ...spec, required: true, placeholder: spec.placeholder || (res as any).hint },
+        currentVal
+      );
+      if (this.isEmpty(newVal)) {
+        res = { ok: false, message: `Failed to re-prompt for field ${spec.key}`, code: 'missing_field' };
+        break;
+      }
+
+      this._inject(spec, newVal, sink, session);
+      res = await callExport();
+      attempts++;
+    }
+
+    return res;
+  }
+
+  private _readCurrent(spec: FieldSpec, sink: TimeSink, session: Session): unknown {
+    const opts = (sink as any).options as Record<string, unknown> | undefined;
+    if (opts && spec.key in opts) return opts[spec.key];
+    if (spec.scope === 'runtime' && (spec.key in (session as any))) return (session as any)[spec.key];
+    if ((session.meta as any)?.fields && spec.key in (session.meta as any).fields) {
+      return (session.meta as any).fields[spec.key];
+    }
+    return undefined;
+  }
+
+  private _inject(spec: FieldSpec, val: unknown, sink: TimeSink, session: Session) {
+    if (val === undefined) return;
+    const opts = (sink as any).options as Record<string, unknown> | undefined;
+
+    if (spec.scope === 'setup') {
+      if (opts) opts[spec.key] = val;
+      return;
+    }
+    // runtime field
+    if (spec.key in (session as any)) {
+      (session as any)[spec.key] = val;
+    } else {
+      session.meta = session.meta || {};
+      (session.meta as any).fields = (session.meta as any).fields || {};
+      (session.meta as any).fields[spec.key] = val;
+    }
+  }
+
+  /** Collect required fields that are still empty after prompting/injection. */
+  private requiredMissing(specs: FieldSpec[], sink: TimeSink, session: Session): string[] {
+    const opts = (sink as any).options as Record<string, unknown> | undefined;
+    const missing: string[] = [];
+    for (const s of specs) {
+      if (!s.required) continue;
+
+      const fromOpts = opts ? opts[s.key] : undefined;
+      const fromSession = this.valueFromSession(session, s.key);
+      const val = this.pickExistingValue(fromOpts, fromSession);
+
+      if (this.isEmpty(val)) missing.push(s.key);
+    }
+    return missing;
+  }
+
   private pickExistingValue(optionValue: unknown, sessionValue: unknown): unknown {
     return !this.isEmpty(optionValue) ? optionValue : sessionValue;
   }
 
-  /**
-   * Returns values from session for common runtime keys (issueKey, comment, branch, etc.)
-   */
   private valueFromSession(session: Session, key: string): unknown {
     switch (key) {
-      case 'issueKey': return session.issueKey ?? undefined;
-      case 'comment':  return session.comment ?? undefined;
-      case 'branch':   return session.branch ?? undefined;
-      case 'repoPath': return session.repoPath ?? undefined;
-      case 'workspace':return session.workspace ?? undefined;
-      default:         return undefined;
+      case 'issueKey':  return session.issueKey ?? undefined;
+      case 'comment':   return session.comment ?? undefined;
+      case 'branch':    return session.branch ?? undefined;
+      case 'repoPath':  return session.repoPath ?? undefined;
+      case 'workspace': return session.workspace ?? undefined;
+      default:          return undefined;
     }
   }
 
-  /**
-   * "Empty" = undefined, null, empty string, or string of whitespace.
-   */
   private isEmpty(v: unknown): boolean {
     return v === undefined || v === null || (typeof v === 'string' && v.trim() === '');
   }
