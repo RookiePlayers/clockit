@@ -4,6 +4,7 @@
   "description": "A time logger to track your coding sessions.",
   "version": "1.0.0",
   "publisher": "octech",
+  "icon": "icon.png",
   "license": "MIT",
   "repository": "https://github.com/RookiePlayers/timeit.git",
   "homepage": "https://github.com/RookiePlayers/timeit.git",
