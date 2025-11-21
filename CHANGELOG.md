@@ -1,3 +1,10 @@
+# [1.2.0](https://github.com/RookiePlayers/timeit/compare/v1.1.1...v1.2.0) (2025-11-21)
+
+
+### Features
+
+* Update VSCode engine version and enhance CSV output options ([be750a2](https://github.com/RookiePlayers/timeit/commit/be750a2c9810db786c13f8d63291d21a9c1977a6))
+
 ## [1.1.1](https://github.com/RookiePlayers/timeit/compare/v1.1.0...v1.1.1) (2025-11-07)
 
 

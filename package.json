@@ -2,7 +2,7 @@
   "name": "clockit",
   "displayName": "ClockIt: Session manager",
   "description": "A time logger to track your coding sessions.",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "publisher": "octech",
   "icon": "icon.png",
   "license": "MIT",
@@ -112,11 +112,11 @@
           "default": "",
           "description": "Your Jira domain (e.g., your-domain.atlassian.net)."
         },
-    "clockit.csv.outputDirectory": {
-      "type": "string",
-      "default": "",
-      "description": "Directory to save CSV time logs. Leave empty to use the current working directory."
-    },
+        "clockit.csv.outputDirectory": {
+          "type": "string",
+          "default": "",
+          "description": "Directory to save CSV time logs. Leave empty to use the current working directory."
+        },
         "clockit.csv.filename": {
           "type": "string",
           "default": "time_log.csv",
@@ -125,32 +125,32 @@
         "clockit.csv.addHeaderIfMissing": {
           "type": "boolean",
           "default": true,
-      "description": "Add header row to CSV file if it's missing."
-    },
-    "clockit.csv.ensureDirectory": {
-      "type": "boolean",
-      "default": true,
-      "description": "Automatically create the output directory if it doesn't exist."
-    },
-    "clockit.author.name": {
-      "type": "string",
-      "default": "",
-      "description": "Your name to include in CSV/backup logs. Falls back to git config user.name."
-    },
-    "clockit.author.email": {
-      "type": "string",
-      "default": "",
-      "description": "Your email to include in CSV/backup logs. Falls back to git config user.email."
-    },
-    "clockit.machineName": {
-      "type": "string",
-      "default": "",
-      "description": "Machine identifier to include in logs. Defaults to the OS hostname."
-    },
-    "clockit.autoStartOnLaunch": {
-      "type": "boolean",
-      "default": true,
-      "description": "Automatically start time tracking when VSCode launches."
+          "description": "Add header row to CSV file if it's missing."
+        },
+        "clockit.csv.ensureDirectory": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically create the output directory if it doesn't exist."
+        },
+        "clockit.author.name": {
+          "type": "string",
+          "default": "",
+          "description": "Your name to include in CSV/backup logs. Falls back to git config user.name."
+        },
+        "clockit.author.email": {
+          "type": "string",
+          "default": "",
+          "description": "Your email to include in CSV/backup logs. Falls back to git config user.email."
+        },
+        "clockit.machineName": {
+          "type": "string",
+          "default": "",
+          "description": "Machine identifier to include in logs. Defaults to the OS hostname."
+        },
+        "clockit.autoStartOnLaunch": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically start time tracking when VSCode launches."
         },
         "clockit.idleTimeoutMinutes": {
           "type": "number",
