@@ -1,3 +1,15 @@
+# [1.3.0](https://github.com/RookiePlayers/clockit/compare/v1.2.0...v1.3.0) (2025-11-21)
+
+
+### Bug Fixes
+
+* Update repository links and version in package files; correct changelog URLs ([f0a8db3](https://github.com/RookiePlayers/clockit/commit/f0a8db3f184d0c270fcd9df4a0bd4ed60d6b9843))
+
+
+### Features
+
+* Enhance build workflow and update VSCode ignore settings ([c285bf1](https://github.com/RookiePlayers/clockit/commit/c285bf16addce66bc44a6314b920f82209db9382))
+
 # [1.2.0](https://github.com/RookiePlayers/clockit/compare/v1.1.1...v1.2.0) (2025-11-21)
 
 
