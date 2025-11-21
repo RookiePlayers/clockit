@@ -11,11 +11,11 @@
     <img src="https://img.shields.io/visual-studio-marketplace/r/octech.clockit?label=Rating&color=ffb300&logo=starship&logoColor=white" alt="Rating">
   </a>
   <br />
-  <a href="https://github.com/RookiePlayers/clockit/actions/workflows/test.yml">
-    <img src="https://github.com/RookiePlayers/clockit/actions/workflows/test.yml/badge.svg" alt="Build Status">
+  <a href="https://github.com/RookiePlayers/clockit/actions/workflows/production.yml">
+    <img src="https://github.com/RookiePlayers/clockit/actions/workflows/production.yml/badge.svg" alt="Build Status">
   </a>
-  <a href="https://github.com/RookiePlayers/clockit/blob/main/LICENSE">
-    <img src="https://img.shields.io/github/license/RookiePlayers/clockit?color=blue" alt="License">
+  <a href="https://opensource.org/licenses/MIT">
+    <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="MIT License">
   </a>
   <a href="https://github.com/RookiePlayers/clockit">
     <img src="https://img.shields.io/github/stars/RookiePlayers/clockit?style=social" alt="GitHub stars">
