@@ -11,14 +11,14 @@
     <img src="https://img.shields.io/visual-studio-marketplace/r/octech.clockit?label=Rating&color=ffb300&logo=starship&logoColor=white" alt="Rating">
   </a>
   <br />
-  <a href="https://github.com/RookiePlayers/timeit/actions/workflows/test.yml">
-    <img src="https://github.com/RookiePlayers/timeit/actions/workflows/test.yml/badge.svg" alt="Build Status">
+  <a href="https://github.com/RookiePlayers/clockit/actions/workflows/test.yml">
+    <img src="https://github.com/RookiePlayers/clockit/actions/workflows/test.yml/badge.svg" alt="Build Status">
   </a>
-  <a href="https://github.com/RookiePlayers/timeit/blob/main/LICENSE">
-    <img src="https://img.shields.io/github/license/RookiePlayers/timeit?color=blue" alt="License">
+  <a href="https://github.com/RookiePlayers/clockit/blob/main/LICENSE">
+    <img src="https://img.shields.io/github/license/RookiePlayers/clockit?color=blue" alt="License">
   </a>
-  <a href="https://github.com/RookiePlayers/timeit">
-    <img src="https://img.shields.io/github/stars/RookiePlayers/timeit?style=social" alt="GitHub stars">
+  <a href="https://github.com/RookiePlayers/clockit">
+    <img src="https://img.shields.io/github/stars/RookiePlayers/clockit?style=social" alt="GitHub stars">
   </a>
 </p>
 
@@ -51,12 +51,12 @@ https://github.com/user-attachments/assets/4a6f36cf-c224-47b1-bd08-fb2f39038b11
 
 Automatically records time spent on projects.
   • Start Session
-Command: TimeIt: Start Time Tracking
+Command: clockit: Start Time Tracking
 → Starts a timer linked to your current workspace.
   • Pause / Resume
-Command: TimeIt: Pause or TimeIt: Resume.
+Command: clockit: Pause or clockit: Resume.
   • Stop Session
-Command: TimeIt: Stop
+Command: clockit: Stop
 → Prompts for a short comment (e.g. “Refactored API routes”).
 
 What gets tracked:
@@ -79,7 +79,7 @@ You’ll see the current timer and controls in the status bar (bottom-left).
 ### Automatically logs your work as a Jira worklog entry
 
 1. Configure Jira Credentials
-   - Run: TimeIt: Configure Jira
+   - Run: clockit: Configure Jira
    - Enter:
      - jira.domain: e.g. yourteam.atlassian.net
      - jira.email: your Atlassian account
@@ -88,7 +88,7 @@ You’ll see the current timer and controls in the status bar (bottom-left).
    - When exporting, a prompt appears: “Search issues by key or summary.”
    - Type part of a key (TP-12) or summary (login bug) to find matching issues.
 3. Automatic Issue Detection
-   - If your branch or commit comment includes a key (TP-123), TimeIt detects it automatically.
+   - If your branch or commit comment includes a key (TP-123), clockit detects it automatically.
 4. View Results
    - Success → Jira → TP-123 in the output channel.
    - Errors show helpful messages (e.g. auth expired, issue not visible)
@@ -97,7 +97,7 @@ You’ll see the current timer and controls in the status bar (bottom-left).
 
 Logs each session as a new row in a Notion database.
 1. Configure Notion
-  • Run: TimeIt: Configure Notion
+  • Run: clockit: Configure Notion
   • Enter:
   • notion.apiToken: internal integration token from Notion.
   • notion.database: select your target database.
@@ -111,16 +111,16 @@ Logs each session as a new row in a Notion database.
   • Comment (Rich Text)
   • Branch / Issue (Text)
 3. Export
-  • TimeIt automatically creates a page under that database after each completed session.
+  • clockit automatically creates a page under that database after each completed session.
 
 ---
 ### CSV Exports
 
 Every completed session is appended to a CSV file for local analysis or backup.
   • CSV file location:
-~/Documents/TimeIt/ (default)
+~/Documents/clockit/ (default)
 or whatever you set in
-timeit_logger.csv.outputDirectory.
+clockit_logger.csv.outputDirectory.
   • Each entry includes:
 ```bash
 startedIso, endedIso, durationSeconds, idleSeconds, linesAdded, linesDeleted, perFileSeconds, perLanguageSeconds, authorName, authorEmail, machine, workspace, repoPath, branch, issueKey, comment
@@ -219,24 +219,24 @@ Values are stored securely using:
 
 | Description                  | Command                            |
 |------------------------------|------------------------------------|
-| Begin a new session          | TimeIt: Start Time Tracking        |
-| Description                  | TimeIt: Pause Time Tracking        |
-| Temporarily pause            | TimeIt: Resume Time Tracking       |
-| Continue paused session      | TimeIt: Stop Time Tracking         |
-| End session and export       | TimeIt: Configure Jira             |
-| Set up Jira credentials      | TimeIt: Configure Notion           |
-| Set up Notion integration    | TimeIt: CSV Menu                   |
-| Open quick actions for CSV   | TimeIt: Toggle Status Bar          |
+| Begin a new session          | clockit: Start Time Tracking        |
+| Description                  | clockit: Pause Time Tracking        |
+| Temporarily pause            | clockit: Resume Time Tracking       |
+| Continue paused session      | clockit: Stop Time Tracking         |
+| End session and export       | clockit: Configure Jira             |
+| Set up Jira credentials      | clockit: Configure Notion           |
+| Set up Notion integration    | clockit: CSV Menu                   |
+| Open quick actions for CSV   | clockit: Toggle Status Bar          |
 | Show/hide status widget      |                                    |
 
 
 ### Automatic background
 | Setting                              | Meaning                | Recommended Value      |
 |---------------------------------------|------------------------|-----------------------|
-| `timeit_logger.backup.enabled`        | Enables background backup | ✅ (true)              |
-| `timeit_logger.backup.intervalSeconds`| How often to save      | `60` (`0` disables periodic writes; shutdown flushes still run) |
-| `timeit_logger.backup.directory`      | Custom backup directory | (same as CSV / CWD)   |
-| `timeit_logger.backup.filenamePrefix` | Filename prefix        | `backup_`             |
+| `clockit_logger.backup.enabled`        | Enables background backup | ✅ (true)              |
+| `clockit_logger.backup.intervalSeconds`| How often to save      | `60` (`0` disables periodic writes; shutdown flushes still run) |
+| `clockit_logger.backup.directory`      | Custom backup directory | (same as CSV / CWD)   |
+| `clockit_logger.backup.filenamePrefix` | Filename prefix        | `backup_`             |
 
 ---
 
@@ -246,17 +246,17 @@ Values are stored securely using:
 | Jira 400 / 401         | Invalid token or domain                   | Refresh API token and re-run “Configure Jira.”   |
 | Notion 400 Bad Request | Missing title field or wrong property type| Add a Title column and ensure property types match.|
 | CSV not appearing      | backup.directory not set or disabled      | Re-enable backups in settings.                   |
-| Timer not visible      | Status bar hidden                         | Run TimeIt: Toggle Status Bar.                   |
+| Timer not visible      | Status bar hidden                         | Run clockit: Toggle Status Bar.                   |
 
 
 ---
 ## Tips & Best Practices
 
-  - Add issue keys (e.g. TP-123) to your branch names — TimeIt auto-detects them.
+  - Add issue keys (e.g. TP-123) to your branch names — clockit auto-detects them.
   - Keep backup enabled; it protects you from VS Code crashes.
   - If Jira search doesn’t show results, make sure your API token and domain are correct.
   - Use Notion’s “Created time” and “Last edited time” for smart dashboards.
-  - Combine TimeIt’s CSV output with your analytics tool or scripts.
+  - Combine clockit’s CSV output with your analytics tool or scripts.
 
 ---
 ## 📄 License

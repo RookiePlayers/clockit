@@ -1,23 +1,23 @@
-# [1.2.0](https://github.com/RookiePlayers/timeit/compare/v1.1.1...v1.2.0) (2025-11-21)
+# [1.2.0](https://github.com/RookiePlayers/clockit/compare/v1.1.1...v1.2.0) (2025-11-21)
 
 
 ### Features
 
-* Update VSCode engine version and enhance CSV output options ([be750a2](https://github.com/RookiePlayers/timeit/commit/be750a2c9810db786c13f8d63291d21a9c1977a6))
+* Update VSCode engine version and enhance CSV output options ([be750a2](https://github.com/RookiePlayers/clockit/commit/be750a2c9810db786c13f8d63291d21a9c1977a6))
 
-## [1.1.1](https://github.com/RookiePlayers/timeit/compare/v1.1.0...v1.1.1) (2025-11-07)
+## [1.1.1](https://github.com/RookiePlayers/clockit/compare/v1.1.0...v1.1.1) (2025-11-07)
 
 
 ### Bug Fixes
 
-* Update repository and homepage URLs in package.json to reflect correct project location ([056e7eb](https://github.com/RookiePlayers/timeit/commit/056e7eb659543b2455a4b828619faf5f6b8486a6))
+* Update repository and homepage URLs in package.json to reflect correct project location ([056e7eb](https://github.com/RookiePlayers/clockit/commit/056e7eb659543b2455a4b828619faf5f6b8486a6))
 
-# [1.1.0](https://github.com/RookiePlayers/timeit/compare/v1.0.0...v1.1.0) (2025-11-07)
+# [1.1.0](https://github.com/RookiePlayers/clockit/compare/v1.0.0...v1.1.0) (2025-11-07)
 
 
 ### Features
 
-* Add icon.png to package.json for improved branding ([45ef89f](https://github.com/RookiePlayers/timeit/commit/45ef89fcf1bca485e65b73138c9eb68c46f0f44c))
+* Add icon.png to package.json for improved branding ([45ef89f](https://github.com/RookiePlayers/clockit/commit/45ef89fcf1bca485e65b73138c9eb68c46f0f44c))
 
 # 1.0.0 (2025-11-07)
 

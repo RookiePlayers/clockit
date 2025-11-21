@@ -6,8 +6,8 @@
   "publisher": "octech",
   "icon": "icon.png",
   "license": "MIT",
-  "repository": "https://github.com/RookiePlayers/timeit.git",
-  "homepage": "https://github.com/RookiePlayers/timeit.git",
+  "repository": "https://github.com/RookiePlayers/clockit.git",
+  "homepage": "https://github.com/RookiePlayers/clockit.git",
   "engines": {
     "vscode": "^1.77.0"
   },
@@ -225,7 +225,7 @@
     "@types/jest": "^29.5.14",
     "@types/mocha": "^10.0.10",
     "@types/node": "^22.19.0",
-    "@types/vscode": "^1.105.0",
+    "@types/vscode": "^1.77.0",
     "@typescript-eslint/eslint-plugin": "^8.45.0",
     "@typescript-eslint/parser": "^8.45.0",
     "@vscode/test-cli": "^0.0.11",
