@@ -1,3 +1,10 @@
+## [1.3.1](https://github.com/RookiePlayers/clockit/compare/v1.3.0...v1.3.1) (2025-11-21)
+
+
+### Bug Fixes
+
+* Update VSIX artifact naming in build workflow and release configuration ([e3775ef](https://github.com/RookiePlayers/clockit/commit/e3775ef1ca31ea8324547a4d945d92d92492c18b))
+
 # [1.3.0](https://github.com/RookiePlayers/clockit/compare/v1.2.0...v1.3.0) (2025-11-21)
 
 
