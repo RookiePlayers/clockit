@@ -36,16 +36,15 @@ export class CsvFolderService {
   }
 }
 
-async getCsvRootAndFile() {
+  async getCsvRootAndFile() {
   const cfg = this.vscode.workspace.getConfiguration();
   const outDir = (cfg.get<string>('clockit.csv.outputDirectory') || '').trim();
   const filename = cfg.get<string>('clockit.csv.filename') || 'time_log.csv';
   const path = await import('path');
-  const os = await import('os');
   const root =
     outDir ||
     this.vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ||
-    path.join(os.homedir(), '.clockit');
+    process.cwd();
   const full = path.join(root, filename);
   return { root, full };
 }

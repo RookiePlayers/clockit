@@ -122,29 +122,49 @@ export class NotionSink extends BaseSink implements TimeSink {
   // Create a page in a database with structured properties
   private async exportToDatabase(databaseId: string, s: Session): Promise<Result> {
     // Preflight: get DB schema to find the title property name
-    const titleProp = await this.getDatabaseTitleProp(databaseId);
-    if (titleProp === 'AUTH_ERROR') {
+    const schema = await this.getDatabaseSchema(databaseId);
+    if (schema === 'AUTH_ERROR') {
       return { ok: false, message: 'Notion auth failed', code: 'auth_error', field: 'notion.apiToken', retryable: true };
     }
-    if (titleProp === 'MISSING') {
+    if (schema === 'MISSING') {
       return { ok: false, message: 'Database not found or inaccessible', code: 'invalid_field', field: 'notion.destination', retryable: true };
     }
 
-    const titleName = titleProp || 'Name'; // fallback; Notion enforces at least one title
+    const ensure = await this.ensureDatabaseProperties(databaseId, schema.properties);
+    if (ensure === 'AUTH_ERROR') {
+      return { ok: false, message: 'Notion auth failed', code: 'auth_error', field: 'notion.apiToken', retryable: true };
+    }
+    if (ensure === 'MISSING') {
+      return { ok: false, message: 'Database not found or inaccessible', code: 'invalid_field', field: 'notion.destination', retryable: true };
+    }
+    if (ensure === 'ERROR') {
+      return { ok: false, message: 'Could not ensure database properties' };
+    }
 
-    const titleText = s.comment?.trim()
+    const titleName = schema.titleProp || 'Name'; // fallback; Notion enforces at least one title
+
+    const titleText = s.title?.trim()
+      || s.comment?.trim()
       || s.issueKey
       || `${new Date(s.startedIso).toLocaleString()} (${Math.round(s.durationSeconds / 60)}m)`;
 
     const props: Record<string, any> = {
       [titleName]: { title: [{ type: 'text', text: { content: titleText } }] },
       Duration: { number: s.durationSeconds ?? 0 },
+      IdleSeconds: { number: s.idleSeconds ?? 0 },
+      LinesAdded: { number: s.linesAdded ?? 0 },
+      LinesDeleted: { number: s.linesDeleted ?? 0 },
+      PerFileSeconds: { rich_text: s.perFileSeconds ? [{ type: 'text', text: { content: JSON.stringify(s.perFileSeconds) } }] : [] },
+      PerLanguageSeconds: { rich_text: s.perLanguageSeconds ? [{ type: 'text', text: { content: JSON.stringify(s.perLanguageSeconds) } }] : [] },
       Started:  { date: { start: s.startedIso } },
       Ended:    s.endedIso ? { date: { start: s.endedIso } } : undefined,
       Workspace:{ rich_text: s.workspace ? [{ type: 'text', text: { content: s.workspace } }] : [] },
       Repo:     { rich_text: s.repoPath ? [{ type: 'text', text: { content: s.repoPath } }] : [] },
       Branch:   { rich_text: s.branch ? [{ type: 'text', text: { content: s.branch } }] : [] },
       IssueKey: { rich_text: s.issueKey ? [{ type: 'text', text: { content: String(s.issueKey) } }] : [] },
+      Author:   { rich_text: s.authorName ? [{ type: 'text', text: { content: s.authorName } }] : [] },
+      AuthorEmail: s.authorEmail ? { email: s.authorEmail } : undefined,
+      Machine:  { rich_text: s.machine ? [{ type: 'text', text: { content: s.machine } }] : [] },
     };
 
     // strip undefined properties (Ended)
@@ -247,7 +267,7 @@ export class NotionSink extends BaseSink implements TimeSink {
   }
 
   // Fetch database schema and return its title property name
-  private async getDatabaseTitleProp(databaseId: string): Promise<string | 'AUTH_ERROR' | 'MISSING'> {
+  private async getDatabaseSchema(databaseId: string): Promise<{ titleProp: string | undefined; properties: Record<string, { type: string }> } | 'AUTH_ERROR' | 'MISSING'> {
     try {
       const res = await this.fetchFn(`https://api.notion.com/v1/databases/${encodeURIComponent(databaseId)}`, {
         method: 'GET',
@@ -262,9 +282,50 @@ export class NotionSink extends BaseSink implements TimeSink {
       };
       const props = data.properties || {};
       const titleEntry = Object.entries(props).find(([, v]) => v?.type === 'title');
-      return titleEntry?.[0] || 'Name';
-    } catch {
+      return { titleProp: titleEntry?.[0] || 'Name', properties: props };
+    } catch (e) {
       return 'MISSING';
+    }
+  }
+
+  private async ensureDatabaseProperties(
+    databaseId: string,
+    existing: Record<string, { type: string }>,
+  ): Promise<'OK' | 'AUTH_ERROR' | 'MISSING' | 'ERROR'> {
+    const desired: Record<string, any> = {
+      Duration: { number: {} },
+      Started:  { date: {} },
+      Ended:    { date: {} },
+      Workspace:{ rich_text: {} },
+      Repo:     { rich_text: {} },
+      Branch:   { rich_text: {} },
+      IssueKey: { rich_text: {} },
+      Author:   { rich_text: {} },
+      AuthorEmail: { email: {} },
+      Machine:  { rich_text: {} },
+      IdleSeconds: { number: {} },
+      LinesAdded: { number: {} },
+      LinesDeleted: { number: {} },
+      PerFileSeconds: { rich_text: {} },
+      PerLanguageSeconds: { rich_text: {} },
+    };
+
+    const missingEntries = Object.entries(desired).filter(([name]) => !existing?.[name]);
+    if (missingEntries.length === 0) {return 'OK';}
+
+    const body = { properties: Object.fromEntries(missingEntries) };
+    try {
+      const res = await this.fetchFn(`https://api.notion.com/v1/databases/${encodeURIComponent(databaseId)}`, {
+        method: 'PATCH',
+        headers: this.authHeaders(),
+        body: JSON.stringify(body),
+      });
+      if (res.status === 401 || res.status === 403) {return 'AUTH_ERROR';}
+      if (res.status === 404) {return 'MISSING';}
+      if (!res.ok) {return 'ERROR';}
+      return 'OK';
+    } catch {
+      return 'ERROR';
     }
   }
 }

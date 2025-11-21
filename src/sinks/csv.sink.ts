@@ -20,8 +20,7 @@ export class CsvSink extends BaseSink {
   const ensureDir = Boolean(this.options.ensureDirectory ?? true);
 
   const dir = this.expand(String(this.options.outputDirectory || '')) ||
-    process.env.WORKSPACE_ROOT ||
-    path.join(os.homedir(), '.clockit');
+    process.cwd();
 
   const file = String(this.options.filename || 'time_log.csv');
   const addHeader = Boolean(this.options.addHeaderIfMissing ?? true);
@@ -38,13 +37,19 @@ export class CsvSink extends BaseSink {
     return { ok: false, message: `CSV directory not available: ${dir}`, error: e };
   }
 
-  const header = 'startedIso,endedIso,durationSeconds,workspace,repoPath,branch,issueKey,comment\n';
+  const header = 'startedIso,endedIso,durationSeconds,idleSeconds,linesAdded,linesDeleted,perFileSeconds,perLanguageSeconds,authorName,authorEmail,machine,workspace,repoPath,branch,issueKey,comment\n';
     try {
       let exists = true;
       try { await fs.access(p); } catch { exists = false; }
 
       const row = [
         s.startedIso, s.endedIso, s.durationSeconds,
+        s.idleSeconds ?? 0,
+        s.linesAdded ?? 0,
+        s.linesDeleted ?? 0,
+        JSON.stringify(s.perFileSeconds ?? {}),
+        JSON.stringify(s.perLanguageSeconds ?? {}),
+        s.authorName ?? '', s.authorEmail ?? '', s.machine ?? '',
         s.workspace ?? '', s.repoPath ?? '', s.branch ?? '', s.issueKey ?? '', s.comment ?? ''
       ].map(v => {
         const str = String(v ?? '');

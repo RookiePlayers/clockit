@@ -12,6 +12,15 @@ export type BackupRow = {
   startedIso: string;
   endedIso?: string;
   durationSeconds: number;
+  title?: string;
+  idleSeconds?: number;
+  linesAdded?: number;
+  linesDeleted?: number;
+  perFileSeconds?: Record<string, number>;
+  perLanguageSeconds?: Record<string, number>;
+  authorName?: string;
+  authorEmail?: string;
+  machine?: string;
   workspace?: string;
   repoPath?: string;
   branch?: string | null;
@@ -36,7 +45,11 @@ export class BackupManager {
 
   start() {
     if (!this.opts.enabled || this.timer) {return;}
-    const ms = Math.max(0, this.opts.intervalSeconds) * 1000; // no hidden 10s floor
+    const seconds = Math.max(0, this.opts.intervalSeconds);
+    // Allow intervalSeconds <= 0 to disable the period timer while keeping manual flushes
+    if (seconds <= 0) {return;}
+
+    const ms = seconds * 1000; // no hidden 10s floor
     this.timer = setInterval(() => { void this.flushTick(); }, ms);
   }
 
@@ -69,22 +82,31 @@ export class BackupManager {
     if (!this.pending) {return;}
 
     const file = await this.resolveBackupFilePath(new Date());
-    await this.ensureDir(path.dirname(file));
+    const dir  = path.dirname(file);
+    await this.ensureDir(dir);
 
     const exists = fssync.existsSync(file);
     const header =
-      'startedIso,endedIso,durationSeconds,workspace,repoPath,branch,issueKey,comment\n';
+      'startedIso,endedIso,durationSeconds,idleSeconds,linesAdded,linesDeleted,perFileSeconds,perLanguageSeconds,authorName,authorEmail,machine,workspace,repoPath,branch,issueKey,comment\n';
 
     const line =
       [
         csv(this.pending.startedIso),
         csv(this.pending.endedIso ?? ''),
         csv(String(this.pending.durationSeconds ?? 0)),
+        csv(String(this.pending.idleSeconds ?? 0)),
+        csv(String(this.pending.linesAdded ?? 0)),
+        csv(String(this.pending.linesDeleted ?? 0)),
+        csv(JSON.stringify(this.pending.perFileSeconds ?? {})),
+        csv(JSON.stringify(this.pending.perLanguageSeconds ?? {})),
+        csv(this.pending.authorName ?? ''),
+        csv(this.pending.authorEmail ?? ''),
+        csv(this.pending.machine ?? ''),
         csv(this.pending.workspace ?? ''),
         csv(this.pending.repoPath ?? ''),
         csv(this.pending.branch ?? ''),
         csv(this.pending.issueKey ?? ''),
-        csv(this.pending.comment ?? ''),
+        csv(this.pending.comment ?? this.pending.title ?? ''),
       ].join(',') + '\n';
 
     if (!exists) {
@@ -103,17 +125,37 @@ export class BackupManager {
     const dd = String(d.getDate()).padStart(2, '0');
     const name = `${this.opts.filenamePrefix}${yyyy}${mm}${dd}.csv`;
 
+    const baseDir = this.resolveBaseDir();
+    return path.join(baseDir, name);
+  }
+
+  private resolveBaseDir(): string {
     // Priority: explicit backup.directory → csvDirFallback → workspace root → cwd
     const explicit = (this.opts.directory || '').trim();
-    if (explicit) {return path.join(explicit, name);}
-    if (this.opts.csvDirFallback) {return path.join(this.opts.csvDirFallback, name);}
-
+    const fallback = (this.opts.csvDirFallback || '').trim();
     const ws = vscode?.workspace?.workspaceFolders?.[0]?.uri.fsPath;
-    return path.join(ws ?? process.cwd(), name);
+
+    // If a file-looking path was provided (e.g., "backup_timelog.csv"), treat its dirname as the target folder.
+    const candidate = explicit || fallback || ws || process.cwd();
+    const looksLikeFile = /\.[^/\\]+$/.test(candidate);
+    const dir = looksLikeFile ? path.dirname(candidate) : candidate;
+
+    // Resolve relative paths against the workspace root when available.
+    if (!path.isAbsolute(dir)) {
+      return path.join(ws ?? process.cwd(), dir);
+    }
+    return dir;
   }
 
   private async ensureDir(dir: string) {
-    await fs.mkdir(dir, { recursive: true });
+    // If dir collapses to root/current, mkdir would be a no-op; skip for safety.
+    if (!dir || dir === '.' || dir === '/') {return;}
+    try {
+      await fs.mkdir(dir, { recursive: true });
+    } catch (err) {
+      console.warn('[clockit] backup ensureDir failed', err);
+      throw err;
+    }
   }
 }
 

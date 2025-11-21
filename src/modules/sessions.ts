@@ -1,4 +1,6 @@
 import * as vscode from 'vscode';
+import * as os from 'os';
+import { execSync } from 'child_process';
 import { makeSession, roundSession } from '../core/sessions';
 import { Pipeline } from '../core/pipeline';
 import type { Session } from '../core/types';
@@ -15,8 +17,12 @@ export function registerSessionCommands(ctx: vscode.ExtensionContext, utils: Uti
     vscode.commands.registerCommand('clockit.stop',              () => stopSession(utils)),
 
     // Mark activity
-    vscode.workspace.onDidChangeTextDocument(() => utils.markActivity()),
-    vscode.window.onDidChangeActiveTextEditor(() => utils.markActivity()),
+    vscode.workspace.onDidChangeTextDocument(e => {
+      utils.recordTextChange(e);
+    }),
+    vscode.window.onDidChangeActiveTextEditor(editor => {
+      utils.onEditorChanged(editor);
+    }),
   );
 }
 
@@ -48,11 +54,25 @@ async function stopSession(utils: Utils) {
   session.comment = comment ?? '';
 
   // Git context + issue key detection
-  const { branch, repoPath, workspaceName } = await getGitContext();
+  const { branch, repoPath, workspaceName, lastCommit } = await getGitContext();
   session.branch = branch;
   session.repoPath = repoPath;
   session.workspace = workspaceName;
   session.issueKey = extractIssueKey(`${branch ?? ''} ${comment ?? ''}`) ?? null;
+  const identity = resolveAuthorIdentity();
+  session.authorName = identity.authorName;
+  session.authorEmail = identity.authorEmail;
+  session.machine = identity.machine;
+  const metrics = utils.getMetricsSnapshot();
+  session.idleSeconds = metrics.idleSeconds;
+  session.linesAdded = metrics.linesAdded;
+  session.linesDeleted = metrics.linesDeleted;
+  session.perFileSeconds = metrics.perFileSeconds;
+  session.perLanguageSeconds = metrics.perLanguageSeconds;
+  session.title = session.comment?.trim() || lastCommit || undefined;
+  if (!session.comment) {
+    session.comment = lastCommit || '';
+  }
 
   // Round to 5m with 60s floor
   const pipeline = new Pipeline().use(s => roundSession(s, 300, 60));
@@ -78,9 +98,10 @@ async function getGitContext() {
       branch: repo?.state?.HEAD?.name ?? null,
       repoPath: repo?.rootUri?.fsPath,
       workspaceName: vscode.workspace.name,
+      lastCommit: readLatestCommit(repo?.rootUri?.fsPath),
     };
   } catch {
-    return { branch: null, repoPath: undefined, workspaceName: vscode.workspace.name };
+    return { branch: null, repoPath: undefined, workspaceName: vscode.workspace.name, lastCommit: undefined };
   }
 }
 
@@ -89,4 +110,43 @@ function extractIssueKey(s: string): string | null {
   const m = s?.match(re);
   const key = m?.[1] || m?.[0] || null;
   return key ? key.toUpperCase() : null;
+}
+
+function resolveAuthorIdentity() {
+  const cfg = vscode.workspace.getConfiguration();
+  const authorName =
+    (cfg.get<string>('clockit.author.name') || '').trim() ||
+    readGitConfig('user.name');
+  const authorEmail =
+    (cfg.get<string>('clockit.author.email') || '').trim() ||
+    readGitConfig('user.email');
+  const machine =
+    (cfg.get<string>('clockit.machineName') || '').trim() ||
+    os.hostname();
+
+  return { authorName: authorName || undefined, authorEmail: authorEmail || undefined, machine };
+}
+
+function readGitConfig(key: string) {
+  try {
+    return execSync(`git config --get ${key}`, {
+      encoding: 'utf8',
+      cwd: vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? process.cwd(),
+      stdio: ['ignore', 'pipe', 'ignore'],
+    }).trim();
+  } catch {
+    return '';
+  }
+}
+
+function readLatestCommit(cwd?: string) {
+  try {
+    return execSync('git log -1 --pretty=%s', {
+      encoding: 'utf8',
+      cwd: cwd ?? vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? process.cwd(),
+      stdio: ['ignore', 'pipe', 'ignore'],
+    }).trim();
+  } catch {
+    return '';
+  }
 }

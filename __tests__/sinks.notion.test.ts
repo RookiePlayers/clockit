@@ -62,10 +62,12 @@ describe('NotionSink', () => {
         Duration: { type: 'number' },
       },
     });
-    // 2) POST /v1/pages create
+    // 2) PATCH ensure properties
+    const ensured = okJson({});
+    // 3) POST /v1/pages create
     const created = createdJson({ id: 'new-page-id' });
 
-    const fetch = makeFetch(dbSchema, created);
+    const fetch = makeFetch(dbSchema, ensured, created);
     const sink = new NotionSink(makeCfg(), fetch as any);
 
     const res = await sink.export(makeSession({ durationSeconds: 2700, comment: 'Big chunk' }));
@@ -79,8 +81,12 @@ describe('NotionSink', () => {
       expect.objectContaining({ method: 'GET' })
     );
 
-    // call 2: POST page
-    const [, init2] = (fetch as jest.Mock).mock.calls[1];
+    // call 2: PATCH properties
+    const [, initPatch] = (fetch as jest.Mock).mock.calls[1];
+    expect(initPatch.method).toBe('PATCH');
+
+    // call 3: POST page
+    const [, init2] = (fetch as jest.Mock).mock.calls[2];
     expect(init2.method).toBe('POST');
     const body2 = JSON.parse(String(init2.body));
     expect(body2.parent.database_id).toBe('aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee');
@@ -98,13 +104,14 @@ describe('NotionSink', () => {
         SomethingElse: { type: 'number' },
       },
     });
+    const ensured = okJson({});
     const created = createdJson({ id: 'page2' });
-    const fetch = makeFetch(dbSchema, created);
+    const fetch = makeFetch(dbSchema, ensured, created);
 
     const sink = new NotionSink(makeCfg(), fetch as any);
     await sink.export(makeSession({ comment: 'Hello TitleX' }));
 
-    const [, init2] = (fetch as jest.Mock).mock.calls[1];
+    const [, init2] = (fetch as jest.Mock).mock.calls[2];
     const body = JSON.parse(String(init2.body));
     expect(body.properties.TitleX.title[0].text.content).toBe('Hello TitleX');
   });
@@ -183,9 +190,11 @@ describe('NotionSink', () => {
 
   test('network error → graceful failure', async () => {
     const dbSchema = okJson({ properties: { Name: { type: 'title' } } });
+    const ensured = okJson({});
     const fetch = jest
       .fn()
       .mockResolvedValueOnce(dbSchema) // preflight ok
+      .mockResolvedValueOnce(ensured)  // ensure properties ok
       .mockRejectedValueOnce(new Error('boom')); // POST fails
 
     const sink = new NotionSink(makeCfg(), fetch as any);

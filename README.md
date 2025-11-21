@@ -22,7 +22,7 @@
   </a>
 </p>
 
-**Clockit** helps developers log coding sessions automatically, add session comments, and export tracked time to **CSV**, **Jira**, or **Notion** — all within VS Code.
+**Clockit** helps developers log coding sessions automatically, add session comments, and export tracked time to **CSV**, **Jira**, or **Notion** — all within VS Code (tested on VS Code 1.80+).
 
 ---
 
@@ -34,7 +34,10 @@ https://github.com/user-attachments/assets/4a6f36cf-c224-47b1-bd08-fb2f39038b11
 
 - **Automatic time tracking** when you start coding  
 - **Idle detection & trimming** for accurate duration  
-- **Session comments** on stop  
+- **Idle seconds recorded** for visibility per session  
+- **Per-file and per-language focus time** captured automatically  
+- **Line changes counted** (added/deleted) for lightweight effort signals  
+- **Session comments** on stop (defaults to latest git commit subject if empty)  
 - **Multi-sink export** — CSV, Jira, Notion  
 - **Guided credential prompts** (stored securely)  
 - **Edit or clear credentials anytime**  
@@ -120,7 +123,7 @@ or whatever you set in
 timeit_logger.csv.outputDirectory.
   • Each entry includes:
 ```bash
-startedIso, endedIso, durationSeconds, workspace, repoPath, branch, issueKey, comment
+startedIso, endedIso, durationSeconds, idleSeconds, linesAdded, linesDeleted, perFileSeconds, perLanguageSeconds, authorName, authorEmail, machine, workspace, repoPath, branch, issueKey, comment
 ```
 
 *You can open it in Excel, Numbers, or Google Sheets for timesheet analysis.*
@@ -194,8 +197,12 @@ Values are stored securely using:
 | `clockit.showNotifications` | boolean | `true` | Show start/stop/export messages. |
 | `clockit.askSinksEachTime` | boolean | `true` | Always prompt for sinks each session. |
 | `clockit.enabledSinks` | string[] | `["csv"]` | Default sinks when prompting is off. |
-| `clockit.csv.outputDirectory` | string | workspace root | CSV export folder. |
+| `clockit.csv.outputDirectory` | string | workspace root | CSV export folder (defaults to current working dir if empty). |
 | `clockit.csv.filename` | string | `time_log.csv` | CSV log file name. |
+| `clockit.author.name` | string | `""` | Author name used in exports (falls back to git user.name). |
+| `clockit.author.email` | string | `""` | Author email used in exports (falls back to git user.email). |
+| `clockit.machineName` | string | `""` | Machine identifier for exports (defaults to hostname). |
+| `clockit.backup.intervalSeconds` | number | `60` | Background backup interval; set to `0` to disable periodic writes (shutdown flushes still happen). |
 
 ---
 
@@ -227,8 +234,8 @@ Values are stored securely using:
 | Setting                              | Meaning                | Recommended Value      |
 |---------------------------------------|------------------------|-----------------------|
 | `timeit_logger.backup.enabled`        | Enables background backup | ✅ (true)              |
-| `timeit_logger.backup.intervalSeconds`| How often to save      | `60`                  |
-| `timeit_logger.backup.directory`      | Custom backup directory | (same as CSV)         |
+| `timeit_logger.backup.intervalSeconds`| How often to save      | `60` (`0` disables periodic writes; shutdown flushes still run) |
+| `timeit_logger.backup.directory`      | Custom backup directory | (same as CSV / CWD)   |
 | `timeit_logger.backup.filenamePrefix` | Filename prefix        | `backup_`             |
 
 ---

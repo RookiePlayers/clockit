@@ -11,6 +11,14 @@ export function makeSession(args: {
   startedIso: string;
   endedIso?: string;
   durationSeconds?: number; // if provided, overrides endedIso diff
+  idleSeconds?: number;
+  linesAdded?: number;
+  linesDeleted?: number;
+  perFileSeconds?: Record<string, number>;
+  perLanguageSeconds?: Record<string, number>;
+  authorName?: string;
+  authorEmail?: string;
+  machine?: string;
   workspace?: string;
   repoPath?: string;
   branch?: string | null;
@@ -19,7 +27,8 @@ export function makeSession(args: {
   meta?: Record<string, unknown>;
 }): Session {
   const {
-    startedIso, endedIso, durationSeconds,
+    startedIso, endedIso, durationSeconds, idleSeconds, linesAdded, linesDeleted,
+    perFileSeconds, perLanguageSeconds, authorName, authorEmail, machine,
     workspace, repoPath, branch, issueKey, comment, meta
   } = args;
 
@@ -32,6 +41,14 @@ export function makeSession(args: {
     startedIso,
     endedIso: end,
     durationSeconds: duration,
+    idleSeconds,
+    linesAdded,
+    linesDeleted,
+    perFileSeconds,
+    perLanguageSeconds,
+    authorName,
+    authorEmail,
+    machine,
     workspace,
     repoPath,
     branch: branch ?? null,

@@ -1,4 +1,7 @@
 import { secondsToHMS } from './core/util';
+import type { Session } from './core/types';
+import * as os from 'os';
+import { execSync } from 'child_process';
 
 export class Utils {
   // ── runtime state
@@ -6,6 +9,18 @@ export class Utils {
   private startedAt: number;
   private startedIso: string;
   private lastActive: number;
+  private lastBackupPush = 0;
+  private lastTick = 0;
+  private idleSeconds = 0;
+  private perFileSeconds: Map<string, number> = new Map();
+  private perLanguageSeconds: Map<string, number> = new Map();
+  private linesAdded = 0;
+  private linesDeleted = 0;
+  private activeUri?: string;
+  private activeLanguage?: string;
+  private authorName?: string;
+  private authorEmail?: string;
+  private machine?: string;
 
   private tickTimer: NodeJS.Timeout | null = null;
   private idleChecker: NodeJS.Timeout | null = null;
@@ -20,6 +35,7 @@ export class Utils {
     this.startedAt = 0;
     this.startedIso = '';
     this.lastActive = 0;
+    this.lastTick = 0;
   }
 
   // ── singleton
@@ -41,7 +57,12 @@ export class Utils {
     this.startedAt = now;
     this.startedIso = new Date(now).toISOString();
     this.lastActive = now;
+    this.lastTick = now;
+    this.resetMetrics();
+    this.captureIdentity();
+    this.onEditorChanged(this.vscode.window.activeTextEditor, now);
     this.startTimers();
+    void this.pushBackupSnapshot(now, true);
     this.updateStatusBar();
   }
 
@@ -51,6 +72,10 @@ export class Utils {
     const now = Date.now();
     const rawDurationSeconds = Math.max(0, Math.floor((now - this.startedAt) / 1000));
 
+    // capture a final backup snapshot before we stop
+    void this.pushBackupSnapshot(now, true);
+
+    this.accrueTime(now);
     this.running = false;
     this.clearTimers();
     this.updateStatusBar();
@@ -66,6 +91,37 @@ export class Utils {
     if (this.running) {this.lastActive = ts;}
   }
 
+  onEditorChanged(editor?: import('vscode').TextEditor | undefined, ts = Date.now()) {
+    this.accrueTime(ts);
+    this.activeUri = editor?.document?.uri.toString();
+    this.activeLanguage = editor?.document?.languageId;
+  }
+
+  recordTextChange(e: import('vscode').TextDocumentChangeEvent) {
+    const now = Date.now();
+    this.markActivity(now);
+    if (!this.running) {return;}
+
+    // Approximate line deltas
+    for (const change of e.contentChanges) {
+      const added = change.text.split(/\r\n|\n/).length - 1;
+      const removed = change.range.end.line - change.range.start.line;
+      this.linesAdded += added;
+      this.linesDeleted += Math.max(0, removed);
+    }
+  }
+
+  getMetricsSnapshot(now = Date.now()) {
+    this.accrueTime(now);
+    return {
+      idleSeconds: this.idleSeconds,
+      linesAdded: this.linesAdded,
+      linesDeleted: this.linesDeleted,
+      perFileSeconds: Object.fromEntries(this.perFileSeconds),
+      perLanguageSeconds: Object.fromEntries(this.perLanguageSeconds),
+    };
+  }
+
   isRunning() { return this.running; }
   getStartedIso() { return this.startedIso; }
 
@@ -75,8 +131,11 @@ export class Utils {
 
     this.tickTimer = setInterval(() => {
       if (!this.running) {return;}
-      const sec = Math.max(0, Math.floor((Date.now() - this.startedAt) / 1000));
+      const now = Date.now();
+      this.accrueTime(now);
+      const sec = Math.max(0, Math.floor((now - this.startedAt) / 1000));
       this.statusBar.text = `$(watch) ${secondsToHMS(sec)} — Stop`;
+      void this.pushBackupSnapshot(now);
     }, 1000);
 
     this.idleChecker = setInterval(() => {
@@ -133,7 +192,7 @@ export class Utils {
     const root =
       outDir ||
       this.vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ||
-      path.join(os.homedir(), '.clockit');
+      process.cwd();
 
     const full = path.join(root, filename);
     const uri = this.vscode.Uri.file(full);
@@ -178,5 +237,113 @@ export class Utils {
   // keep it private & static so it doesn’t leak as API
   private static exists<T>(v: T | null | undefined): v is T {
     return v !== null && v !== undefined && (typeof v !== 'string' || v.trim() !== '');
+  }
+
+  private backupEnabled() {
+    return this.vscode.workspace.getConfiguration('clockit.backup').get<boolean>('enabled') ?? true;
+  }
+
+  private async pushBackupSnapshot(now: number, force = false) {
+    if (!this.backupEnabled() || !this.startedIso) {return;}
+
+    const intervalSetting = this.vscode.workspace.getConfiguration('clockit.backup').get<number>('intervalSeconds') ?? 60;
+    if (intervalSetting <= 0 && !force) {return;} // interval disabled; only allow forced snapshots
+
+    const intervalMs = Math.max(1, intervalSetting) * 1000;
+    if (!force && now - this.lastBackupPush < intervalMs) {return;}
+    this.lastBackupPush = now;
+
+    const metrics = this.getMetricsSnapshot(now);
+    const durationSeconds = Math.max(0, Math.floor((now - this.startedAt) / 1000));
+    const snapshot: Session = {
+      startedIso: this.startedIso,
+      endedIso: new Date(now).toISOString(),
+      durationSeconds,
+      idleSeconds: metrics.idleSeconds,
+      linesAdded: metrics.linesAdded,
+      linesDeleted: metrics.linesDeleted,
+      perFileSeconds: metrics.perFileSeconds,
+      perLanguageSeconds: metrics.perLanguageSeconds,
+      authorName: this.authorName,
+      authorEmail: this.authorEmail,
+      machine: this.machine,
+      workspace: this.vscode.workspace.name,
+      repoPath: this.vscode.workspace.workspaceFolders?.[0]?.uri.fsPath,
+      branch: null,
+      issueKey: null,
+      comment: '',
+    };
+
+    try {
+      await this.vscode.commands.executeCommand('clockit._internal.updateBackup', snapshot);
+    } catch (err) {
+      this.log('backup snapshot failed', err);
+    }
+  }
+
+  private async clearBackupPending() {
+    if (!this.backupEnabled()) {return;}
+    try {
+      await this.vscode.commands.executeCommand('clockit._internal.updateBackup');
+    } catch {
+      // ignore; backup is best-effort
+    }
+  }
+
+  private captureIdentity() {
+    const cfg = this.vscode.workspace.getConfiguration();
+    const nameCfg = (cfg.get<string>('clockit.author.name') || '').trim();
+    const emailCfg = (cfg.get<string>('clockit.author.email') || '').trim();
+    const machineCfg = (cfg.get<string>('clockit.machineName') || '').trim();
+
+    this.authorName = nameCfg || this.readGitConfig('user.name') || undefined;
+    this.authorEmail = emailCfg || this.readGitConfig('user.email') || undefined;
+    this.machine = machineCfg || os.hostname();
+  }
+
+  private readGitConfig(key: string) {
+    try {
+      return execSync(`git config --get ${key}`, {
+        encoding: 'utf8',
+        cwd: this.vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? process.cwd(),
+        stdio: ['ignore', 'pipe', 'ignore'],
+      }).trim();
+    } catch {
+      return '';
+    }
+  }
+
+  private accrueTime(now: number) {
+    if (!this.running) { this.lastTick = now; return; }
+
+    const delta = Math.max(0, Math.floor((now - this.lastTick) / 1000));
+    if (!delta) {return;}
+
+    const idleMinutes = this.vscode.workspace.getConfiguration().get<number>('clockit.idleTimeoutMinutes') ?? 5;
+    const idle = now - this.lastActive > idleMinutes * 60_000;
+
+    if (idle) {
+      this.idleSeconds += delta;
+      this.lastTick = now;
+      return;
+    }
+
+    if (this.activeUri) {
+      this.perFileSeconds.set(this.activeUri, (this.perFileSeconds.get(this.activeUri) ?? 0) + delta);
+    }
+    if (this.activeLanguage) {
+      this.perLanguageSeconds.set(this.activeLanguage, (this.perLanguageSeconds.get(this.activeLanguage) ?? 0) + delta);
+    }
+    this.lastTick = now;
+  }
+
+  private resetMetrics() {
+    this.idleSeconds = 0;
+    this.linesAdded = 0;
+    this.linesDeleted = 0;
+    this.perFileSeconds.clear();
+    this.perLanguageSeconds.clear();
+    this.activeUri = undefined;
+    this.activeLanguage = undefined;
   }
 }

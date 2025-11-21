@@ -25,6 +25,15 @@ export interface Session {
   endedIso: IsoString;
   /** active seconds after idle handling */
   durationSeconds: number;
+  title?: string;
+  idleSeconds?: number;
+  linesAdded?: number;
+  linesDeleted?: number;
+  perFileSeconds?: Record<string, number>;
+  perLanguageSeconds?: Record<string, number>;
+  authorName?: string;
+  authorEmail?: string;
+  machine?: string;
   workspace?: string;
   repoPath?: string;
   branch?: string | null;

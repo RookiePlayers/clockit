@@ -5,7 +5,7 @@ import { existsSync } from 'fs';
 import * as os from 'os';
 import { BackupManager } from '../src/core/backup';
 
-function todayCsvName(prefix = 'backup_') {
+function todayCsvName(prefix = 'clockit_backup_') {
   const d = new Date();
   const yyyy = d.getUTCFullYear();
   const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
@@ -66,7 +66,7 @@ afterEach(() => {
       enabled: true,
       intervalSeconds: 60,
       directory: dir,
-      filenamePrefix: 'backup_',
+      filenamePrefix: 'clockit_backup_',
     });
 
     m.setPending(sample);
@@ -75,12 +75,12 @@ afterEach(() => {
     expect(typeof filePath).toBe('string');
     expect(filePath && existsSync(filePath)).toBe(true);
 
-    const expected = path.join(dir, todayCsvName('backup_'));
+    const expected = path.join(dir, todayCsvName('clockit_backup_'));
     expect(filePath).toBe(expected);
 
     const txt = await fs.readFile(expected, 'utf8');
     expect(txt.split('\n')[0]).toMatch(
-      /^startedIso,endedIso,durationSeconds,workspace,repoPath,branch,issueKey,comment/
+      /^startedIso,endedIso,durationSeconds,idleSeconds,linesAdded,linesDeleted,perFileSeconds,perLanguageSeconds,authorName,authorEmail,machine,workspace,repoPath,branch,issueKey,comment/
     );
     expect(txt).toContain('2025-01-01T10:15:00.000Z');
     expect(txt).toContain(',ABC-1,');
@@ -94,7 +94,7 @@ afterEach(() => {
       enabled: true,
       intervalSeconds: 60,
       directory: dir,
-      filenamePrefix: 'backup_',
+      filenamePrefix: 'clockit_backup_',
     });
 
     m.setPending(sample);
@@ -108,7 +108,7 @@ afterEach(() => {
     });
     await m.flushNow();
 
-    const file = path.join(dir, todayCsvName('backup_'));
+    const file = path.join(dir, todayCsvName('clockit_backup_'));
     const lines = (await fs.readFile(file, 'utf8')).trim().split('\n');
 
     expect(lines.length).toBeGreaterThanOrEqual(3); // header + 2 rows
@@ -122,14 +122,14 @@ afterEach(() => {
       enabled: false,
       intervalSeconds: 1,
       directory: dir,
-      filenamePrefix: 'backup_',
+      filenamePrefix: 'clockit_backup_',
     });
 
     m.setPending(sample);
     const filePath = await m.flushNow();
 
     expect(filePath).toBeUndefined();
-    const file = path.join(dir, todayCsvName('backup_'));
+    const file = path.join(dir, todayCsvName('clockit_backup_'));
     expect(existsSync(file)).toBe(false);
   });
 
@@ -141,13 +141,13 @@ afterEach(() => {
       intervalSeconds: 60,
       directory: '', // -> use fallback
       csvDirFallback: fb,
-      filenamePrefix: 'backup_',
+      filenamePrefix: 'clockit_backup_',
     });
 
     m.setPending(sample);
     const filePath = await m.flushNow();
 
-    const expected = path.join(fb, todayCsvName('backup_'));
+    const expected = path.join(fb, todayCsvName('clockit_backup_'));
     expect(filePath).toBe(expected);
     expect(existsSync(expected)).toBe(true);
   });
@@ -157,7 +157,7 @@ afterEach(() => {
 //     enabled: true,
 //     intervalSeconds: 5,
 //     directory: dirA,
-//     filenamePrefix: 'backup_',
+//     filenamePrefix: 'clockit_backup_',
 //   });
 
 //   // set pending before starting
@@ -173,7 +173,7 @@ afterEach(() => {
 //   });
 
 //   // clean slate
-//   const expected = path.join(dirA, todayCsvName('backup_'));
+//   const expected = path.join(dirA, todayCsvName('clockit_backup_'));
 //   if (existsSync(expected)) await fs.unlink(expected);
 //   expect(existsSync(expected)).toBe(false);
 
@@ -202,15 +202,28 @@ afterEach(() => {
       enabled: true,
       intervalSeconds: 60,
       directory: dir,
-      filenamePrefix: 'backup_',
+      filenamePrefix: 'clockit_backup_',
     });
 
-    const before = path.join(dir, todayCsvName('backup_'));
+    const before = path.join(dir, todayCsvName('clockit_backup_'));
     const existedBefore = existsSync(before);
 
     const ret = await m.flushNow(); // no pending set
     expect(ret).toBeUndefined();
 
     expect(existsSync(before)).toBe(existedBefore);
+  });
+
+  test('start skips interval when intervalSeconds <= 0', () => {
+    const dir = path.join(dirA, 'no-timer');
+    const m = new BackupManager({
+      enabled: true,
+      intervalSeconds: 0,
+      directory: dir,
+      filenamePrefix: 'clockit_backup_',
+    });
+
+    m.start();
+    expect(setInterval).not.toHaveBeenCalled();
   });
 });

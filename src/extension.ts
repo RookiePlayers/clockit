@@ -22,6 +22,14 @@ export function updateBackupFromSession(s?: Session) {
     startedIso: s.startedIso,
     endedIso: s.endedIso,
     durationSeconds: s.durationSeconds,
+    idleSeconds: s.idleSeconds,
+    linesAdded: s.linesAdded,
+    linesDeleted: s.linesDeleted,
+    perFileSeconds: s.perFileSeconds,
+    perLanguageSeconds: s.perLanguageSeconds,
+    authorName: s.authorName,
+    authorEmail: s.authorEmail,
+    machine: s.machine,
     workspace: s.workspace,
     repoPath: s.repoPath,
     branch: s.branch ?? null,
@@ -61,7 +69,7 @@ export async function activate(ctx: vscode.ExtensionContext) {
         enabled:        bcfg.get('enabled', true),
         intervalSeconds:bcfg.get('intervalSeconds', 60),
         directory:      bcfg.get('directory', ''),
-        filenamePrefix: bcfg.get('filenamePrefix', 'backup_'),
+        filenamePrefix: bcfg.get('filenamePrefix', 'clockit_backup_'),
         csvDirFallback: csvDirFallback || undefined,
       });
       backup.start();
@@ -142,9 +150,9 @@ export async function activate(ctx: vscode.ExtensionContext) {
   });
 }
 
-export function deactivate() {
+export async function deactivate() {
   // Belt & suspenders (ctx subscription above will also run)
-  backup?.flushNow();
   backup?.stop();
+  await backup?.flushNow();
   utils?.dispose();
 }
