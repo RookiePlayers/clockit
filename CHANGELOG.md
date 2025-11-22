@@ -1,3 +1,10 @@
+# [1.4.0](https://github.com/RookiePlayers/clockit/compare/v1.3.1...v1.4.0) (2025-11-22)
+
+
+### Features
+
+* Added New Website ([02620f7](https://github.com/RookiePlayers/clockit/commit/02620f7d0241c3671cd1c3362948c14815750ca0))
+
 ## [1.3.1](https://github.com/RookiePlayers/clockit/compare/v1.3.0...v1.3.1) (2025-11-21)
 
 
