@@ -1,3 +1,10 @@
+## [1.5.4](https://github.com/RookiePlayers/clockit/compare/v1.5.3...v1.5.4) (2025-11-24)
+
+
+### Bug Fixes
+
+* Implement cloud configuration checks and add tests for settings registration ([b00d96a](https://github.com/RookiePlayers/clockit/commit/b00d96a95f68b9d51b67c2a1246b8d0158a19eae))
+
 ## [1.5.3](https://github.com/RookiePlayers/clockit/compare/v1.5.2...v1.5.3) (2025-11-24)
 
 
