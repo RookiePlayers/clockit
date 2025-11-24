@@ -1,3 +1,11 @@
+## [1.5.1](https://github.com/RookiePlayers/clockit/compare/v1.5.0...v1.5.1) (2025-11-24)
+
+
+### Bug Fixes
+
+* Update package version to 1.5.0 and add @semantic-release/exec dependency ([202a073](https://github.com/RookiePlayers/clockit/commit/202a0736f665d91d49cfa51c4fd28c3b03add226))
+* Update release configuration for VSIX packaging and asset naming ([4bf5cc2](https://github.com/RookiePlayers/clockit/commit/4bf5cc29d082bb835abf2d89154a858540924539))
+
 # [1.5.0](https://github.com/RookiePlayers/clockit/compare/v1.4.0...v1.5.0) (2025-11-24)
 
 
