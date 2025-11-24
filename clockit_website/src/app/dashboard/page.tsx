@@ -8,6 +8,7 @@ import Link from "next/link";
 import UploadCSV from "@/components/UploadCSV";
 import Stats from "@/components/Stats";
 import Image from "next/image";
+import { IconHourglassEmpty, IconSum, IconTimeDuration0, IconTimelineEvent } from "@tabler/icons-react";
 
 type Range = "week" | "month" | "year" | "all";
 
@@ -17,6 +18,8 @@ type AggregateEntry = {
   idleSeconds: number;
   workingSeconds: number;
   languageSeconds?: Record<string, number>;
+  topWorkspaces?: Array<{ workspace: string; seconds: number }>;
+  workspaceSeconds?: Record<string, number>;
   productivityScore?: number;
   productivityPercent: number;
   topLanguage?: { language: string; seconds: number } | null;
@@ -75,6 +78,28 @@ export default function DashboardPage() {
     const sorted = [...list].sort((a, b) => (a.periodStart > b.periodStart ? -1 : 1));
     return sorted[0];
   }, [aggregates, range]);
+
+  const topWorkspaces = useMemo(() => {
+    const current = active;
+    if (current?.topWorkspaces?.length) {
+      return current.topWorkspaces.slice(0, 5).map((item) => ({
+        workspace: item.workspace,
+        seconds: Number(item.seconds || 0),
+      }));
+    }
+    // Fallback: derive from workspaceSeconds if topWorkspaces not provided.
+    const totals: Record<string, number> = {};
+    if (current?.workspaceSeconds) {
+      for (const [name, seconds] of Object.entries(current.workspaceSeconds)) {
+        totals[name] = (totals[name] || 0) + Number(seconds || 0);
+      }
+    }
+    return Object.entries(totals)
+      .map(([workspace, seconds]) => ({ workspace, seconds }))
+      .filter((t) => t.seconds > 0)
+      .sort((a, b) => b.seconds - a.seconds)
+      .slice(0, 5);
+  }, [active]);
 
   if (loadingUser || isLoadingStats) {
     return (
@@ -159,14 +184,14 @@ export default function DashboardPage() {
           </div>
         </header>
 
-        <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <div className="card-clean bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Total time</h2>
             {active ? (
               <div className="space-y-3">
-                <MetricRow label="Total time" value={formatDuration(active.totalSeconds)} />
-                <MetricRow label="Working time" value={formatDuration(active.workingSeconds)} />
-                <MetricRow label="Idle time" value={formatDuration(active.idleSeconds)} />
+                <MetricRow icon={<IconSum/>} label="Total time" value={formatDuration(active.totalSeconds)} />
+                <MetricRow icon={<IconTimeDuration0 />} label="Working time" value={formatDuration(active.workingSeconds)} />
+                <MetricRow icon={<IconHourglassEmpty />} label="Idle time" value={formatDuration(active.idleSeconds)} />
               </div>
             ) : (
               <p className="text-sm text-gray-500">{statsError || "No data available."}</p>
@@ -192,14 +217,19 @@ export default function DashboardPage() {
           </div>
 
           <div className="card-clean bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Productivity score</h2>
+            <h2 className="text-lg font-semibold text-gray-900 mb-1">Productivity score</h2>
+                    <div className="relative group inline-block mb-2">
+                    <span className="text-sm text-gray-600 cursor-pointer underline decoration-dotted">
+                      Working vs idle ratio
+                    </span>
+                    <div className="absolute left-1/2 -translate-x-1/2 mt-2 w-64 bg-white border border-gray-200 rounded-lg shadow-lg p-3 text-xs text-gray-700 opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-opacity z-10">
+                      Based on aggregated sessions.
+                    </div>
+                    </div>
             {active ? (
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <p className="text-3xl font-bold text-gray-900">{active.productivityPercent}%</p>
-                  <p className="text-sm text-gray-600">
-                    Working vs idle ratio based on aggregated sessions.
-                  </p>
                 </div>
                 <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
                   <div
@@ -213,6 +243,27 @@ export default function DashboardPage() {
               </div>
             ) : (
               <p className="text-sm text-gray-500">{statsError || "No productivity data available."}</p>
+            )}
+          </div>
+
+          <div className="card-clean bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Top workspaces</h2>
+            {topWorkspaces.length === 0 ? (
+              <p className="text-sm text-gray-500">{statsError || "No workspace data available."}</p>
+            ) : (
+              <div className="space-y-2">
+                {topWorkspaces.map((ws, idx) => (
+                  <div key={ws.workspace} className="flex items-center justify-between text-sm">
+                    <div className="flex items-center gap-2">
+                      <span className="w-6 h-6 rounded-full bg-blue-50 border border-blue-100 text-blue-700 text-xs font-semibold flex items-center justify-center">
+                        {idx + 1}
+                      </span>
+                      <span className="font-semibold text-gray-900">{ws.workspace}</span>
+                    </div>
+                    <span className="text-gray-600">{formatDuration(ws.seconds)}</span>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
         </section>
@@ -234,10 +285,21 @@ export default function DashboardPage() {
   );
 }
 
-function MetricRow({ label, value }: { label: string; value: string }) {
+function MetricRow({
+  label,
+  value,
+  icon,
+}: {
+  label: string;
+  value: string;
+  icon?: React.ReactNode;
+}) {
   return (
     <div className="flex items-center justify-between py-1">
-      <p className="text-sm text-gray-600">{label}</p>
+      <div className="flex items-center gap-2">
+        {icon && <span className="text-gray-500">{icon}</span>}
+        <p className="text-sm text-gray-600">{label}</p>
+      </div>
       <p className="text-base font-semibold text-gray-900">{value}</p>
     </div>
   );
@@ -251,3 +313,4 @@ function formatDuration(totalSeconds: number) {
   if (minutes > 0 || parts.length === 0) parts.push(`${minutes}m`);
   return parts.join(" ");
 }
+

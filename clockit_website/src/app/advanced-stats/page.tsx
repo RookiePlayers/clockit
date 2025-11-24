@@ -42,6 +42,8 @@ type AggregateEntry = {
   productivityPercent: number;
   productivityScore?: number;
   languageSeconds?: Record<string, number>;
+  workspaceSeconds?: Record<string, number>;
+  topWorkspaces?: Array<{ workspace: string; seconds: number }>;
   topLanguage?: { language: string; seconds: number } | null;
 };
 
@@ -124,6 +126,14 @@ export default function AdvancedStatsPage() {
       .slice(0, 12);
   }, [aggregates, languageRange]);
 
+  const workspaceRadarData = useMemo(() => {
+    const totals = workspaceTotalsForRange(aggregates, languageRange);
+    return Object.entries(totals)
+      .map(([workspace, seconds]) => ({ workspace, hours: Number(toHours(seconds).toFixed(2)) }))
+      .sort((a, b) => b.hours - a.hours)
+      .slice(0, 12);
+  }, [aggregates, languageRange]);
+
   const yearSummary = useMemo(() => computeYearSummary(aggregates), [aggregates]);
   const badges = useMemo(() => computeBadges(aggregates), [aggregates]);
 
@@ -199,7 +209,7 @@ export default function AdvancedStatsPage() {
                 key={key}
                 onClick={() => {
                   setRange(key);
-                  if (languageRange === range) {setLanguageRange(key);}
+                  setLanguageRange(key); // keep radars in sync with primary range selection
                 }}
                 className={`px-3 py-1.5 rounded-full text-sm font-semibold border transition-colors ${
                   range === key
@@ -254,11 +264,11 @@ export default function AdvancedStatsPage() {
           </div>
         </section>
 
-        <section className="card-clean bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-4">
+        <section className="card-clean bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">Language focus radar</h2>
-              <p className="text-sm text-gray-600">Hours invested per language across {rangeLabels[languageRange].toLowerCase()} buckets.</p>
+              <h2 className="text-lg font-semibold text-gray-900">Focus radars</h2>
+              <p className="text-sm text-gray-600">Language and workspace focus across {rangeLabels[languageRange].toLowerCase()} buckets.</p>
             </div>
             <div className="flex flex-wrap gap-2">
               {(["week", "month", "year", "all"] as Range[]).map((key) => (
@@ -276,50 +286,19 @@ export default function AdvancedStatsPage() {
               ))}
             </div>
           </div>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 h-[360px]">
-              {radarData.length === 0 ? (
-                <div className="h-full flex items-center justify-center text-sm text-gray-500">
-                  {statsError || "No language time recorded for this range yet."}
-                </div>
-              ) : (
-                <ResponsiveContainer width="100%" height="100%">
-                  <RadarChart data={radarData}>
-                    <PolarGrid />
-                    <PolarAngleAxis dataKey="language" />
-                    <PolarRadiusAxis angle={45} />
-                    <Radar name="Hours" dataKey="hours" stroke="#6366f1" fill="#6366f1" fillOpacity={0.45} />
-                    <Legend />
-                    <Tooltip />
-                  </RadarChart>
-                </ResponsiveContainer>
-              )}
-            </div>
-            <div className="space-y-3">
-              {radarData.length === 0 ? (
-                <p className="text-sm text-gray-500">We&apos;ll show your language spread once you have more data.</p>
-              ) : (
-                radarData.map((row, idx) => (
-                  <div
-                    key={row.language}
-                    className="flex items-center justify-between px-4 py-3 rounded-xl border border-gray-100 bg-gray-50"
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center text-sm font-semibold text-indigo-700">
-                        {idx + 1}
-                      </span>
-                      <div>
-                        <p className="text-sm font-semibold text-gray-900">{row.language}</p>
-                        <p className="text-xs text-gray-500">{row.hours.toFixed(2)} hours</p>
-                      </div>
-                    </div>
-                    <span className="text-xs px-2 py-1 rounded-full bg-indigo-100 text-indigo-700 font-semibold">
-                      {(row.hours * 60).toFixed(0)} mins
-                    </span>
-                  </div>
-                ))
-              )}
-            </div>
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            <RadarPanel
+              title="Language focus"
+              emptyLabel={statsError || "No language time recorded for this range yet."}
+              data={radarData.map((d) => ({ label: d.language, hours: d.hours }))}
+              color="#6366f1"
+            />
+            <RadarPanel
+              title="Workspace focus"
+              emptyLabel={statsError || "No workspace time recorded for this range yet."}
+              data={workspaceRadarData.map((d) => ({ label: d.workspace, hours: d.hours }))}
+              color="#0ea5e9"
+            />
           </div>
         </section>
 
@@ -345,6 +324,7 @@ export default function AdvancedStatsPage() {
                   <RecapCard title="Peak month" value={yearSummary.bestMonth ?? "—"} hint={yearSummary.bestMonthHint} />
                   <RecapCard title="Best week" value={yearSummary.bestWeek ?? "—"} hint={yearSummary.bestWeekHint} />
                   <RecapCard title="Top language" value={yearSummary.topLanguage ?? "—"} hint={yearSummary.topLanguageHint} />
+                  <RecapCard title="Top workspace" value={yearSummary.topWorkspace ?? "—"} hint={yearSummary.topWorkspaceHint} />
                 </div>
                 <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3">
                   <p className="text-sm text-blue-900">
@@ -354,35 +334,33 @@ export default function AdvancedStatsPage() {
               </div>
             )}
           </div>
-          <div className="card-clean bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between">
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900 mb-2">Final grade</h2>
+            <div className="card-clean bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between h-full">
+            <div className="flex flex-col flex-1 justify-center items-center text-center">
+              <h2 className="text-lg font-semibold text-gray-900 mb-1">Final grade</h2>
+              <span className="text-sm text-gray-500 mb-3">based on focus and throughput</span>
               {!yearSummary ? (
-                <p className="text-sm text-gray-500">No yearly data yet to compute a grade.</p>
+              <p className="text-sm text-gray-500">No yearly data yet to compute a grade.</p>
               ) : (
-                <>
-                  <div className="flex items-baseline gap-3">
-                    <span className="text-5xl font-black text-blue-700">{yearSummary.grade.letter}</span>
-                    <span className="text-sm text-gray-500">based on focus and throughput</span>
-                  </div>
-                  <p className="text-sm text-gray-700 mt-2">{yearSummary.grade.description}</p>
-                </>
+              <div className="flex items-center justify-center mb-2 flex-1">
+                <span className="text-[5em] font-black text-blue-700">{yearSummary.grade.letter}</span>
+              </div>
               )}
             </div>
             {yearSummary && (
               <div className="mt-4">
-                <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-blue-600 rounded-full"
-                    style={{ width: `${Math.min(100, yearSummary.avgProductivity)}%` }}
-                  />
-                </div>
-                <p className="text-xs text-gray-500 mt-2">
-                  Grade blends productivity and total working time for the year.
-                </p>
+              <p className="text-sm text-gray-700 mt-2 mb-4">{yearSummary.grade.description}</p>
+              <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                <div
+                className="h-full bg-blue-600 rounded-full"
+                style={{ width: `${Math.min(100, yearSummary.avgProductivity)}%` }}
+                />
+              </div>
+              <p className="text-xs text-gray-500 mt-2">
+                Grade blends productivity and total working time for the year.
+              </p>
               </div>
             )}
-          </div>
+            </div>
         </section>
 
         <section className="card-clean bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-4">
@@ -483,6 +461,71 @@ function RecapCard({ title, value, hint }: { title: string; value: string; hint?
   );
 }
 
+function RadarPanel({
+  title,
+  emptyLabel,
+  data,
+  color,
+}: {
+  title: string;
+  emptyLabel: string;
+  data: Array<{ label: string; hours: number }>;
+  color: string;
+}) {
+  const hasData = data.length > 0;
+  return (
+    <div className="card-clean bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-base font-semibold text-gray-900">{title}</h3>
+        {hasData && <span className="text-xs text-gray-500">{data.length} entries</span>}
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-center">
+        <div className="lg:col-span-2 h-[280px]">
+          {!hasData ? (
+            <div className="h-full flex items-center justify-center text-sm text-gray-500">{emptyLabel}</div>
+          ) : (
+            <ResponsiveContainer width="100%" height="100%">
+              <RadarChart data={data}>
+                <PolarGrid />
+                <PolarAngleAxis dataKey="label" />
+                <PolarRadiusAxis angle={45} />
+                <Radar name="Hours" dataKey="hours" stroke={color} fill={color} fillOpacity={0.4} />
+                <Legend />
+                <Tooltip />
+              </RadarChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+        <div className="space-y-2">
+          {!hasData ? (
+            <p className="text-sm text-gray-500">{emptyLabel}</p>
+          ) : (
+            data.slice(0, 6).map((row, idx) => (
+              <div
+                key={row.label}
+                className="flex items-center justify-between px-3 py-2 rounded-lg border border-gray-100 bg-gray-50"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="w-7 h-7 rounded-full bg-white border border-gray-200 flex items-center justify-center text-xs font-semibold" style={{ color }}>
+                    {idx + 1}
+                  </span>
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900">{row.label}</p>
+                    <p className="text-xs text-gray-500">{row.hours.toFixed(2)} hours</p>
+                  </div>
+                </div>
+                <span className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-700 font-semibold">
+                  {(row.hours * 60).toFixed(0)} mins
+                </span>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function formatBucketLabel(periodStart: string, range: Range) {
   if (range === "all") {return "All time";}
   const date = new Date(periodStart);
@@ -521,6 +564,23 @@ function languageTotalsForRange(aggregates: Aggregates | null, range: Range) {
   return totals;
 }
 
+function workspaceTotalsForRange(aggregates: Aggregates | null, range: Range) {
+  const totals: Record<string, number> = {};
+  const entries = aggregates?.[range] ?? [];
+  for (const entry of entries) {
+    const wsSeconds = entry.workspaceSeconds || {};
+    for (const [ws, seconds] of Object.entries(wsSeconds)) {
+      totals[ws] = (totals[ws] || 0) + Number(seconds || 0);
+    }
+    if (!entry.workspaceSeconds && entry.topWorkspaces) {
+      for (const tw of entry.topWorkspaces) {
+        totals[tw.workspace] = (totals[tw.workspace] || 0) + Number(tw.seconds || 0);
+      }
+    }
+  }
+  return totals;
+}
+
 function computeYearSummary(aggregates: Aggregates | null) {
   const years = aggregates?.year ?? [];
   if (!years.length) {return null;}
@@ -546,6 +606,7 @@ function computeYearSummary(aggregates: Aggregates | null) {
   const topLanguageEntry = latest.topLanguage?.language
     ? latest.topLanguage
     : pickTopLanguage(latest.languageSeconds || {});
+  const topWorkspaceEntry = pickTopWorkspace(latest);
 
   const grade = computeGrade(avgProd, workingHours);
 
@@ -560,6 +621,9 @@ function computeYearSummary(aggregates: Aggregates | null) {
   if (topLanguageEntry?.language) {
     narrativeParts.push(`You leaned most on ${topLanguageEntry.language}.`);
   }
+  if (topWorkspaceEntry?.workspace) {
+    narrativeParts.push(`Your most active workspace was ${topWorkspaceEntry.workspace}.`);
+  }
 
   return {
     yearLabel: currentYear.toString(),
@@ -572,6 +636,8 @@ function computeYearSummary(aggregates: Aggregates | null) {
     bestWeekHint: bestWeek ? `${toHours(bestWeek.workingSeconds).toFixed(1)}h working` : undefined,
     topLanguage: topLanguageEntry?.language,
     topLanguageHint: topLanguageEntry ? `${toHours(topLanguageEntry.seconds).toFixed(1)}h logged` : undefined,
+    topWorkspace: topWorkspaceEntry?.workspace,
+    topWorkspaceHint: topWorkspaceEntry ? `${toHours(topWorkspaceEntry.seconds).toFixed(1)}h logged` : undefined,
     grade,
     narrative: narrativeParts.join(" "),
   };
@@ -592,6 +658,21 @@ function pickTopLanguage(languageSeconds: Record<string, number>) {
   for (const [language, seconds] of Object.entries(languageSeconds)) {
     if (!best || seconds > best.seconds) {
       best = { language, seconds };
+    }
+  }
+  return best;
+}
+
+function pickTopWorkspace(entry: AggregateEntry) {
+  if (entry.topWorkspaces?.length) {
+    const sorted = [...entry.topWorkspaces].sort((a, b) => b.seconds - a.seconds);
+    return sorted[0];
+  }
+  const wsMap = entry.workspaceSeconds || {};
+  let best: { workspace: string; seconds: number } | null = null;
+  for (const [workspace, seconds] of Object.entries(wsMap)) {
+    if (!best || seconds > best.seconds) {
+      best = { workspace, seconds };
     }
   }
   return best;
