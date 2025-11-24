@@ -236,6 +236,8 @@ export class Utils {
 
   private async promptCloudSetup() {
     const cfg = this.vscode.workspace.getConfiguration();
+    if (!this.ensureCloudConfigRegistered(cfg)) {return;}
+
     const apiUrl = await this.vscode.window.showInputBox({
       title: 'Clockit Cloud Ingest URL',
       prompt: 'Enter your Clockit ingest endpoint (Firebase Function URL)',
@@ -258,6 +260,15 @@ export class Utils {
     await cfg.update('clockit.cloud.enabled', true, this.vscode.ConfigurationTarget.Workspace);
 
     this.vscode.window.showInformationMessage('Clockit Cloud backup enabled. Future sessions will upload automatically.');
+  }
+
+  private ensureCloudConfigRegistered(cfg: import('vscode').WorkspaceConfiguration) {
+    const keys = ['clockit.cloud.apiUrl', 'clockit.cloud.apiToken', 'clockit.cloud.enabled'];
+    const registered = keys.every(k => !!cfg.inspect?.(k));
+    if (!registered) {
+      this.vscode.window.showErrorMessage('Clockit Cloud settings are unavailable in this version of Clockit. Please update the extension and try again.');
+    }
+    return registered;
   }
 
   // ── logging

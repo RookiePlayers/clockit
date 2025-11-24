@@ -7,7 +7,7 @@
   "icon": "icon.png",
   "license": "MIT",
   "repository": "https://github.com/RookiePlayers/clockit.git",
-  "homepage": "https://github.com/RookiePlayers/clockit.git",
+  "homepage": "https://clockit.octech.dev/",
   "engines": {
     "vscode": "^1.77.0"
   },

@@ -157,13 +157,15 @@ async  chooseCsvFolder() {
   }
 }
 
-private async promptCloudSetup() {
-  const cfg = this.vscode.workspace.getConfiguration();
-  const defaultUrl = (process.env.CLOCKIT_INGEST_URL || '').trim() || (cfg.get<string>('clockit.cloud.apiUrl') || '').trim() || "https://ingestcsv-ie4o3wu3ta-ey.a.run.app";
-  if (!defaultUrl) {
-    this.vscode.window.showErrorMessage('Clockit ingest URL is missing. Set CLOCKIT_INGEST_URL in your environment or configure clockit.cloud.apiUrl manually.');
-    return;
-  }
+  private async promptCloudSetup() {
+    const cfg = this.vscode.workspace.getConfiguration();
+    if (!this.ensureCloudConfigRegistered(cfg)) {return;}
+
+    const defaultUrl = (process.env.CLOCKIT_INGEST_URL || '').trim() || (cfg.get<string>('clockit.cloud.apiUrl') || '').trim() || "https://ingestcsv-ie4o3wu3ta-ey.a.run.app";
+    if (!defaultUrl) {
+      this.vscode.window.showErrorMessage('Clockit ingest URL is missing. Set CLOCKIT_INGEST_URL in your environment or configure clockit.cloud.apiUrl manually.');
+      return;
+    }
 
   const apiToken = await this.vscode.window.showInputBox({
     title: 'Clockit API Token',
@@ -187,5 +189,14 @@ private async promptCloudSetup() {
   await cfg.update('clockit.cloud.enabled', true, this.vscode.ConfigurationTarget.Workspace);
 
   this.vscode.window.showInformationMessage('Clockit Cloud backup enabled. Future sessions will upload automatically.');
+}
+
+private ensureCloudConfigRegistered(cfg: import('vscode').WorkspaceConfiguration) {
+  const keys = ['clockit.cloud.apiUrl', 'clockit.cloud.apiToken', 'clockit.cloud.enabled'];
+  const registered = keys.every(k => !!cfg.inspect?.(k));
+  if (!registered) {
+    this.vscode.window.showErrorMessage('Clockit Cloud settings are unavailable in this version of Clockit. Please update the extension and try again.');
+  }
+  return registered;
 }
 }
