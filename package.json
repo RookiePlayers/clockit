@@ -202,6 +202,21 @@
           "type": "string",
           "default": "clockit_backup_",
           "description": "Prefix for backup CSV files. Final name is prefix + YYYYMMDD + .csv"
+        },
+        "clockit.cloud.enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable cloud backup of sessions using your Clockit API token."
+        },
+        "clockit.cloud.apiUrl": {
+          "type": "string",
+          "default": "",
+          "description": "Ingest endpoint for cloud backups (e.g., your Firebase Function URL)."
+        },
+        "clockit.cloud.apiToken": {
+          "type": "string",
+          "default": "",
+          "description": "Clockit API token generated in your profile (stored as a secret)."
         }
       }
     }
@@ -239,7 +254,8 @@
   "dependencies": {
     "commitlint": "^20.1.0",
     "dotenv": "^17.2.3",
-    "ts-node": "^10.9.2"
+    "ts-node": "^10.9.2",
+    "node-fetch": "^3.3.2"
   },
   "packageManager": "npm@>=10.0.0"
 }

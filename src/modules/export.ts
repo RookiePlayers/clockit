@@ -47,6 +47,9 @@ async function exportViaOrchestrator(ctx: vscode.ExtensionContext, utils: Utils,
         filename: cfg.get('clockit.csv.filename'),
         addHeaderIfMissing: cfg.get('clockit.csv.addHeaderIfMissing'),
         ensureDirectory: cfg.get('clockit.csv.ensureDirectory'),
+        'cloud.enabled': cfg.get('clockit.cloud.enabled'),
+        'cloud.apiUrl': cfg.get('clockit.cloud.apiUrl'),
+        'cloud.apiToken': cfg.get('clockit.cloud.apiToken'),
       },
     },
     {
@@ -73,6 +76,20 @@ async function exportViaOrchestrator(ctx: vscode.ExtensionContext, utils: Utils,
     if (r.ok) {utils.notify(`✅ ${r.kind.toUpperCase()}: ${r.message ?? 'Success'}`);}
     else {utils.notify(`❌ ${r.kind.toUpperCase()}: ${r.message ?? 'Failed'}`, 'error');}
   });
+
+  const cloudEnabled = cfg.get<boolean>('clockit.cloud.enabled');
+  const apiUrl = (cfg.get<string>('clockit.cloud.apiUrl') || '').trim();
+  const apiToken = (cfg.get<string>('clockit.cloud.apiToken') || '').trim();
+  if (!cloudEnabled || !apiUrl || !apiToken) {
+    vscode.window.showInformationMessage(
+      'Tip: Sign in to Clockit and add an API token to enable automatic cloud backups of your CSV data.',
+      'Open Dashboard'
+    ).then(choice => {
+      if (choice === 'Open Dashboard') {
+        vscode.env.openExternal(vscode.Uri.parse('https://clockit.app/dashboard'));
+      }
+    });
+  }
 }
 
 export async function chooseSinksCommand() {

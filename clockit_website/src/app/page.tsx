@@ -1,209 +1,200 @@
 "use client";
 
+import Image from "next/image";
+import Link from "next/link";
+import HeroAnimation from "@/components/HeroAnimation";
+import InstallButton from "@/components/InstallButton";
+import ReadDocsButton from "@/components/ReadDocsButton";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { auth } from "@/lib/firebase";
-import Login from "@/components/Login";
-import UploadCSV from "@/components/UploadCSV";
-import Stats from "@/components/Stats";
-import { Parallax } from "react-parallax";
-import ReadDocsButton from "@/components/ReadDocsButton";
-import InstallButton from "@/components/InstallButton";
-import { IconCode } from "@tabler/icons-react";
-import Image from "next/image";
 
 export default function Home() {
-  const [user, loading, error] = useAuthState(auth);
+  const [user, loading] = useAuthState(auth);
+  const router = useRouter();
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex items-center justify-center min-h-screen text-red-500">
-        Error: {error.message}
-      </div>
-    );
-  }
-
-  if (!user) {
-    return (
-      <div className="min-h-screen flex flex-col font-sans text-gray-900">
-        {/* Navbar */}
-        <nav className="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-md border-b border-gray-200">
-          <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Image src="/icon.png" alt="Clockit Icon" className="w-6 h-6 rounded-full"  width={24} height={24} />
-              <span className="font-bold text-xl tracking-tight text-gray-900">Clockit</span>
-            </div>
-            <div className="flex items-center gap-8">
-              <a href="#features" className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">Features</a>
-              <a href="/docs" className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">Docs</a>
-              <Login variant="nav" />
-            </div>
-          </div>
-        </nav>
-
-        {/* Hero Section */}
-        <Parallax strength={200}>
-          <main className="flex-grow pt-32 pb-20 px-6 relative overflow-hidden">
-            <div className="max-w-5xl mx-auto text-center relative z-10">
-              <div className="inline-flex items-center gap-2 bg-blue-50 text-blue-700 px-4 py-2 rounded-full text-sm font-medium mb-6 border border-blue-100">
-                <IconCode />
-                IDE Extension
-              </div>
-              <h1 className="text-5xl md:text-7xl font-bold tracking-tight mb-6 text-gray-900 leading-tight">
-                Track time <br />
-                <span className="text-gray-500">automatically as you code</span>
-              </h1>
-              
-              <p className="text-xl text-gray-600 max-w-2xl mx-auto mb-10 leading-relaxed">
-                Clockit helps developers log coding sessions automatically, with idle detection, and export to CSV, Jira, or Notion — all within Your IDE.
-              </p>
-              
-              <div className="flex justify-center gap-4">
-                <ReadDocsButton variant="hero" />
-                <InstallButton variant="hero" />
-              </div>
-            </div>
-
-
-          </main>
-        </Parallax>
-
-        <Parallax strength={100}>
-        <section id="features" className="px-6 py-24 bg-white border-t border-gray-100">
-          <div className="max-w-7xl mx-auto">
-            <div className="text-center mb-16">
-              <h2 className="text-4xl font-bold text-gray-900 mb-4">Powerful time tracking for developers</h2>
-              <p className="text-lg text-gray-600 max-w-2xl mx-auto">Track your coding sessions automatically with smart features designed for modern development workflows.</p>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              <div className="card-clean p-8 hover:scale-105 transition-transform duration-300">
-                <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mb-6 text-blue-600">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <h3 className="text-xl font-bold mb-3 text-gray-900">Automatic Tracking</h3>
-                <p className="text-gray-600 leading-relaxed">
-                  Start tracking time automatically when you begin coding. Pause and resume with a single click from the VS Code status bar.
-                </p>
-              </div>
-
-              <div className="card-clean p-8 hover:scale-105 transition-transform duration-300">
-                <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center mb-6 text-purple-600">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                  </svg>
-                </div>
-                <h3 className="text-xl font-bold mb-3 text-gray-900">Idle Detection</h3>
-                <p className="text-gray-600 leading-relaxed">
-                  Smart idle detection automatically trims inactive time for accurate duration tracking. Configure idle timeout to match your workflow.
-                </p>
-              </div>
-
-              <div className="card-clean p-8 hover:scale-105 transition-transform duration-300">
-                <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center mb-6 text-green-600">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                  </svg>
-                </div>
-                <h3 className="text-xl font-bold mb-3 text-gray-900">Multi-Sink Export</h3>
-                <p className="text-gray-600 leading-relaxed">
-                  Export your time logs to CSV for analysis, Jira for work tracking, or Notion for project management — all from VS Code.
-                </p>
-              </div>
-
-              <div className="card-clean p-8 hover:scale-105 transition-transform duration-300">
-                <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center mb-6 text-orange-600">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
-                  </svg>
-                </div>
-                <h3 className="text-xl font-bold mb-3 text-gray-900">Per-File Tracking</h3>
-                <p className="text-gray-600 leading-relaxed">
-                  Automatic per-file and per-language focus time tracking. See where you spend the most time and optimize your workflow.
-                </p>
-              </div>
-
-              <div className="card-clean p-8 hover:scale-105 transition-transform duration-300">
-                <div className="w-12 h-12 bg-pink-100 rounded-xl flex items-center justify-center mb-6 text-pink-600">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" />
-                  </svg>
-                </div>
-                <h3 className="text-xl font-bold mb-3 text-gray-900">Git Integration</h3>
-                <p className="text-gray-600 leading-relaxed">
-                  Automatically detect git repository, branch, and issue keys from commit messages for seamless project tracking.
-                </p>
-              </div>
-
-              <div className="card-clean p-8 hover:scale-105 transition-transform duration-300">
-                <div className="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center mb-6 text-indigo-600">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                </div>
-                <h3 className="text-xl font-bold mb-3 text-gray-900">Session Comments</h3>
-                <p className="text-gray-600 leading-relaxed">
-                  Add comments when stopping sessions to document your work. Defaults to latest git commit message for convenience.
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
-        </Parallax>
-
-        <footer className="py-12 bg-gray-50 text-center text-gray-500 text-sm border-t border-gray-200">
-          <p>&copy; {new Date().getFullYear()} Clockit Inc. All rights reserved.</p>
-        </footer>
-      </div>
-    );
-  }
+  useEffect(() => {
+    if (loading) {return;}
+    if (user) {
+      router.replace("/dashboard");
+    }
+  }, [user, loading, router]);
 
   return (
-    <div className="min-h-screen bg-[#f8f9fa]">
-      <nav className="bg-white border-b border-gray-200 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold">C</div>
-            <span className="font-bold text-lg text-gray-900">Clockit</span>
-          </div>
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-gray-600">Welcome, {user.displayName}</span>
-            <button onClick={() => auth.signOut()} className="text-sm text-red-600 hover:text-red-700 font-medium transition-colors">
-              Sign Out
-            </button>
+    <div className="min-h-screen bg-[#0b1021] text-white">
+      <header className="sticky top-0 z-30 backdrop-blur bg-[#0b1021]/80 border-b border-white/5">
+        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-3">
+            <Image src="/icon.png" alt="Clockit Icon" width={32} height={32} className="rounded-full" />
+            <span className="text-lg font-semibold tracking-tight">Clockit</span>
+          </Link>
+          <nav className="hidden sm:flex items-center gap-4 text-sm text-white/80">
+            <a href="#features" className="hover:text-white">Features</a>
+            <a href="#workflow" className="hover:text-white">How it works</a>
+            <Link href="/docs" className="hover:text-white">Docs</Link>
+          </nav>
+          <div className="flex items-center gap-3">
+            <ReadDocsButton variant="nav" />
+            <InstallButton variant="nav" />
+            <Link
+              href="/auth"
+              className="px-4 py-2 rounded-lg bg-white text-[#0b1021] text-sm font-semibold hover:bg-white/90 transition-colors shadow-sm"
+            >
+              Sign in
+            </Link>
           </div>
         </div>
-      </nav>
-      
-      <main className="max-w-7xl mx-auto p-6">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-8">
-          <section className="lg:col-span-2 space-y-6">
-            <div className="card-clean p-8 bg-white">
-              <h2 className="text-xl font-bold mb-6 text-gray-900 flex items-center gap-2">
-                <span className="text-blue-500">●</span> Recent Activity
-              </h2>
-              <Stats uid={user.uid} />
-            </div>
-          </section>
+      </header>
 
-          <section className="space-y-6">
-            <div className="card-clean p-8 bg-white">
-              <h2 className="text-xl font-bold mb-6 text-gray-900 flex items-center gap-2">
-                <span className="text-green-500">●</span> Upload Data
-              </h2>
-              <UploadCSV uid={user.uid} />
+      <main className="max-w-6xl mx-auto px-6 py-12 space-y-16">
+        <section className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
+          <div className="space-y-6">
+            <p className="text-sm uppercase tracking-[0.2em] text-blue-200/70">Developer time tracking</p>
+            <h1 className="text-4xl sm:text-5xl font-bold leading-tight">
+              Know where your coding hours go.
+            </h1>
+            <p className="text-lg text-white/80">
+              Clockit captures your editor focus time, trims idle minutes, and exports to CSV, Jira, and Notion—no manual timers, no friction. Grab the extension, read the docs, and ship smarter.
+            </p>
+            <div className="flex flex-wrap gap-3">
+              <InstallButton />
+              <ReadDocsButton />
             </div>
-          </section>
-        </div>
+            <div className="flex items-center gap-4 text-sm text-white/60">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                <span>Auto idle detection</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-sky-400" />
+                <span>Per-language stats</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-violet-400" />
+                <span>CSV/Jira/Notion export</span>
+              </div>
+            </div>
+          </div>
+          <div className="rounded-2xl border border-white/5 bg-white/5 p-4 shadow-2xl">
+            <HeroAnimation />
+          </div>
+        </section>
+
+        <section id="features" className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {[
+            {
+              title: "Automatic capture",
+              desc: "Sessions start when you code, pause on idle, and pick back up—no timers to remember.",
+            },
+            {
+              title: "Export everywhere",
+              desc: "Send sessions to CSV for analysis, Jira for worklogs, or Notion for your team’s hub.",
+            },
+            {
+              title: "Language awareness",
+              desc: "See where you spend time by language to spot stack drift or focus trends quickly.",
+            },
+            {
+              title: "Idle trimmed",
+              desc: "Idle minutes are stripped before export, keeping your reports clean and trustworthy.",
+            },
+            {
+              title: "Yearly recaps",
+              desc: "Get productivity grades, peak months, and badge progress to track long-term momentum.",
+            },
+            {
+              title: "Privacy-first",
+              desc: "Your data lives with you. Choose where to send it, or just keep the CSV locally.",
+            },
+          ].map((f) => (
+            <div key={f.title} className="p-5 rounded-xl border border-white/5 bg-white/5 shadow-sm hover:border-white/15 transition-colors">
+              <h3 className="text-lg font-semibold mb-2 text-white">{f.title}</h3>
+              <p className="text-sm text-white/70">{f.desc}</p>
+            </div>
+          ))}
+        </section>
+
+        <section id="workflow" className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-start">
+          <div className="space-y-4">
+            <p className="text-sm uppercase tracking-[0.2em] text-blue-200/70">Workflow</p>
+            <h2 className="text-3xl font-bold text-white">Install, code, export. That’s it.</h2>
+            <ol className="space-y-3 text-white/80">
+              <li><strong className="text-white">1.</strong> Install Clockit for your editor and start coding—sessions begin automatically.</li>
+              <li><strong className="text-white">2.</strong> Idle time is trimmed; per-language focus is captured without setup.</li>
+              <li><strong className="text-white">3.</strong> Export to CSV/Jira/Notion or view dashboards (no login needed to download).</li>
+            </ol>
+            <div className="flex gap-3">
+              <InstallButton variant="hero" />
+              <ReadDocsButton variant="hero" />
+            </div>
+          </div>
+          <div className="rounded-2xl border border-white/5 bg-gradient-to-br from-blue-500/10 via-violet-500/10 to-emerald-500/10 p-6 space-y-4">
+            <div className="flex items-center justify-between text-sm text-white/70">
+              <span>Snapshot of exports</span>
+              <span className="px-3 py-1 rounded-full bg-white/10 text-white/80 text-xs">Live CSV</span>
+            </div>
+            <div className="overflow-hidden rounded-xl border border-white/10 bg-black/50">
+              <table className="w-full text-sm text-white/80">
+                <thead className="bg-white/5 text-white/60">
+                  <tr>
+                    {["startedIso", "endedIso", "durationSeconds", "idleSeconds", "perLanguageSeconds"].map((h) => (
+                      <th key={h} className="px-3 py-2 text-left font-semibold">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {[
+                    { start: "2025-01-03T09:12:00Z", end: "2025-01-03T10:02:00Z", dur: "3000", idle: "120", lang: '{"ts":2400,"json":360}' },
+                    { start: "2025-01-03T11:10:00Z", end: "2025-01-03T11:42:00Z", dur: "1920", idle: "90", lang: '{"tsx":1500,"css":330}' },
+                    { start: "2025-01-03T13:00:00Z", end: "2025-01-03T13:55:00Z", dur: "3300", idle: "180", lang: '{"go":2940,"sh":180}' },
+                  ].map((row, i) => (
+                    <tr key={i} className="border-t border-white/5">
+                      <td className="px-3 py-2 font-mono text-xs">{row.start}</td>
+                      <td className="px-3 py-2 font-mono text-xs">{row.end}</td>
+                      <td className="px-3 py-2">{row.dur}</td>
+                      <td className="px-3 py-2">{row.idle}</td>
+                      <td className="px-3 py-2 font-mono text-xs break-all">{row.lang}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <p className="text-xs text-white/60">CSV export stays local by default. Push to cloud/Jira/Notion only when you choose.</p>
+          </div>
+        </section>
+
+        <section className="rounded-2xl border border-white/5 bg-gradient-to-r from-blue-600/20 via-violet-600/20 to-emerald-500/20 px-6 py-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <p className="text-sm uppercase tracking-[0.2em] text-blue-100/80">Ready to get started?</p>
+            <h3 className="text-2xl font-bold text-white mt-1">Grab the extension or read the docs before you sign in.</h3>
+            <p className="text-sm text-white/80 mt-2">Sign in lives in the nav when you’re ready to see your dashboard.</p>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <InstallButton variant="hero" />
+            <ReadDocsButton variant="hero" />
+          </div>
+        </section>
       </main>
+
+      <footer className="border-t border-white/5 bg-[#0b1021]/80">
+        <div className="max-w-6xl mx-auto px-6 py-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 text-sm text-white/60">
+          <div className="flex items-center gap-3">
+        <Image src="/icon.png" alt="Clockit Icon" width={28} height={28} className="rounded-full" />
+        <span>Clockit — Track coding time without the busywork</span>
+          </div>
+          <div className="flex gap-4">
+        <Link href="/docs" className="hover:text-white">Docs</Link>
+        <Link href="/dashboard" className="hover:text-white">Dashboard</Link>
+        <Link href="/privacy" className="hover:text-white">Privacy Policy</Link>
+        <Link href="/contact" className="hover:text-white">Contact</Link>
+        <Link href="https://marketplace.visualstudio.com/items?itemName=octech.clockit" className="hover:text-white">VS Code Marketplace</Link>
+          </div>
+        </div>
+        <div className="max-w-6xl mx-auto px-6 pb-4 text-xs text-white/40 text-center">
+          © {new Date().getFullYear()} octech. All rights reserved.
+        </div>
+      </footer>
     </div>
   );
 }

@@ -8,33 +8,54 @@ export class CsvFolderService {
     return CsvFolderService.instance;
   }
   
-    async showCsvMenu() {
-        const pick = await this.vscode.window.showQuickPick(
-            [
-                { label: '$(book) Open current CSV', id: 'openCurrent' },
-      { label: '$(folder-opened) Open CSV folder', id: 'openFolder' },
-      { label: '$(replace) Change CSV folder', id: 'changeFolder' },
-      { label: '$(history) Browse past logs…', id: 'browsePast' },
-    ],
-    { placeHolder: 'Clockit — CSV actions', ignoreFocusOut: true }
-  );
-  if (!pick) {return;}
+  async showCsvMenu() {
+    const cfg = this.vscode.workspace.getConfiguration();
+    const name = (cfg.get<string>('clockit.author.name') || '').trim();
+    const email = (cfg.get<string>('clockit.author.email') || '').trim();
+    const cloudEnabled = cfg.get<boolean>('clockit.cloud.enabled') && (cfg.get<string>('clockit.cloud.apiToken') || '').trim();
 
-  switch (pick.id) {
-    case 'openCurrent':
-      await this.openCsvLog();
-      break;
-    case 'openFolder':
-      await this.openCsvFolder();
-      break;
-    case 'changeFolder':
-      await this.chooseCsvFolder();
-      break;
-    case 'browsePast':
-      await this.browsePastLogs();
-      break;
+    const cloudLabel = cloudEnabled
+      ? `$(cloud-check) Cloud: ${name || email || 'Signed in'}`
+      : '$(cloud-upload) Login to Clockit Cloud';
+    const cloudDescription = cloudEnabled
+      ? (email || 'Cloud backup enabled')
+      : 'Enable cloud backups with your API token';
+
+    const pick = await this.vscode.window.showQuickPick(
+      [
+        {
+          label: cloudLabel,
+          description: cloudDescription,
+          id: cloudEnabled ? 'noop' : 'loginCloud',
+          alwaysShow: true,
+        },
+        { label: '$(book) Open current CSV', id: 'openCurrent' },
+        { label: '$(folder-opened) Open CSV folder', id: 'openFolder' },
+        { label: '$(replace) Change CSV folder', id: 'changeFolder' },
+        { label: '$(history) Browse past logs…', id: 'browsePast' },
+      ],
+      { placeHolder: 'Clockit — CSV actions', ignoreFocusOut: true }
+    );
+    if (!pick || pick.id === 'noop') {return;}
+
+    switch (pick.id) {
+      case 'openCurrent':
+        await this.openCsvLog();
+        break;
+      case 'openFolder':
+        await this.openCsvFolder();
+        break;
+      case 'changeFolder':
+        await this.chooseCsvFolder();
+        break;
+      case 'browsePast':
+        await this.browsePastLogs();
+        break;
+      case 'loginCloud':
+        await this.promptCloudSetup();
+        break;
+    }
   }
-}
 
   async getCsvRootAndFile() {
   const cfg = this.vscode.workspace.getConfiguration();
@@ -126,6 +147,45 @@ async  chooseCsvFolder() {
     const fs = await import('fs/promises');
     await fs.mkdir(folderUri.fsPath, { recursive: true }).catch(() => {});
   }
-  this.vscode.window.showInformationMessage(`Clockit CSV folder set to: ${folderUri.fsPath}`);
+  const choice = await this.vscode.window.showInformationMessage(
+    `Clockit CSV folder set to: ${folderUri.fsPath}`,
+    'Login to Clockit Cloud',
+    'Close'
+  );
+  if (choice === 'Login to Clockit Cloud') {
+    await this.promptCloudSetup();
+  }
+}
+
+private async promptCloudSetup() {
+  const cfg = this.vscode.workspace.getConfiguration();
+  const defaultUrl = (process.env.CLOCKIT_INGEST_URL || '').trim() || (cfg.get<string>('clockit.cloud.apiUrl') || '').trim() || "https://ingestcsv-ie4o3wu3ta-ey.a.run.app";
+  if (!defaultUrl) {
+    this.vscode.window.showErrorMessage('Clockit ingest URL is missing. Set CLOCKIT_INGEST_URL in your environment or configure clockit.cloud.apiUrl manually.');
+    return;
+  }
+
+  const apiToken = await this.vscode.window.showInputBox({
+    title: 'Clockit API Token',
+    prompt: 'Paste the API token from the Clockit dashboard (Profile → API Tokens)',
+    password: true,
+    ignoreFocusOut: true,
+    value: (cfg.get<string>('clockit.cloud.apiToken') || '').trim(),
+  });
+  if (!apiToken) {return;}
+
+  // Optional override for ingest URL (only if user wants to change from default)
+  const customUrl = await this.vscode.window.showInputBox({
+    title: 'Clockit Ingest URL (optional)',
+    prompt: 'Only set this if you need to override the default ingest URL (leave blank to use default).',
+    ignoreFocusOut: true,
+    value: defaultUrl,
+  });
+
+  await cfg.update('clockit.cloud.apiUrl', (customUrl || defaultUrl).trim(), this.vscode.ConfigurationTarget.Workspace);
+  await cfg.update('clockit.cloud.apiToken', apiToken, this.vscode.ConfigurationTarget.Workspace);
+  await cfg.update('clockit.cloud.enabled', true, this.vscode.ConfigurationTarget.Workspace);
+
+  this.vscode.window.showInformationMessage('Clockit Cloud backup enabled. Future sessions will upload automatically.');
 }
 }

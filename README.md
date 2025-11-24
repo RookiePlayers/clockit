@@ -22,7 +22,7 @@
   </a>
 </p>
 
-**Clockit** helps developers log coding sessions automatically, add session comments, and export tracked time to **CSV**, **Jira**, or **Notion** — all within VS Code (tested on VS Code 1.80+).
+**Clockit** helps developers log coding sessions automatically, add session comments, export tracked time to **CSV**, **Jira**, or **Notion**, and (optionally) back up sessions to your Clockit account for cloud stats — all within VS Code (tested on VS Code 1.80+).
 
 ---
 
@@ -43,6 +43,7 @@ https://github.com/user-attachments/assets/4a6f36cf-c224-47b1-bd08-fb2f39038b11
 - **Edit or clear credentials anytime**  
 - **Sink selection each session**  
 - **CSV menu** in the status bar for quick access  
+- **Optional cloud backup** via Clockit API token (keep local CSV too)  
 
 ---
 
@@ -128,6 +129,23 @@ startedIso, endedIso, durationSeconds, idleSeconds, linesAdded, linesDeleted, pe
 
 *You can open it in Excel, Numbers, or Google Sheets for timesheet analysis.*
 
+### Cloud Backups (optional)
+
+Keep your local CSV while also backing up sessions to your Clockit account:
+
+1) Sign in at https://clockit.app/dashboard and open **Profile → API Tokens**  
+2) Create a token (copy it once)  
+3) Configure VS Code settings:  
+   - `clockit.cloud.enabled`: `true`  
+   - `clockit.cloud.apiUrl`: your ingest endpoint (Firebase Function URL). This defaults to the bundled `CLOCKIT_INGEST_URL` if set; override only if you have a custom deploy.  
+   - `clockit.cloud.apiToken`: the token you generated (stored as a secret)  
+4) Stop a session—CSV writes locally and also uploads for cloud stats.
+
+If you run your own ingest (e.g., custom Firebase Function deploy), set `CLOCKIT_INGEST_URL` in the extension environment or override `clockit.cloud.apiUrl` manually.
+
+#### Ingest rate limits
+- Default per-token limits (tunable via env): `INGEST_PER_MINUTE_LIMIT` (default 60) and `INGEST_PER_DAY_LIMIT` (default 5000).  
+- If limits are exceeded, the ingest returns HTTP 429 and the session will still be written locally to CSV.
 ---
 ## 🧩 Usage
 

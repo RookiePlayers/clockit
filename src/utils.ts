@@ -224,7 +224,40 @@ export class Utils {
       const fs = await import('fs/promises');
       await fs.mkdir(folderUri.fsPath, { recursive: true }).catch(() => {});
     }
-    this.vscode.window.showInformationMessage(`Clockit CSV folder set to: ${folderUri.fsPath}`);
+    const choice = await this.vscode.window.showInformationMessage(
+      `Clockit CSV folder set to: ${folderUri.fsPath}`,
+      'Login to Clockit Cloud',
+      'Skip'
+    );
+    if (choice === 'Login to Clockit Cloud') {
+      await this.promptCloudSetup();
+    }
+  }
+
+  private async promptCloudSetup() {
+    const cfg = this.vscode.workspace.getConfiguration();
+    const apiUrl = await this.vscode.window.showInputBox({
+      title: 'Clockit Cloud Ingest URL',
+      prompt: 'Enter your Clockit ingest endpoint (Firebase Function URL)',
+      ignoreFocusOut: true,
+      value: (cfg.get<string>('clockit.cloud.apiUrl') || '').trim(),
+    });
+    if (!apiUrl) {return;}
+
+    const apiToken = await this.vscode.window.showInputBox({
+      title: 'Clockit API Token',
+      prompt: 'Paste the API token from the Clockit dashboard (Profile → API Tokens)',
+      password: true,
+      ignoreFocusOut: true,
+      value: (cfg.get<string>('clockit.cloud.apiToken') || '').trim(),
+    });
+    if (!apiToken) {return;}
+
+    await cfg.update('clockit.cloud.apiUrl', apiUrl, this.vscode.ConfigurationTarget.Workspace);
+    await cfg.update('clockit.cloud.apiToken', apiToken, this.vscode.ConfigurationTarget.Workspace);
+    await cfg.update('clockit.cloud.enabled', true, this.vscode.ConfigurationTarget.Workspace);
+
+    this.vscode.window.showInformationMessage('Clockit Cloud backup enabled. Future sessions will upload automatically.');
   }
 
   // ── logging

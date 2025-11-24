@@ -3,17 +3,92 @@
 import { useCollection } from "react-firebase-hooks/firestore";
 import { db } from "@/lib/firebase";
 import { collection, query, orderBy, limit, DocumentData } from "firebase/firestore";
-import { LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer } from "recharts";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+} from "recharts";
 import { motion } from "framer-motion";
+import { useMemo, useState } from "react";
 
 interface StatsProps {
   uid: string;
 }
 
 export default function Stats({ uid }: StatsProps) {
+  const [chartType, setChartType] = useState<"line" | "bar" | "pie">("line");
   const [snapshot, loading, error] = useCollection(
-    query(collection(db, "Uploads", uid, "CSV"), orderBy("uploadedAt", "desc"), limit(5))
+    query(collection(db, "Uploads", uid, "CSV"), orderBy("uploadedAt", "desc"), limit(50))
   );
+
+  // Only consider uploads in the last 30 days
+  const thirtyDaysAgo = useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 30);
+    return d;
+  }, []);
+
+  const chartData = useMemo(() => {
+    const docs = snapshot?.docs ?? [];
+    return docs
+      .map((doc) => {
+        const data = {
+          id: doc.id,
+          ...doc.data(),
+        } as DocumentData & { id: string };
+        const uploadedAt = data.uploadedAt?.toDate?.() ? data.uploadedAt.toDate() : null;
+        if (!uploadedAt || uploadedAt < thirtyDaysAgo) {return null;}
+
+        const rows = Array.isArray(data.data) ? data.data : [];
+        const totalSeconds = rows.reduce((sum, row) => {
+          const endedIso = row?.endedIso || row?.endedISO;
+          const durationSeconds = Number(row?.durationSeconds ?? 0);
+          // Use endedIso date for the bucket
+          const ended = endedIso ? new Date(endedIso) : uploadedAt;
+          if (ended < thirtyDaysAgo) {return sum;}
+          return sum + (Number.isFinite(durationSeconds) ? durationSeconds : 0);
+        }, 0);
+
+        const endedDates = rows
+          .map((row) => {
+            const endedIso = row?.endedIso || row?.endedISO;
+            return endedIso ? new Date(endedIso) : uploadedAt;
+          })
+          .filter((d: Date | null): d is Date => !!d)
+          .filter((d) => d >= thirtyDaysAgo);
+
+        const dateForLabel = endedDates.length ? endedDates[0] : uploadedAt;
+        const date = dateForLabel.toLocaleDateString();
+        const hours = Number((totalSeconds / 3600).toFixed(2));
+        return { date, hours };
+      })
+      .filter(Boolean)
+      .reduce((acc, curr) => {
+        const existing = acc.find((x) => x.date === curr!.date);
+        if (existing) {
+          existing.hours += (curr as {
+            date: string;
+            hours: number; 
+          }).hours;
+        } else {
+          acc.push(curr as {
+            date: string;
+            hours: number;
+          });
+        }
+        return acc;
+      }, [] as Array<{ date: string; hours: number }>)
+      .reverse();
+  }, [snapshot?.docs, thirtyDaysAgo]);
 
   if (loading) {
     return (
@@ -41,30 +116,105 @@ export default function Stats({ uid }: StatsProps) {
     );
   }
 
-  // Prepare chart data
-  const chartData = snapshot.docs.map((doc) => {
-    const data = doc.data() as DocumentData;
-    const date = data.uploadedAt?.toDate?.() ? data.uploadedAt.toDate().toLocaleDateString() : "";
-    const entries = data.data?.length || 0;
-    return { date, entries };
-  }).reverse();
+  const renderChart = () => {
+    if (chartData.length === 0) {
+      return <p className="text-sm text-gray-500">No uploads in the last 30 days.</p>;
+    }
+    const commonProps = {
+      data: chartData,
+      margin: { top: 5, right: 20, left: 0, bottom: 5 },
+    };
+    const fontSize = 13;
+    switch (chartType) {
+      case "bar":
+        return (
+          <ResponsiveContainer width="100%" height={240}>
+            <BarChart {...commonProps}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis
+                dataKey="date"
+                label={{ value: "Date", position: "insideBottomRight", offset: -5, fontSize }}
+                tick={{ fontSize }}
+              />
+              <YAxis
+                label={{ value: "Hours", angle: -90, position: "insideLeft", fontSize }}
+                tick={{ fontSize }}
+              />
+              <Tooltip />
+              <Bar dataKey="hours" fill="#3b82f6" />
+            </BarChart>
+          </ResponsiveContainer>
+        );
+      case "pie": {
+        const total = chartData.reduce((sum, d) => sum + d.hours, 0);
+        const pieData = chartData.map((d) => ({ name: d.date, value: d.hours || 0 }));
+        const colors = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#6366f1", "#06b6d4"];
+        return (
+          <ResponsiveContainer width="100%" height={240}>
+            <PieChart>
+              <Tooltip />
+              <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={90} label>
+                {pieData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
+                ))}
+              </Pie>
+            </PieChart>
+            <p className="text-xs text-gray-500 mt-2">Total hours: {total.toFixed(2)}</p>
+          </ResponsiveContainer>
+        );
+      }
+      case "line":
+      default:
+        return (
+          <ResponsiveContainer width="100%" height={240}>
+            <LineChart {...commonProps}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis
+                dataKey="date"
+                label={{ value: "Date", position: "insideBottomRight", offset: -5, fontSize }}
+                tick={{ fontSize }}
+              />
+              <YAxis
+                label={{ value: "Hours", angle: -90, position: "insideLeft", fontSize }}
+                tick={{ fontSize }}
+              />
+              <Tooltip />
+              <Line type="monotone" dataKey="hours" stroke="#3b82f6" strokeWidth={2} dot={{ r: 3 }} />
+            </LineChart>
+          </ResponsiveContainer>
+        );
+    }
+  };
+
+  const recentDocs = snapshot.docs
+    .map((doc) => ({ doc, data: doc.data() as DocumentData }))
+    .filter(({ data }) => {
+      const uploadedAt = data.uploadedAt?.toDate?.() ? data.uploadedAt.toDate() : null;
+      return uploadedAt && uploadedAt >= thirtyDaysAgo;
+    });
 
   return (
     <div className="space-y-6">
-      {/* Chart */}
-      <ResponsiveContainer width="100%" height={200}>
-        <LineChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="date" />
-          <YAxis />
-          <Tooltip />
-          <Line type="monotone" dataKey="entries" stroke="#3b82f6" strokeWidth={2} dot={{ r: 3 }} />
-        </LineChart>
-      </ResponsiveContainer>
-      {/* List of recent uploads */}
+      <div className="flex items-center gap-2 justify-end">
+        <label className="text-xs text-gray-500">Chart:</label>
+        <select
+          className="text-xs border border-gray-200 rounded-md px-2 py-1 text-gray-700"
+          value={chartType}
+          onChange={(e) => setChartType(e.target.value as "line" | "bar" | "pie")}
+        >
+          <option value="line">Line</option>
+          <option value="bar">Bar</option>
+          <option value="pie">Pie</option>
+        </select>
+      </div>
+      {renderChart()}
+
+      {/* List of recent uploads (last 30 days) */}
       <div className="space-y-3">
-        {snapshot.docs.map((doc) => {
-          const data = doc.data() as DocumentData;
+        {recentDocs.length === 0 && (
+          <p className="text-sm text-gray-500">No uploads in the last 30 days.</p>
+        )}
+        {recentDocs.map(({ doc, data }) => {
           const rowCount = data.data?.length || 0;
           return (
             <motion.div
@@ -79,7 +229,18 @@ export default function Stats({ uid }: StatsProps) {
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                 </div>
                 <div>
-                  <h4 className="text-sm font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">{data.filename}</h4>
+                    <div className="flex items-center gap-2">
+                    <h4 className="text-sm font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
+                      {data.filename ?? doc.id}
+                    </h4>
+                    <span
+                      className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                      data.filename ? "bg-green-100 text-green-700" : "bg-blue-100 text-blue-600"
+                      }`}
+                    >
+                      {!data.filename ? "auto" : "manual"}
+                    </span>
+                    </div>
                   <p className="text-xs text-gray-500">{data.uploadedAt?.toDate?.().toLocaleDateString()}</p>
                 </div>
               </div>
