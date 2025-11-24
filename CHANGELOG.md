@@ -1,3 +1,10 @@
+## [1.5.3](https://github.com/RookiePlayers/clockit/compare/v1.5.2...v1.5.3) (2025-11-24)
+
+
+### Bug Fixes
+
+* Enhance workspace tracking with top workspaces display and improved metrics ([b9ed166](https://github.com/RookiePlayers/clockit/commit/b9ed1669dcf47aa33d8442fbb1279542edb51d33))
+
 ## [1.5.2](https://github.com/RookiePlayers/clockit/compare/v1.5.1...v1.5.2) (2025-11-24)
 
 
