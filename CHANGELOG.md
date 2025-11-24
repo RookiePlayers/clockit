@@ -1,3 +1,10 @@
+# [1.5.0](https://github.com/RookiePlayers/clockit/compare/v1.4.0...v1.5.0) (2025-11-24)
+
+
+### Features
+
+* Add Privacy, Profile, and Request Data pages with user data management features ([5ef1410](https://github.com/RookiePlayers/clockit/commit/5ef1410d8d2723b388343c99e07542943dc326de))
+
 # [1.4.0](https://github.com/RookiePlayers/clockit/compare/v1.3.1...v1.4.0) (2025-11-22)
 
 
