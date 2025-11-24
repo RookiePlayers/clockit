@@ -1,3 +1,10 @@
+## [1.5.2](https://github.com/RookiePlayers/clockit/compare/v1.5.1...v1.5.2) (2025-11-24)
+
+
+### Bug Fixes
+
+* Update favicon.ico for improved branding ([76669f9](https://github.com/RookiePlayers/clockit/commit/76669f9ca0e51fa73d30e548e36cc334ea7b3187))
+
 ## [1.5.1](https://github.com/RookiePlayers/clockit/compare/v1.5.0...v1.5.1) (2025-11-24)
 
 
