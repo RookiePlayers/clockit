@@ -5,7 +5,7 @@ import Link from "next/link";
 import HeroAnimation from "@/components/HeroAnimation";
 import InstallButton from "@/components/InstallButton";
 import ReadDocsButton from "@/components/ReadDocsButton";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { auth } from "@/lib/firebase";
@@ -13,6 +13,7 @@ import { auth } from "@/lib/firebase";
 export default function Home() {
   const [user, loading] = useAuthState(auth);
   const router = useRouter();
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   useEffect(() => {
     if (loading) {return;}
@@ -24,26 +25,62 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-[#0b1021] text-white">
       <header className="sticky top-0 z-30 backdrop-blur bg-[#0b1021]/80 border-b border-white/5">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-3">
-            <Image src="/icon.png" alt="Clockit Icon" width={32} height={32} className="rounded-full" />
-            <span className="text-lg font-semibold tracking-tight">Clockit</span>
-          </Link>
-          <nav className="hidden sm:flex items-center gap-4 text-sm text-white/80">
-            <a href="#features" className="hover:text-white">Features</a>
-            <a href="#workflow" className="hover:text-white">How it works</a>
-            <Link href="/docs" className="hover:text-white">Docs</Link>
-          </nav>
-          <div className="flex items-center gap-3">
-            <ReadDocsButton variant="nav" />
-            <InstallButton variant="nav" />
-            <Link
-              href="/auth"
-              className="px-4 py-2 rounded-lg bg-white text-[#0b1021] text-sm font-semibold hover:bg-white/90 transition-colors shadow-sm"
-            >
-              Sign in
+        <div className="max-w-6xl mx-auto px-6 py-4 flex flex-col gap-3">
+          <div className="flex items-center justify-between gap-3">
+            <Link href="/" className="flex items-center gap-3">
+              <Image src="/icon.png" alt="Clockit Icon" width={32} height={32} className="rounded-full" />
+              <span className="text-lg font-semibold tracking-tight">Clockit</span>
             </Link>
+            <nav className="hidden sm:flex items-center gap-4 text-sm text-white/80">
+              <a href="#features" className="hover:text-white">Features</a>
+              <a href="#workflow" className="hover:text-white">How it works</a>
+              <Link href="/docs" className="hover:text-white">Docs</Link>
+            </nav>
+            <div className="hidden sm:flex items-center gap-3">
+              <ReadDocsButton variant="nav" />
+              <InstallButton variant="nav" />
+              <Link
+                href="/auth"
+                className="px-4 py-2 rounded-lg bg-white text-[#0b1021] text-sm font-semibold hover:bg-white/90 transition-colors shadow-sm"
+              >
+                Sign in
+              </Link>
+            </div>
+            <button
+              aria-label="Toggle navigation"
+              className="sm:hidden inline-flex items-center justify-center w-10 h-10 rounded-lg border border-white/10 text-white/80 hover:text-white hover:border-white/25 transition-colors"
+              onClick={() => setMobileNavOpen((open) => !open)}
+            >
+              <span className="sr-only">Toggle navigation</span>
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                {mobileNavOpen ? (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                ) : (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7h16M4 12h16M4 17h16" />
+                )}
+              </svg>
+            </button>
           </div>
+
+          {mobileNavOpen && (
+            <div className="sm:hidden border border-white/10 rounded-xl bg-white/5 px-4 py-3 space-y-3">
+              <nav className="flex flex-col gap-2 text-sm text-white/80">
+                <a href="#features" className="hover:text-white">Features</a>
+                <a href="#workflow" className="hover:text-white">How it works</a>
+                <Link href="/docs" className="hover:text-white">Docs</Link>
+              </nav>
+              <div className="grid grid-cols-1 gap-2">
+                <InstallButton variant="nav" />
+                <ReadDocsButton variant="nav" />
+                <Link
+                  href="/auth"
+                  className="px-4 py-2 rounded-lg bg-white text-[#0b1021] text-sm font-semibold hover:bg-white/90 transition-colors shadow-sm text-center"
+                >
+                  Sign in
+                </Link>
+              </div>
+            </div>
+          )}
         </div>
       </header>
 
@@ -130,16 +167,16 @@ export default function Home() {
             </div>
           </div>
           <div className="rounded-2xl border border-white/5 bg-gradient-to-br from-blue-500/10 via-violet-500/10 to-emerald-500/10 p-6 space-y-4">
-            <div className="flex items-center justify-between text-sm text-white/70">
+            <div className="flex items-center justify-between text-sm text-white/70 flex-wrap gap-2">
               <span>Snapshot of exports</span>
               <span className="px-3 py-1 rounded-full bg-white/10 text-white/80 text-xs">Live CSV</span>
             </div>
-            <div className="overflow-hidden rounded-xl border border-white/10 bg-black/50">
-              <table className="w-full text-sm text-white/80">
+            <div className="overflow-x-auto rounded-xl border border-white/10 bg-black/50">
+              <table className="min-w-[600px] w-full text-xs sm:text-sm text-white/80">
                 <thead className="bg-white/5 text-white/60">
                   <tr>
                     {["startedIso", "endedIso", "durationSeconds", "idleSeconds", "perLanguageSeconds"].map((h) => (
-                      <th key={h} className="px-3 py-2 text-left font-semibold">{h}</th>
+                      <th key={h} className="px-3 py-2 text-left font-semibold whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -150,11 +187,11 @@ export default function Home() {
                     { start: "2025-01-03T13:00:00Z", end: "2025-01-03T13:55:00Z", dur: "3300", idle: "180", lang: '{"go":2940,"sh":180}' },
                   ].map((row, i) => (
                     <tr key={i} className="border-t border-white/5">
-                      <td className="px-3 py-2 font-mono text-xs">{row.start}</td>
-                      <td className="px-3 py-2 font-mono text-xs">{row.end}</td>
+                      <td className="px-3 py-2 font-mono text-[11px] sm:text-xs whitespace-nowrap">{row.start}</td>
+                      <td className="px-3 py-2 font-mono text-[11px] sm:text-xs whitespace-nowrap">{row.end}</td>
                       <td className="px-3 py-2">{row.dur}</td>
                       <td className="px-3 py-2">{row.idle}</td>
-                      <td className="px-3 py-2 font-mono text-xs break-all">{row.lang}</td>
+                      <td className="px-3 py-2 font-mono text-[11px] sm:text-xs break-all">{row.lang}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -183,7 +220,7 @@ export default function Home() {
         <Image src="/icon.png" alt="Clockit Icon" width={28} height={28} className="rounded-full" />
         <span>Clockit — Track coding time without the busywork</span>
           </div>
-          <div className="flex gap-4">
+          <div className="flex flex-wrap gap-3">
         <Link href="/docs" className="hover:text-white">Docs</Link>
         <Link href="/dashboard" className="hover:text-white">Dashboard</Link>
         <Link href="/privacy" className="hover:text-white">Privacy Policy</Link>

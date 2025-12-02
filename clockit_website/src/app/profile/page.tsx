@@ -186,19 +186,19 @@ export default function ProfilePage() {
   return (
     <div className="min-h-screen bg-[#f8f9fa] text-gray-900">
       <nav className="bg-white border-b border-gray-200 sticky top-0 z-50">
-        <div className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
+        <div className="max-w-5xl mx-auto px-6 py-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <Link href="/" className="flex items-center gap-2">
             <Image src="/icon.png" alt="Clockit Icon" width={28} height={28} className="rounded-full" />
             <span className="font-bold text-lg text-gray-900">Clockit</span>
           </Link>
-          <div className="flex items-center gap-3">
-            <Link href="/dashboard" className="text-sm text-gray-600 hover:text-gray-900">Dashboard</Link>
-            <Link href="/advanced-stats" className="text-sm text-gray-600 hover:text-gray-900">Advanced Stats</Link>
-            <Link href="/docs" className="text-sm text-gray-600 hover:text-gray-900">Docs</Link>
+          <div className="flex flex-wrap items-center gap-3 text-sm">
+            <Link href="/dashboard" className="text-gray-600 hover:text-gray-900">Dashboard</Link>
+            <Link href="/advanced-stats" className="text-gray-600 hover:text-gray-900">Advanced Stats</Link>
+            <Link href="/docs" className="text-gray-600 hover:text-gray-900">Docs</Link>
             <button
               onClick={handleSignOut}
               disabled={signingOut}
-              className="px-3 py-1.5 rounded-lg text-sm font-semibold text-white bg-red-500 hover:bg-red-600 transition-colors disabled:opacity-60"
+              className="px-3 py-1.5 rounded-lg font-semibold text-white bg-red-500 hover:bg-red-600 transition-colors disabled:opacity-60"
             >
               {signingOut ? "Signing out..." : "Logout"}
             </button>
@@ -309,14 +309,16 @@ export default function ProfilePage() {
           {newToken && (
             <div className="border border-blue-200 bg-blue-50 text-blue-800 rounded-lg p-3 text-sm">
               <p className="font-semibold mb-1">Copy your token now:</p>
-              <div className="flex items-center justify-between gap-3">
-                <code className="text-xs break-all">{newToken}</code>
-                <button
-                  onClick={() => navigator.clipboard.writeText(newToken)}
-                  className="px-3 py-1 text-xs font-semibold text-white bg-blue-600 rounded-md hover:bg-blue-700"
-                >
-                  Copy
-                </button>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <code className="text-xs break-all w-full">{newToken}</code>
+                <div className="flex justify-end">
+                  <button
+                    onClick={() => navigator.clipboard.writeText(newToken)}
+                    className="px-3 py-1 text-xs font-semibold text-white bg-blue-600 rounded-md hover:bg-blue-700"
+                  >
+                    Copy
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -326,8 +328,8 @@ export default function ProfilePage() {
               <p className="text-sm text-gray-500 px-4 py-3">No tokens yet.</p>
             ) : (
               tokens.map((t) => (
-                <div key={t.id} className="flex items-center justify-between px-4 py-3 bg-white">
-                  <div>
+                <div key={t.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 py-3 bg-white">
+                  <div className="space-y-1">
                     <p className="text-sm font-semibold text-gray-900">{t.name || "Token"}</p>
                     <p className="text-xs text-gray-500">
                       Last 4: {t.lastFour || "—"} · Created: {formatDate(t.createdAt)} {t.expiresAt ? `· Expires: ${formatDate(t.expiresAt)}` : "· No expiry"}

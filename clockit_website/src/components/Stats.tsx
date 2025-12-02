@@ -219,16 +219,16 @@ export default function Stats({ uid }: StatsProps) {
           return (
             <motion.div
               key={doc.id}
-              className="group flex justify-between items-center bg-white hover:bg-gray-50 transition-colors border border-gray-100 rounded-xl p-4 shadow-sm hover:shadow-md"
+              className="group flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-white hover:bg-gray-50 transition-colors border border-gray-100 rounded-xl p-4 shadow-sm hover:shadow-md"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3 }}
             >
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 border border-blue-100">
+              <div className="flex items-center gap-4 w-full">
+                <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 border border-blue-100 shrink-0">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                 </div>
-                <div>
+                <div className="min-w-0">
                     <div className="flex items-center gap-2">
                     <h4 className="text-sm font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
                       {data.filename ?? doc.id}
@@ -244,7 +244,7 @@ export default function Stats({ uid }: StatsProps) {
                   <p className="text-xs text-gray-500">{data.uploadedAt?.toDate?.().toLocaleDateString()}</p>
                 </div>
               </div>
-              <div className="text-right">
+              <div className="text-left sm:text-right w-full sm:w-auto">
                 <span className="block text-lg font-bold text-gray-900">{rowCount.toLocaleString()}</span>
                 <span className="text-[10px] uppercase tracking-wider text-gray-400 font-medium">Entries</span>
               </div>

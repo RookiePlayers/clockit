@@ -139,23 +139,23 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-[#f8f9fa] text-gray-900">
       <nav className="bg-white border-b border-gray-200 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <Link href="/" className="flex items-center gap-2">
             <Image src="/icon.png" alt="Clockit Icon" width={28} height={28} className="rounded-full" />
             <span className="font-bold text-lg text-gray-900">Clockit</span>
           </Link>
-          <div className="flex items-center gap-4">
-            <Link href="/dashboard" className="text-sm text-gray-900 font-semibold">Dashboard</Link>
-            <Link href="/advanced-stats" className="text-sm text-gray-600 hover:text-gray-900">Advanced Stats</Link>
-            <Link href="/docs" className="text-sm text-gray-600 hover:text-gray-900">Docs</Link>
-            <Link href="/profile" className="text-sm text-gray-600 hover:text-gray-900">Profile</Link>
+          <div className="flex flex-wrap items-center gap-3 text-sm">
+            <span className="text-gray-600">Hi, {title}</span>
+            <Link href="/dashboard" className="text-gray-900 font-semibold">Dashboard</Link>
+            <Link href="/advanced-stats" className="text-gray-600 hover:text-gray-900">Advanced Stats</Link>
+            <Link href="/docs" className="text-gray-600 hover:text-gray-900">Docs</Link>
+            <Link href="/profile" className="text-gray-600 hover:text-gray-900">Profile</Link>
             <button
               onClick={() => auth.signOut()}
-              className="px-3 py-1.5 rounded-lg text-sm font-semibold text-white bg-red-500 hover:bg-red-600 transition-colors"
+              className="px-3 py-1.5 rounded-lg font-semibold text-white bg-red-500 hover:bg-red-600 transition-colors"
             >
               Logout
             </button>
-            <span className="text-sm text-gray-600 hidden sm:inline">Hi, {title}</span>
           </div>
         </div>
       </nav>
@@ -313,4 +313,3 @@ function formatDuration(totalSeconds: number) {
   if (minutes > 0 || parts.length === 0) parts.push(`${minutes}m`);
   return parts.join(" ");
 }
-

@@ -6,9 +6,9 @@ export default function PrivacyPage() {
   return (
     <div className="min-h-screen bg-[#0b1021] text-white">
       <header className="sticky top-0 z-30 backdrop-blur bg-[#0b1021]/80 border-b border-white/5">
-        <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
+        <div className="max-w-5xl mx-auto px-6 py-4 flex flex-wrap items-center gap-3 justify-between">
           <Link href="/" className="text-lg font-semibold tracking-tight">Clockit</Link>
-          <nav className="flex items-center gap-4 text-sm text-white/80">
+          <nav className="flex flex-wrap items-center gap-3 text-sm text-white/80">
             <Link href="/" className="hover:text-white">Home</Link>
             <Link href="/docs" className="hover:text-white">Docs</Link>
             <Link href="/auth" className="hover:text-white">Sign in</Link>

@@ -191,15 +191,15 @@ function AuthContent() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#f5f7fb] via-white to-[#eef3ff] text-gray-900">
       <header className="border-b border-gray-200 bg-white/80 backdrop-blur-md sticky top-0 z-40">
-        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+        <div className="max-w-6xl mx-auto px-6 py-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-2">
             <Image src="/icon.png" alt="Clockit Icon" width={28} height={28} className="rounded-full" />
             <span className="font-bold text-lg tracking-tight">Clockit</span>
             <span className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-full border border-blue-100">Auth</span>
           </div>
-          <div className="flex items-center gap-3">
-            <Link href="/docs" className="text-sm text-gray-600 hover:text-gray-900 font-medium">Docs</Link>
-            <Link href="/" className="inline-flex items-center gap-1 text-sm text-gray-600 hover:text-gray-900">
+          <div className="flex items-center gap-3 text-sm">
+            <Link href="/docs" className="text-gray-600 hover:text-gray-900 font-medium">Docs</Link>
+            <Link href="/" className="inline-flex items-center gap-1 text-gray-600 hover:text-gray-900">
               <IconArrowLeft size={16} /> Home
             </Link>
           </div>
