@@ -16,17 +16,26 @@ import NavBar from "@/components/NavBar";
 
 type Range = "week" | "month" | "year" | "all";
 
+type MetricStats = {
+  sum: number;
+  avg: number;
+  min: number;
+  max: number;
+};
+
+type MetricValue = number | MetricStats;
+
 type AggregateEntry = {
   periodStart: string;
-  totalSeconds: number;
-  idleSeconds: number;
-  workingSeconds: number;
-  languageSeconds?: Record<string, number>;
-  topWorkspaces?: Array<{ workspace: string; seconds: number }>;
-  workspaceSeconds?: Record<string, number>;
+  totalSeconds: MetricValue;
+  idleSeconds: MetricValue;
+  workingSeconds: MetricValue;
+  languageSeconds?: Record<string, MetricValue>;
+  topWorkspaces?: Array<{ workspace: string; seconds: MetricValue }>;
+  workspaceSeconds?: Record<string, MetricValue>;
   productivityScore?: number;
   productivityPercent: number;
-  topLanguage?: { language: string; seconds: number } | null;
+  topLanguage?: { language: string; seconds: MetricValue } | null;
 };
 
 type Aggregates = Partial<Record<Range, AggregateEntry[]>>;
@@ -103,14 +112,14 @@ export default function DashboardPage() {
     if (current?.topWorkspaces?.length) {
       return current.topWorkspaces.slice(0, 5).map((item) => ({
         workspace: item.workspace,
-        seconds: Number(item.seconds || 0),
+        seconds: metricSum(item.seconds),
       }));
     }
     // Fallback: derive from workspaceSeconds if topWorkspaces not provided.
     const totals: Record<string, number> = {};
     if (current?.workspaceSeconds) {
       for (const [name, seconds] of Object.entries(current.workspaceSeconds)) {
-        totals[name] = (totals[name] || 0) + Number(seconds || 0);
+        totals[name] = (totals[name] || 0) + metricSum(seconds);
       }
     }
     return Object.entries(totals)
@@ -216,6 +225,7 @@ export default function DashboardPage() {
         links={[
           { href: "/dashboard", label: "Dashboard", active: true },
           { href: "/advanced-stats", label: "Advanced Stats" },
+          { href: "/recent-activity", label: "Recent Activity" },
           { href: "/docs", label: "Docs" },
           { href: "/profile", label: "Profile" },
         ]}
@@ -401,9 +411,20 @@ function MetricRow({
   );
 }
 
-function formatDuration(totalSeconds: number) {
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
+function metricSum(value: MetricValue | undefined | null) {
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? value : 0;
+  }
+  if (value && typeof value.sum === "number" && Number.isFinite(value.sum)) {
+    return value.sum;
+  }
+  return 0;
+}
+
+function formatDuration(totalSeconds: MetricValue | undefined | null) {
+  const seconds = metricSum(totalSeconds);
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
   const parts = [];
   if (hours > 0) parts.push(`${hours}h`);
   if (minutes > 0 || parts.length === 0) parts.push(`${minutes}m`);

@@ -90,9 +90,9 @@ export default function RecentActivityPage() {
         links={[
           { href: "/dashboard", label: "Dashboard" },
           { href: "/advanced-stats", label: "Advanced Stats" },
+          { href: "/recent-activity", label: "Recent Activity", active: true },
           { href: "/docs", label: "Docs" },
           { href: "/profile", label: "Profile" },
-          { href: "/recent-activity", label: "Recent Activity", active: true },
         ]}
       />
 

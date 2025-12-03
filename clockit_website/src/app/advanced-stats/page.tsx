@@ -6,12 +6,12 @@
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { auth, db } from "@/lib/firebase";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import Cooldown from "@/components/Cooldown";
 import NavBar from "@/components/NavBar";
 import {
@@ -37,18 +37,29 @@ import { useSnackbar } from "notistack";
 
 type Range = "week" | "month" | "year" | "all";
 
-type AggregateEntry = {
-  periodStart: string;
-  totalSeconds: number;
-  idleSeconds: number;
-  workingSeconds: number;
-  productivityPercent: number;
-  productivityScore?: number;
-  languageSeconds?: Record<string, number>;
-  workspaceSeconds?: Record<string, number>;
-  topWorkspaces?: Array<{ workspace: string; seconds: number }>;
-  topLanguage?: { language: string; seconds: number } | null;
+export type MetricStats = {
+  sum: number;
+  avg: number;
+  min: number;
+  max: number;
 };
+
+type MetricValue = number | MetricStats;
+
+export type AggregateEntry = {
+  periodStart: string;
+  totalSeconds: MetricValue;
+  workingSeconds: MetricValue;
+  idleSeconds: MetricValue;
+  sessionCount?: MetricValue;
+  productivityScore?: number;
+  productivityPercent: number;
+  languageSeconds?: Record<string, MetricValue>;
+  topLanguage?: { language: string; seconds: MetricValue } | null;
+  workspaceSeconds?: Record<string, MetricValue>;
+  topWorkspaces?: { workspace: string; seconds: MetricValue }[];
+};
+
 
 type Aggregates = Partial<Record<Range, AggregateEntry[]>>;
 
@@ -81,6 +92,7 @@ export default function AdvancedStatsPage() {
   const [lastRefresh, setLastRefresh] = useState<number | null>(null);
   const COOLDOWN_MS = 60 * 60 * 1000; // 1 hour
   const { enqueueSnackbar } = useSnackbar();
+  const lastSavedBadgesRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!user) {
@@ -189,8 +201,32 @@ export default function AdvancedStatsPage() {
       .slice(0, 12);
   }, [aggregates, languageRange]);
 
+  const rangeTotals = useMemo(() => computeRangeTotals(aggregates, range), [aggregates, range]);
+  const rangeLanguageTotals = useMemo(() => languageTotalsForRange(aggregates, range), [aggregates, range]);
+  const rangeWorkspaceTotals = useMemo(() => workspaceTotalsForRange(aggregates, range), [aggregates, range]);
   const yearSummary = useMemo(() => computeYearSummary(aggregates), [aggregates]);
   const badges = useMemo(() => computeBadges(aggregates), [aggregates]);
+
+  useEffect(() => {
+    if (!user || !aggregates) {return;}
+    const summary = badges.map((b) => ({
+      title: b.title,
+      description: b.description,
+      detail: b.detail,
+      earned: b.earned,
+    }));
+    const serialized = JSON.stringify(summary);
+    if (serialized === lastSavedBadgesRef.current) {return;}
+    lastSavedBadgesRef.current = serialized;
+    void setDoc(
+      doc(db, "Achievements", user.uid),
+      { badges: summary, updatedAt: serverTimestamp(), userId: user.uid },
+      { merge: true }
+    ).catch((err) => {
+      // Surface silently to console to avoid interrupting UX with badge persistence issues.
+      console.error("Failed to save achievements", err);
+    });
+  }, [aggregates, badges, user]);
 
   if (loadingUser || isLoading) {
     return (
@@ -235,6 +271,7 @@ export default function AdvancedStatsPage() {
         links={[
           { href: "/dashboard", label: "Dashboard" },
           { href: "/advanced-stats", label: "Advanced Stats", active: true },
+          { href: "/recent-activity", label: "Recent Activity" },
           { href: "/docs", label: "Docs" },
           { href: "/profile", label: "Profile" },
         ]}
@@ -316,6 +353,50 @@ export default function AdvancedStatsPage() {
             <MiniStat label="Total idle" value={`${sum(trendData.map((d) => d.idleHours)).toFixed(1)} h`} />
             <MiniStat label="Data points" value={`${trendData.length}`} />
           </div>
+        </section>
+
+        <section className="card-clean bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-4">
+          <div className="flex items-center justify-between gap-2">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">Range totals</h2>
+              <p className="text-sm text-gray-600">Sums across all aggregated entries for this view.</p>
+            </div>
+            <span className="px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-700">
+              {rangeLabels[range]}
+            </span>
+          </div>
+          {!rangeTotals ? (
+            <p className="text-sm text-gray-500">{statsError || "No aggregated data yet for this range."}</p>
+          ) : (
+            <>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <MiniStat label="Total time" value={`${toHours(rangeTotals.totalSeconds).toFixed(1)} h`} />
+                <MiniStat label="Working time" value={`${toHours(rangeTotals.workingSeconds).toFixed(1)} h`} />
+                <MiniStat label="Idle time" value={`${toHours(rangeTotals.idleSeconds).toFixed(1)} h`} />
+                {rangeTotals.sessions > 0 && (
+                  <MiniStat label="Sessions" value={`${rangeTotals.sessions.toFixed(0)}`} />
+                )}
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <TotalsList
+                  title="Languages"
+                  emptyLabel="No language data yet for this range."
+                  items={Object.entries(rangeLanguageTotals)
+                    .map(([label, seconds]) => ({ label, value: toHours(seconds) }))
+                    .sort((a, b) => b.value - a.value)
+                    .slice(0, 5)}
+                />
+                <TotalsList
+                  title="Workspaces"
+                  emptyLabel="No workspace data yet for this range."
+                  items={Object.entries(rangeWorkspaceTotals)
+                    .map(([label, seconds]) => ({ label, value: toHours(seconds) }))
+                    .sort((a, b) => b.value - a.value)
+                    .slice(0, 5)}
+                />
+              </div>
+            </>
+          )}
         </section>
 
         <section className="card-clean bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-6">
@@ -592,7 +673,18 @@ function formatBucketLabel(periodStart: string, range: Range) {
   return new Intl.DateTimeFormat("en", options).format(date);
 }
 
-function toHours(seconds: number) {
+function metricSum(value: MetricValue | undefined | null) {
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? value : 0;
+  }
+  if (value && typeof value.avg === "number" && Number.isFinite(value.avg)) {
+    return value.avg;
+  }
+  return 0;
+}
+
+function toHours(value: MetricValue | undefined | null) {
+  const seconds = metricSum(value);
   return Number((seconds / 3600).toFixed(2));
 }
 
@@ -612,7 +704,7 @@ function languageTotalsForRange(aggregates: Aggregates | null, range: Range) {
   for (const entry of entries) {
     const langSeconds = entry.languageSeconds || {};
     for (const [lang, seconds] of Object.entries(langSeconds)) {
-      totals[lang] = (totals[lang] || 0) + Number(seconds || 0);
+      totals[lang] = (totals[lang] || 0) + metricSum(seconds);
     }
   }
   return totals;
@@ -623,16 +715,31 @@ function workspaceTotalsForRange(aggregates: Aggregates | null, range: Range) {
   const entries = aggregates?.[range] ?? [];
   for (const entry of entries) {
     const wsSeconds = entry.workspaceSeconds || {};
+    const hasWorkspaceSeconds = Object.keys(wsSeconds).length > 0;
     for (const [ws, seconds] of Object.entries(wsSeconds)) {
-      totals[ws] = (totals[ws] || 0) + Number(seconds || 0);
+      totals[ws] = (totals[ws] || 0) + metricSum(seconds);
     }
-    if (!entry.workspaceSeconds && entry.topWorkspaces) {
+    if (!hasWorkspaceSeconds && entry.topWorkspaces) {
       for (const tw of entry.topWorkspaces) {
-        totals[tw.workspace] = (totals[tw.workspace] || 0) + Number(tw.seconds || 0);
+        totals[tw.workspace] = (totals[tw.workspace] || 0) + metricSum(tw.seconds);
       }
     }
   }
   return totals;
+}
+
+function computeRangeTotals(aggregates: Aggregates | null, range: Range) {
+  const entries = aggregates?.[range] ?? [];
+  if (!entries.length) {return null;}
+  return entries.reduce(
+    (acc, entry) => ({
+      totalSeconds: acc.totalSeconds + metricSum(entry.totalSeconds),
+      workingSeconds: acc.workingSeconds + metricSum(entry.workingSeconds),
+      idleSeconds: acc.idleSeconds + metricSum(entry.idleSeconds),
+      sessions: acc.sessions + (entry.sessionCount ? metricSum(entry.sessionCount) : 0),
+    }),
+    { totalSeconds: 0, workingSeconds: 0, idleSeconds: 0, sessions: 0 }
+  );
 }
 
 function computeYearSummary(aggregates: Aggregates | null) {
@@ -645,11 +752,11 @@ function computeYearSummary(aggregates: Aggregates | null) {
   const weeks = (aggregates?.week ?? []).filter((w) => new Date(w.periodStart).getFullYear() === currentYear);
 
   const bestMonth = months.reduce<AggregateEntry | null>(
-    (best, curr) => (!best || curr.workingSeconds > best.workingSeconds ? curr : best),
+    (best, curr) => (!best || metricSum(curr.workingSeconds) > metricSum(best.workingSeconds) ? curr : best),
     null
   );
   const bestWeek = weeks.reduce<AggregateEntry | null>(
-    (best, curr) => (!best || curr.workingSeconds > best.workingSeconds ? curr : best),
+    (best, curr) => (!best || metricSum(curr.workingSeconds) > metricSum(best.workingSeconds) ? curr : best),
     null
   );
 
@@ -658,7 +765,7 @@ function computeYearSummary(aggregates: Aggregates | null) {
   const idleHours = toHours(latest.idleSeconds);
 
   const topLanguageEntry = latest.topLanguage?.language
-    ? latest.topLanguage
+    ? { language: latest.topLanguage.language, seconds: metricSum(latest.topLanguage.seconds) }
     : pickTopLanguage(latest.languageSeconds || {});
   const topWorkspaceEntry = pickTopWorkspace(latest);
 
@@ -707,11 +814,12 @@ function computeGrade(avgProductivity: number, workingHours: number): Grade {
   return { letter: "D", description: "Opportunities to reduce idle time and increase deep work blocks." };
 }
 
-function pickTopLanguage(languageSeconds: Record<string, number>) {
+function pickTopLanguage(languageSeconds: Record<string, MetricValue>) {
   let best: { language: string; seconds: number } | null = null;
   for (const [language, seconds] of Object.entries(languageSeconds)) {
-    if (!best || seconds > best.seconds) {
-      best = { language, seconds };
+    const totalSeconds = metricSum(seconds);
+    if (!best || totalSeconds > best.seconds) {
+      best = { language, seconds: totalSeconds };
     }
   }
   return best;
@@ -719,27 +827,38 @@ function pickTopLanguage(languageSeconds: Record<string, number>) {
 
 function pickTopWorkspace(entry: AggregateEntry) {
   if (entry.topWorkspaces?.length) {
-    const sorted = [...entry.topWorkspaces].sort((a, b) => b.seconds - a.seconds);
-    return sorted[0];
+    const sorted = [...entry.topWorkspaces].sort((a, b) => metricSum(b.seconds) - metricSum(a.seconds));
+    const top = sorted[0];
+    return { workspace: top.workspace, seconds: metricSum(top.seconds) };
   }
   const wsMap = entry.workspaceSeconds || {};
   let best: { workspace: string; seconds: number } | null = null;
   for (const [workspace, seconds] of Object.entries(wsMap)) {
-    if (!best || seconds > best.seconds) {
-      best = { workspace, seconds };
+    const totalSeconds = metricSum(seconds);
+    if (!best || totalSeconds > best.seconds) {
+      best = { workspace, seconds: totalSeconds };
     }
   }
   return best;
 }
 
 function computeBadges(aggregates: Aggregates | null) {
-  const activeWeeks = (aggregates?.week ?? []).filter((w) => w.workingSeconds >= 3600).length;
-  const avgProductivity = average((aggregates?.week ?? []).map((w) => w.productivityPercent));
+  const weeks = aggregates?.week ?? [];
+  const months = aggregates?.month ?? [];
+  const activeWeeks = weeks.filter((w) => metricSum(w.workingSeconds) >= 3600).length;
+  const avgProductivity = average(weeks.map((w) => w.productivityPercent));
   const allEntry = aggregates?.all?.[0];
   const totalHours = toHours(allEntry?.workingSeconds ?? 0);
-  const idleRatio = allEntry ? Math.round((allEntry.idleSeconds / Math.max(1, allEntry.totalSeconds)) * 100) : 0;
+  const idleRatio = allEntry
+    ? Math.round((metricSum(allEntry.idleSeconds) / Math.max(1, metricSum(allEntry.totalSeconds))) * 100)
+    : 0;
   const languageSeconds = allEntry?.languageSeconds || {};
   const strongLanguages = Object.values(languageSeconds).filter((sec) => toHours(sec) >= 3).length;
+  const bestWeekHours = weeks.reduce((max, w) => Math.max(max, toHours(w.workingSeconds)), 0);
+  const bestMonthHours = months.reduce((max, m) => Math.max(max, toHours(m.workingSeconds)), 0);
+  const totalSessions =
+    metricSum(allEntry?.sessionCount) ||
+    weeks.reduce((acc, w) => acc + (w.sessionCount ? metricSum(w.sessionCount) : 0), 0);
 
   return [
     {
@@ -772,5 +891,66 @@ function computeBadges(aggregates: Aggregates | null) {
       detail: `Idle ratio ${idleRatio}%`,
       earned: idleRatio > 0 && idleRatio <= 35,
     },
+    {
+      title: "Weekly Warrior",
+      description: "Hit a strong weekly deep work block.",
+      detail: `Best week ${bestWeekHours.toFixed(1)}h`,
+      earned: bestWeekHours >= 25,
+    },
+    {
+      title: "Marathon Coder",
+      description: "Massive working time across all history.",
+      detail: `${totalHours.toFixed(1)}h total working`,
+      earned: totalHours >= 250,
+    },
+    {
+      title: "Session Grinder",
+      description: "Plenty of individual sessions logged.",
+      detail: `${totalSessions.toFixed(0)} sessions`,
+      earned: totalSessions >= 200,
+    },
+    {
+      title: "Monthly Peak",
+      description: "A standout month of output.",
+      detail: `Best month ${bestMonthHours.toFixed(1)}h`,
+      earned: bestMonthHours >= 90,
+    },
   ];
+}
+
+function TotalsList({
+  title,
+  items,
+  emptyLabel,
+}: {
+  title: string;
+  items: Array<{ label: string; value: number }>;
+  emptyLabel: string;
+}) {
+  const hasItems = items.length > 0;
+  return (
+    <div className="p-4 rounded-xl border border-gray-100 bg-gray-50">
+      <div className="flex items-center justify-between mb-2">
+        <h3 className="text-sm font-semibold text-gray-900">{title}</h3>
+        {hasItems && <span className="text-xs text-gray-500">{items.length} entries</span>}
+      </div>
+      {!hasItems ? (
+        <p className="text-sm text-gray-500">{emptyLabel}</p>
+      ) : (
+        <div className="space-y-2">
+          {items.map((row, idx) => (
+            <div key={row.label} className="flex items-center justify-between px-3 py-2 rounded-lg bg-white border border-gray-100">
+              <div className="flex items-center gap-2">
+                <span className="w-6 h-6 rounded-full bg-blue-50 border border-blue-100 text-blue-700 text-xs font-semibold flex items-center justify-center">
+                  {idx + 1}
+                </span>
+                <span className="font-semibold text-gray-900">{row.label}</span>
+              </div>
+              <span className="text-sm text-gray-700">{row.value.toFixed(2)} h</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }

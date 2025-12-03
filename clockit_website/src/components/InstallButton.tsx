@@ -16,8 +16,8 @@ export default function InstallButton({ variant = "hero" }: InstallButtonProps) 
     { label: "VS Code", value: "vscode", url: "https://marketplace.visualstudio.com/items?itemName=octech.clockit" },
     // NOTE: URLs for Cursor and Antigravity VSIX downloads are placeholders.
     // Replace these with actual download links or marketplace URLs for a functional solution.
-    { label: "Cursor", value: "cursor", url: "https://example.com/download/cursor-clockit.vsix" },
-    { label: "Antigravity", value: "antigravity", url: "https://example.com/download/antigravity-clockit.vsix" },
+    { label: "Cursor", value: "cursor", url: "https://open-vsx.org/vscode/item?itemName=octech.clockit" },
+    { label: "Antigravity", value: "antigravity", url: "https://open-vsx.org/vscode/item?itemName=octech.clockit" },
   ];
 
   const handleEditorSelectionAndInstall = (newValue: string) => {
