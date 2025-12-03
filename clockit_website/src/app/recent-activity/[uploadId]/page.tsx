@@ -1,0 +1,472 @@
+/* eslint-disable react-hooks/error-boundaries */
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
+import Link from "next/link";
+import { useParams } from "next/navigation";
+import { useAuthState } from "react-firebase-hooks/auth";
+import { auth, db } from "@/lib/firebase";
+import { doc, getDoc } from "firebase/firestore";
+
+type UploadRows = Array<Record<string, unknown>>;
+
+type UploadData = {
+  filename: string;
+  uploadedAt: Date | null;
+  rows: UploadRows;
+};
+
+export default function UploadDetailPage() {
+  const params = useParams<{ uploadId: string }>();
+  const uploadId = params?.uploadId;
+  const [user, loadingUser, authError] = useAuthState(auth);
+  const [upload, setUpload] = useState<UploadData | null>(null);
+  const [loadingUpload, setLoadingUpload] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalContent, setModalContent] = useState<{ title: string; entries: Array<{ label: string; seconds: number }> } | null>(null);
+  const [isCommentModalOpen, setIsCommentModalOpen] = useState(false);
+  const [commentContent, setCommentContent] = useState<string | null>(null);
+  const [isExtraModalOpen, setIsExtraModalOpen] = useState(false);
+  const [extraContent, setExtraContent] = useState<string>("");
+
+  useEffect(() => {
+    if (!user || !uploadId) {
+      setLoadingUpload(false);
+      return;
+    }
+
+    const fetchUpload = async () => {
+      try {
+        setLoadError(null);
+        setLoadingUpload(true);
+        const ref = doc(db, "Uploads", user.uid, "CSV", uploadId);
+        const snap = await getDoc(ref);
+        if (!snap.exists()) {
+          setLoadError("Upload not found.");
+          setUpload(null);
+          return;
+        }
+        const data = snap.data() as Record<string, unknown>;
+        const rows = Array.isArray(data.data) ? (data.data as UploadRows) : [];
+        const uploadedAt = (data.uploadedAt as { toDate?: () => Date } | undefined)?.toDate?.() ?? null;
+        setUpload({
+          filename: typeof data.filename === "string" && data.filename.length ? data.filename : uploadId,
+          uploadedAt,
+          rows,
+        });
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "Failed to load upload.";
+        setLoadError(msg);
+      } finally {
+        setLoadingUpload(false);
+      }
+    };
+
+    void fetchUpload();
+  }, [user, uploadId]);
+
+  const columns = useMemo(() => {
+    const rows = upload?.rows || [];
+    if (!rows.length) {return [];}
+    const preferred = [
+      "startedIso",
+      "startedISO",
+      "endedIso",
+      "endedISO",
+      "durationSeconds",
+      "idleSeconds",
+      "perFileSeconds",
+      "perLanguageSeconds",
+      "workspace",
+      "language",
+      "project",
+      "note",
+      "comment",
+    ];
+    const allKeys = new Set<string>();
+    for (const row of rows) {
+      Object.keys(row || {}).forEach((k) => allKeys.add(k));
+    }
+    const ordered: string[] = [];
+    for (const key of preferred) {
+      if (allKeys.has(key)) {
+        ordered.push(key);
+        allKeys.delete(key);
+      }
+    }
+    return [...ordered, ...Array.from(allKeys).sort()];
+  }, [upload?.rows]);
+
+  if (loadingUser || loadingUpload) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (authError) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen text-red-600 gap-3">
+        <p>Auth error: {authError.message}</p>
+        <Link href="/auth" className="text-blue-600 hover:underline">Go to sign in</Link>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen gap-4 text-gray-800">
+        <p className="text-lg font-semibold">You need to sign in to view this upload.</p>
+        <div className="flex gap-3">
+          <Link href="/auth" className="px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition-colors">
+            Sign in
+          </Link>
+          <Link href="/auth?mode=signup" className="px-4 py-2 border border-gray-200 rounded-lg text-gray-700 hover:border-blue-200 hover:text-blue-700 transition-colors">
+            Create account
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-[#f8f9fa] text-gray-900">
+      <nav className="bg-white border-b border-gray-200 sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <Link href="/" className="flex items-center gap-2">
+            <Image src="/icon.png" alt="Clockit Icon" width={28} height={28} className="rounded-full" />
+            <span className="font-bold text-lg text-gray-900">Clockit</span>
+          </Link>
+          <div className="flex flex-wrap items-center gap-3 text-sm">
+            <Link href="/dashboard" className="text-gray-600 hover:text-gray-900">Dashboard</Link>
+            <Link href="/advanced-stats" className="text-gray-600 hover:text-gray-900">Advanced Stats</Link>
+            <Link href="/docs" className="text-gray-600 hover:text-gray-900">Docs</Link>
+            <Link href="/recent-activity" className="text-gray-900 font-semibold">Recent Activity</Link>
+            <button
+              onClick={() => auth.signOut()}
+              className="px-3 py-1.5 rounded-lg font-semibold text-white bg-red-500 hover:bg-red-600 transition-colors"
+            >
+              Logout
+            </button>
+          </div>
+        </div>
+      </nav>
+
+      <main className="max-w-7xl mx-auto px-6 py-10 space-y-6">
+        <header className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+          <div>
+            <p className="text-sm text-blue-600 font-semibold">Upload detail</p>
+            <h1 className="text-3xl font-bold text-gray-900 break-all">{upload?.filename ?? "Upload"}</h1>
+            <p className="text-sm text-gray-600 mt-1">
+              {upload?.uploadedAt ? upload.uploadedAt.toLocaleString() : "Upload time unavailable"}
+              {" · "}
+              {upload?.rows?.length ?? 0} row{(upload?.rows?.length ?? 0) === 1 ? "" : "s"}
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Link href="/recent-activity" className="px-4 py-2 rounded-lg text-sm font-semibold text-gray-700 border border-gray-200 hover:border-blue-200 hover:text-blue-700 transition-colors">
+              Back to recent activity
+            </Link>
+          </div>
+        </header>
+
+        <section className="bg-white border border-gray-100 rounded-2xl shadow-sm">
+          <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between gap-3">
+            <h2 className="text-lg font-semibold text-gray-900">Rows</h2>
+            {loadError && <span className="text-sm text-red-600"> {loadError}</span>}
+          </div>
+          <div className="overflow-x-auto">
+            <table className="min-w-[840px] w-full text-sm text-gray-800">
+              <thead className="bg-gray-50 text-gray-600 border-b border-gray-100">
+                <tr>
+                  <th className="text-left px-4 py-2 font-semibold whitespace-nowrap">#</th>
+                  {columns.map((col) => (
+                    <th
+                      key={col}
+                      className={`text-left px-4 py-2 font-semibold whitespace-nowrap  ${isWideColumn(col) ? "min-w-[210px]" : "min-w-[180px]"}`}
+                    >
+                      {col}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {(!upload || upload.rows.length === 0) && (
+                  <tr>
+                    <td colSpan={columns.length + 1} className="px-4 py-6 text-center text-gray-500">
+                      No rows found in this upload.
+                    </td>
+                  </tr>
+                )}
+                {upload?.rows.map((row, idx) => (
+                  <tr key={idx} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                    <td className="px-4 py-3 text-gray-600 whitespace-nowrap">{idx + 1}</td>
+                    {columns.map((col) => (
+                      <td
+                        key={col}
+                        className={`px-4 py-3 text-gray-800 align-top min-w-[80px] ${isWideColumn(col) ? "min-w-[220px]" : ""}`}
+                      >
+                        {col === "perFileSeconds" || col === "perLanguageSeconds" ? (
+                          <button
+                            type="button"
+                            className="px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-100 rounded-lg hover:bg-blue-100 transition-colors"
+                            onClick={() => {
+                              const entries = parseSecondsMap((row as Record<string, unknown>)[col]);
+                              setModalContent({
+                                title: col,
+                                entries,
+                              });
+                              setIsModalOpen(true);
+                            }}
+                          >
+                            {col === "perFileSeconds" ? "View per file" : "View per language"}
+                          </button>
+                        ) : col === "comment" ? (
+                          <button
+                            type="button"
+                            className="w-full text-center px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-100 rounded-lg hover:bg-blue-100 transition-colors"
+                            onClick={() => {
+                              const comment = (row as Record<string, unknown>)[col];
+                              const content = typeof comment === "string" ? comment : "";
+                              setCommentContent(content);
+                              setIsCommentModalOpen(true);
+                            }}
+                          >
+                            {renderCommentPreview((row as Record<string, unknown>)[col])}
+                          </button>
+                        ) : col === "__parsed_extra" ? (
+                          <button
+                            type="button"
+                            className="w-full text-center px-3 py-1.5 text-xs font-semibold text-indigo-700 bg-indigo-50 border border-indigo-100 rounded-lg hover:bg-indigo-100 transition-colors"
+                            onClick={() => {
+                              setExtraContent(formatJson((row as Record<string, unknown>)[col]));
+                              setIsExtraModalOpen(true);
+                            }}
+                          >
+                            View parsed extra
+                          </button>
+                        ) : (
+                          <Cell value={(row as Record<string, unknown>)[col]} column={col} />
+                        )}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        {isModalOpen && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-black/50"
+            role="dialog"
+            aria-modal="true"
+          >
+            <div className="bg-white rounded-xl shadow-2xl max-w-3xl w-full max-h-[80vh] overflow-hidden border border-gray-200">
+              <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+                <h3 className="text-lg font-semibold text-gray-900">{modalContent?.title ?? "Details"}</h3>
+                <button
+                  type="button"
+                  className="text-gray-500 hover:text-gray-800"
+                  onClick={() => setIsModalOpen(false)}
+                  aria-label="Close modal"
+                >
+                  ✕
+                </button>
+              </div>
+              <div className="p-4 overflow-auto">
+                {(!modalContent || modalContent.entries.length === 0) ? (
+                  <p className="text-sm text-gray-600">No data available.</p>
+                ) : (
+                  <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-2">
+                    {modalContent.entries.map((item) => (
+                      <div
+                        key={`${item.label}-${item.seconds}`}
+                        className="flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-100 bg-gray-50"
+                      >
+                        <span className="font-mono text-xs text-gray-800 break-all flex-1">{item.label}</span>
+                        <span
+                          className="px-2 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700"
+                          title={formatHoursTooltip(item.seconds)}
+                        >
+                          {formatNumberCompact(item.seconds)}s
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+        {isExtraModalOpen && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-black/50"
+            role="dialog"
+            aria-modal="true"
+          >
+            <div className="bg-white rounded-xl shadow-2xl max-w-3xl w-full max-h-[80vh] overflow-hidden border border-gray-200">
+              <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+                <h3 className="text-lg font-semibold text-gray-900">__parsed_extra</h3>
+                <button
+                  type="button"
+                  className="text-gray-500 hover:text-gray-800"
+                  onClick={() => setIsExtraModalOpen(false)}
+                  aria-label="Close modal"
+                >
+                  ✕
+                </button>
+              </div>
+              <div className="p-4 overflow-auto">
+                <pre className="bg-gray-50 border border-gray-100 rounded-lg p-3 text-xs text-gray-800 whitespace-pre-wrap break-words">
+                  {extraContent}
+                </pre>
+              </div>
+            </div>
+          </div>
+        )}
+        {isCommentModalOpen && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-black/50"
+            role="dialog"
+            aria-modal="true"
+          >
+            <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[70vh] overflow-hidden border border-gray-200">
+              <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+                <h3 className="text-lg font-semibold text-gray-900">Comment</h3>
+                <button
+                  type="button"
+                  className="text-gray-500 hover:text-gray-800"
+                  onClick={() => setIsCommentModalOpen(false)}
+                  aria-label="Close modal"
+                >
+                  ✕
+                </button>
+              </div>
+              <div className="p-4 overflow-auto">
+                {commentContent && commentContent.trim().length > 0 ? (
+                  <p className="text-sm text-gray-800 whitespace-pre-wrap break-words">{commentContent}</p>
+                ) : (
+                  <p className="text-sm text-gray-600">No comment provided for this row.</p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+      </main>
+    </div>
+  );
+}
+
+function Cell({ value, column }: { value: unknown; column: string }) {
+  const numericColumns = new Set(["durationSeconds", "idleSeconds", "linesAdded", "linesDeleted"]);
+  if (value === null || value === undefined) {
+    return <span className="text-gray-400">—</span>;
+  }
+  const numericValue = (() => {
+    if (typeof value === "number" && Number.isFinite(value)) {
+      return value;
+    }
+    if (numericColumns.has(column) && typeof value === "string") {
+      const parsed = Number(value);
+      if (Number.isFinite(parsed)) {
+        return parsed;
+      }
+    }
+    return null;
+  })();
+
+  if (numericValue !== null) {
+    return (
+      <span
+        className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-800"
+        title={isTimeColumn(column) ? formatHoursTooltip(numericValue) : String(numericValue)}
+      >
+        {formatNumberCompact(numericValue)}
+      </span>
+    );
+  }
+
+  if (typeof value === "object") {
+    try {
+      return <code className="text-xs break-all">{JSON.stringify(value)}</code>;
+    } catch {
+      return <span className="text-gray-800">[object]</span>;
+    }
+  }
+
+  return <span className="text-gray-800 break-all">{String(value)}</span>;
+}
+
+function parseSecondsMap(value: unknown): Array<{ label: string; seconds: number }> {
+  if (!value) {return [];}
+  let data: unknown = value;
+  if (typeof value === "string") {
+    try {
+      data = JSON.parse(value);
+    } catch {
+      return [];
+    }
+  }
+  if (typeof data !== "object" || Array.isArray(data) || data === null) {
+    return [];
+  }
+  const entries: Array<{ label: string; seconds: number }> = [];
+  for (const [label, seconds] of Object.entries(data as Record<string, unknown>)) {
+    const num = Number(seconds);
+    if (!Number.isFinite(num)) {continue;}
+    entries.push({ label, seconds: num });
+  }
+  return entries;
+}
+
+function isWideColumn(column: string) {
+  const iso = column === "startedIso" || column === "startedISO" || column === "endedIso" || column === "endedISO";
+  const contact = column === "authorEmail";
+  const machine = column === "machine" || column === "machineName";
+  const repo = column === "repoPath";
+  const branch = column === "branch";
+  const comment = column === "comment";
+  return iso || contact || machine || repo || branch || comment;
+}
+
+function formatNumberCompact(value: number) {
+  try {
+    return new Intl.NumberFormat("en", { notation: "compact", maximumFractionDigits: 1 }).format(value);
+  } catch {
+    return value.toString();
+  }
+}
+
+function isTimeColumn(column: string) {
+  const key = column.toLowerCase();
+  return key === "durationseconds" || key === "idleseconds" || key === "perfileseconds" || key === "perlanguageseconds";
+}
+
+function formatHoursTooltip(seconds: number) {
+  const hours = seconds / 3600;
+  return `${hours.toFixed(2)} hours`;
+}
+
+function renderCommentPreview(value: unknown) {
+  if (typeof value !== "string" || value.trim().length === 0) {
+    return "No comment";
+  }
+  const trimmed = value.trim();
+  if (trimmed.length <= 50) {
+    return trimmed;
+  }
+  return `${trimmed.slice(0, 50)}…`;
+}
+
+function formatJson(value: unknown) {
+  try {
+    return JSON.stringify(value, null, 2);
+  } catch {
+    return String(value);
+  }
+}
