@@ -133,7 +133,7 @@ startedIso, endedIso, durationSeconds, idleSeconds, linesAdded, linesDeleted, pe
 
 Keep your local CSV while also backing up sessions to your Clockit account:
 
-1) Sign in at https://clockit.app/dashboard and open **Profile → API Tokens**  
+1) Sign in at https://clockit.octech.dev/dashboard and open **Profile → API Tokens**  
 2) Create a token (copy it once)  
 3) Configure VS Code settings:  
    - `clockit.cloud.enabled`: `true`  

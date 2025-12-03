@@ -86,7 +86,7 @@ async function exportViaOrchestrator(ctx: vscode.ExtensionContext, utils: Utils,
       'Open Dashboard'
     ).then(choice => {
       if (choice === 'Open Dashboard') {
-        vscode.env.openExternal(vscode.Uri.parse('https://clockit.app/dashboard'));
+        vscode.env.openExternal(vscode.Uri.parse('https://clockit.octech.dev/dashboard'));
       }
     });
   }

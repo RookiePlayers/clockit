@@ -522,7 +522,7 @@ export default function DocsPage() {
                   Turn on automatic backups from the Clockit VS Code plugin to your account using an API token. Local CSV exports remain unchanged.
                 </p>
                 <ol className="list-decimal list-inside space-y-3 text-gray-700">
-                  <li>Sign in at <a className="text-blue-600 hover:underline" href="https://clockit.app/dashboard" target="_blank" rel="noreferrer">clockit.app/dashboard</a> and open <strong>Profile → API Tokens</strong>.</li>
+                  <li>Sign in at <a className="text-blue-600 hover:underline" href="https://clockit.octech.dev/dashboard" target="_blank" rel="noreferrer">clockit.app/dashboard</a> and open <strong>Profile → API Tokens</strong>.</li>
                   <li>Create a token (optional expiry) and copy it once.</li>
                   <li>In VS Code settings, set:
                     <ul className="list-disc list-inside ml-5 text-sm text-gray-700 space-y-1">

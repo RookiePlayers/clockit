@@ -7,5 +7,8 @@
 		"out": true // set this to false to include "out" folder in search results
 	},
 	// Turn off tsc task auto detection since we have the necessary tasks as npm scripts
-	"typescript.tsc.autoDetect": "off"
+	"typescript.tsc.autoDetect": "off",
+	"clockit.cloud.apiUrl": "https://ingestcsv-ie4o3wu3ta-ey.a.run.app",
+	"clockit.cloud.apiToken": "clockit_74698144-6b7f-4cda-9c15-d22fa6fd0bde_tfhfou",
+	"clockit.cloud.enabled": true
 }
