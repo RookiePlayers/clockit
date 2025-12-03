@@ -53,7 +53,7 @@ export default function RecentActivityPage() {
   if (!user) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen gap-4 text-gray-800">
-        <p className="text-lg font-semibold">You need to sign in to view recent activity.</p>
+        <p className="text-lg font-semibold">You need to sign in to view recent activity!</p>
         <div className="flex gap-3">
           <Link href="/auth" className="px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition-colors">
             Sign in
