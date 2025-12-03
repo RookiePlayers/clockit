@@ -1,3 +1,10 @@
+## [1.7.1](https://github.com/RookiePlayers/clockit/compare/v1.7.0...v1.7.1) (2025-12-03)
+
+
+### Bug Fixes
+
+* Update metric handling and enhance recent activity navigation ([5a2805c](https://github.com/RookiePlayers/clockit/commit/5a2805c1cc2e198ae14e9db14afa8655bb3be5ac))
+
 # [1.7.0](https://github.com/RookiePlayers/clockit/compare/v1.6.0...v1.7.0) (2025-12-03)
 
 
