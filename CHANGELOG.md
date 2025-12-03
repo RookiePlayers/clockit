@@ -1,3 +1,15 @@
+# [1.7.0](https://github.com/RookiePlayers/clockit/compare/v1.6.0...v1.7.0) (2025-12-03)
+
+
+### Bug Fixes
+
+* Update API URLs and settings for cloud functionality ([17dc51b](https://github.com/RookiePlayers/clockit/commit/17dc51b7a67de2eb0c16a97874932f4b1ea70664))
+
+
+### Features
+
+* Update API URLs and settings for cloud functionality ([801311d](https://github.com/RookiePlayers/clockit/commit/801311da37d4d3de4607619c4afe8fec964b5a1b))
+
 # [1.6.0](https://github.com/RookiePlayers/clockit/compare/v1.5.4...v1.6.0) (2025-12-03)
 
 
