@@ -4,6 +4,7 @@ import { useState, ChangeEvent } from "react";
 import Papa from "papaparse";
 import { db } from "@/lib/firebase";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { useSnackbar } from "notistack";
 
 interface UploadCSVProps {
   uid: string;
@@ -12,6 +13,7 @@ interface UploadCSVProps {
 export default function UploadCSV({ uid }: UploadCSVProps) {
   const [uploading, setUploading] = useState<boolean>(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+  const { enqueueSnackbar } = useSnackbar();
 
   const handleFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -31,6 +33,17 @@ export default function UploadCSV({ uid }: UploadCSVProps) {
             meta: results.meta,
           });
           setMessage({ type: 'success', text: `Successfully processed ${file.name}` });
+          try {
+            await fetch("https://clockit-stats-refresh.travpal.workers.dev/api/refresh-aggregation", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ userId: uid, forceMigration: false }),
+            });
+            enqueueSnackbar("Refresh triggered. Aggregates will update shortly.", { variant: "success" });
+          } catch (refreshErr) {
+            const msg = refreshErr instanceof Error ? refreshErr.message : "Failed to trigger refresh.";
+            enqueueSnackbar(msg, { variant: "error" });
+          }
         } catch (err: unknown) {
           console.error("Error adding document: ", err);
           if (err instanceof Error) {

@@ -191,7 +191,8 @@ export default function Stats({ uid }: StatsProps) {
     .filter(({ data }) => {
       const uploadedAt = data.uploadedAt?.toDate?.() ? data.uploadedAt.toDate() : null;
       return uploadedAt && uploadedAt >= thirtyDaysAgo;
-    });
+    })
+    .slice(0, 5);
 
   return (
     <div className="space-y-6">

@@ -184,9 +184,9 @@ async  chooseCsvFolder() {
     value: defaultUrl,
   });
 
-  await cfg.update('clockit.cloud.apiUrl', (customUrl || defaultUrl).trim(), this.vscode.ConfigurationTarget.Workspace);
-  await cfg.update('clockit.cloud.apiToken', apiToken, this.vscode.ConfigurationTarget.Workspace);
-  await cfg.update('clockit.cloud.enabled', true, this.vscode.ConfigurationTarget.Workspace);
+  await cfg.update('clockit.cloud.apiUrl', (customUrl || defaultUrl).trim(), this.vscode.ConfigurationTarget.Global);
+  await cfg.update('clockit.cloud.apiToken', apiToken, this.vscode.ConfigurationTarget.Global);
+  await cfg.update('clockit.cloud.enabled', true, this.vscode.ConfigurationTarget.Global);
 
   this.vscode.window.showInformationMessage('Clockit Cloud backup enabled. Future sessions will upload automatically.');
 }

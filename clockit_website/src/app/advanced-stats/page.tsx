@@ -11,7 +11,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { auth, db } from "@/lib/firebase";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc } from "firebase/firestore";
+import Cooldown from "@/components/Cooldown";
+import NavBar from "@/components/NavBar";
 import {
   Area,
   AreaChart,
@@ -31,6 +33,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { useSnackbar } from "notistack";
 
 type Range = "week" | "month" | "year" | "all";
 
@@ -74,11 +77,16 @@ export default function AdvancedStatsPage() {
   const [aggregates, setAggregates] = useState<Aggregates | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [statsError, setStatsError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [lastRefresh, setLastRefresh] = useState<number | null>(null);
+  const COOLDOWN_MS = 60 * 60 * 1000; // 1 hour
+  const { enqueueSnackbar } = useSnackbar();
 
   useEffect(() => {
     if (!user) {
       setAggregates(null);
       setIsLoading(false);
+      setLastRefresh(null);
       return;
     }
     setIsLoading(true);
@@ -93,8 +101,12 @@ export default function AdvancedStatsPage() {
           setStatsError("No aggregated stats found yet.");
           return;
         }
-        const data = snap.data() as { aggregates?: Aggregates };
+        const data = snap.data() as { aggregates?: Aggregates; lastRefreshRequested?: number };
         setAggregates(data.aggregates || null);
+        const ts = data.lastRefreshRequested;
+        if (typeof ts === "number" && Number.isFinite(ts)) {
+          setLastRefresh(ts);
+        }
       } catch (err) {
         const msg = err instanceof Error ? err.message : "Failed to load stats";
         setStatsError(msg);
@@ -105,6 +117,49 @@ export default function AdvancedStatsPage() {
 
     void fetchAggregates();
   }, [user]);
+
+  const remainingMs = useMemo(() => {
+    if (!lastRefresh) {return 0;}
+    const diff = Date.now() - lastRefresh;
+    return Math.max(0, COOLDOWN_MS - diff);
+  }, [lastRefresh]);
+
+  const handleRefreshAggregates = async () => {
+    if (!user) {return;}
+    setRefreshing(true);
+    enqueueSnackbar("Starting refresh…", { variant: "info" });
+    try {
+      if (remainingMs > 0) {
+        enqueueSnackbar("Please wait for the cooldown to expire before refreshing again.", { variant: "warning" });
+        return;
+      }
+      const now = Date.now();
+      const resp = await fetch("https://clockit-stats-refresh.travpal.workers.dev/api/refresh-aggregation", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ userId: user.uid, forceMigration: false }),
+      });
+      if (!resp.ok) {
+        throw new Error(`Refresh failed with status ${resp.status}`);
+      }
+      setLastRefresh(now);
+      await setDoc(doc(db, "MaterializedStats", user.uid), { lastRefreshRequested: now }, { merge: true });
+      enqueueSnackbar("Refresh triggered. Aggregates will update shortly.", { variant: "success" });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Failed to trigger refresh.";
+      enqueueSnackbar(msg, { variant: "error" });
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  const formatCooldown = () => {
+    if (remainingMs <= 0) return "Ready to refresh";
+    const mins = Math.ceil(remainingMs / 60000);
+    return `Available in ${mins} min`;
+  };
 
   const trendData = useMemo(() => {
     const list = aggregates?.[range] ?? [];
@@ -174,27 +229,16 @@ export default function AdvancedStatsPage() {
 
   return (
     <div className="min-h-screen bg-[#f8f9fa] text-gray-900">
-      <nav className="bg-white border-b border-gray-200 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <Image src="/icon.png" alt="Clockit Icon" width={28} height={28} className="rounded-full" />
-            <span className="font-bold text-lg text-gray-900">Clockit</span>
-          </Link>
-          <div className="flex flex-wrap items-center gap-3 text-sm">
-            <span className="text-gray-600">Hi, {title}</span>
-            <Link href="/dashboard" className="text-gray-600 hover:text-gray-900">Dashboard</Link>
-            <Link href="/advanced-stats" className="text-gray-900 font-semibold">Advanced Stats</Link>
-            <Link href="/docs" className="text-gray-600 hover:text-gray-900">Docs</Link>
-            <Link href="/profile" className="text-gray-600 hover:text-gray-900">Profile</Link>
-            <button
-              onClick={() => auth.signOut()}
-              className="px-3 py-1.5 rounded-lg font-semibold text-white bg-red-500 hover:bg-red-600 transition-colors"
-            >
-              Logout
-            </button>
-          </div>
-        </div>
-      </nav>
+      <NavBar
+        userName={title}
+        onSignOut={() => auth.signOut()}
+        links={[
+          { href: "/dashboard", label: "Dashboard" },
+          { href: "/advanced-stats", label: "Advanced Stats", active: true },
+          { href: "/docs", label: "Docs" },
+          { href: "/profile", label: "Profile" },
+        ]}
+      />
 
       <main className="max-w-7xl mx-auto px-6 py-10 space-y-8">
         <header className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
@@ -203,7 +247,7 @@ export default function AdvancedStatsPage() {
             <h1 className="text-3xl font-bold text-gray-900">Deep dive into your patterns</h1>
             <p className="text-sm text-gray-600 mt-1">Explore working vs idle trends, language mix, and your yearly performance.</p>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 items-center">
             {(["week", "month", "year", "all"] as Range[]).map((key) => (
               <button
                 key={key}
@@ -220,6 +264,16 @@ export default function AdvancedStatsPage() {
                 {rangeLabels[key]}
               </button>
             ))}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleRefreshAggregates}
+                disabled={!user || refreshing || remainingMs > 0}
+                className="px-3 py-1.5 rounded-full text-sm font-semibold border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {refreshing ? "Refreshing…" : "Refresh aggregates"}
+              </button>
+              <Cooldown remainingMs={remainingMs} />
+            </div>
           </div>
         </header>
 
@@ -490,7 +544,7 @@ function RadarPanel({
                 <PolarAngleAxis dataKey="label" />
                 <PolarRadiusAxis angle={45} />
                 <Radar name="Hours" dataKey="hours" stroke={color} fill={color} fillOpacity={0.4} />
-                <Legend />
+                <Legend verticalAlign="middle" align="left" layout="vertical" />
                 <Tooltip />
               </RadarChart>
             </ResponsiveContainer>
@@ -514,9 +568,9 @@ function RadarPanel({
                     <p className="text-xs text-gray-500">{row.hours.toFixed(2)} hours</p>
                   </div>
                 </div>
-                <span className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-700 font-semibold">
+                {/* <span className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-700 font-semibold">
                   {(row.hours * 60).toFixed(0)} mins
-                </span>
+                </span> */}
               </div>
             ))
           )}

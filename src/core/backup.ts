@@ -40,6 +40,7 @@ export class BackupManager {
   private timer: NodeJS.Timeout | null = null;
   private lastFlushedAt = 0;
   private pending?: BackupRow;
+  private lastWrittenHash?: string;
 
   constructor(private opts: Opts) {}
 
@@ -109,12 +110,21 @@ export class BackupManager {
         csv(this.pending.comment ?? this.pending.title ?? ''),
       ].join(',') + '\n';
 
+    // Skip duplicate snapshots to avoid repeated identical lines
+    if (line === this.lastWrittenHash) {
+      this.pending = undefined;
+      return file;
+    }
+
     if (!exists) {
       await fs.writeFile(file, header + line, 'utf8');
     } else {
       await fs.appendFile(file, line, 'utf8');
     }
     this.lastFlushedAt = Date.now();
+    this.lastWrittenHash = line;
+    this.pending = undefined;
+    void this.ensureGitignoreEntry(file); // best-effort, do not block writes
     return file;
   }
 
@@ -155,6 +165,28 @@ export class BackupManager {
     } catch (err) {
       console.warn('[clockit] backup ensureDir failed', err);
       throw err;
+    }
+  }
+
+  private async ensureGitignoreEntry(filePath: string) {
+    try {
+      const ws = vscode?.workspace?.workspaceFolders?.[0]?.uri.fsPath;
+      if (!ws) {return;}
+      const gitignore = path.join(ws, '.gitignore');
+      if (!fssync.existsSync(gitignore)) {return;}
+
+      const rel = path.relative(ws, filePath);
+      if (rel.startsWith('..')) {return;} // outside workspace
+      const dirRel = path.dirname(rel).replace(/\\/g, '/');
+      const pattern = `/${dirRel === '.' ? '' : `${dirRel}/`}${this.opts.filenamePrefix}*.csv`;
+
+      const content = await fs.readFile(gitignore, 'utf8');
+      const lines = content.split(/\r?\n/);
+      if (lines.some((line) => line.trim() === pattern)) {return;}
+      lines.push(pattern);
+      await fs.writeFile(gitignore, lines.join('\n'), 'utf8');
+    } catch (err) {
+      console.warn('[clockit] failed to update .gitignore for backups', err);
     }
   }
 }

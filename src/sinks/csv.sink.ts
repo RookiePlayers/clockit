@@ -4,6 +4,9 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as os from 'os';
 
+let vscode: typeof import('vscode') | undefined;
+try { vscode = require('vscode'); } catch {}
+
 export class CsvSink extends BaseSink {
   constructor(cfg: TimeSinkConfig) { super({ ...cfg, kind: 'csv' }); }
   validate(): Result {
@@ -16,11 +19,19 @@ export class CsvSink extends BaseSink {
     if (p.startsWith('~/')) {return path.join(os.homedir(), p.slice(2));}
     return p;
   }
+
+  private resolveDefaultDir() {
+    const ws = vscode?.workspace?.workspaceFolders?.[0]?.uri.fsPath;
+    const backupDirRaw = vscode?.workspace?.getConfiguration('clockit.backup')?.get<string>('directory', '')?.trim() || '';
+    const candidate = this.expand(backupDirRaw) || ws || path.join(os.homedir(), 'clockit') || process.cwd();
+    const looksLikeFile = /\.[^/\\]+$/.test(candidate);
+    return looksLikeFile ? path.dirname(candidate) : candidate;
+  }
+
   async export(s: Session): Promise<Result> {
   const ensureDir = Boolean(this.options.ensureDirectory ?? true);
 
-  const dir = this.expand(String(this.options.outputDirectory || '')) ||
-    process.cwd();
+  const dir = this.expand(String(this.options.outputDirectory || '')) || this.resolveDefaultDir();
 
   const file = String(this.options.filename || 'time_log.csv');
   const addHeader = Boolean(this.options.addHeaderIfMissing ?? true);
