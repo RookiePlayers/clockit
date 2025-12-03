@@ -1,3 +1,11 @@
+# [1.6.0](https://github.com/RookiePlayers/clockit/compare/v1.5.4...v1.6.0) (2025-12-03)
+
+
+### Features
+
+* Add notistack for notifications and implement refresh functionality in stats ([12c6d5e](https://github.com/RookiePlayers/clockit/commit/12c6d5e213bf9f0448b04dfd2570c246fad87ced))
+* Add upload detail page with data fetching and display functionality ([dc0d9c6](https://github.com/RookiePlayers/clockit/commit/dc0d9c684dda03cd1f44c3539ebbb15e2d940dd9))
+
 ## [1.5.4](https://github.com/RookiePlayers/clockit/compare/v1.5.3...v1.5.4) (2025-11-24)
 
 
