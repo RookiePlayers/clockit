@@ -50,7 +50,7 @@ describe('CsvSink', () => {
       .map(call => String(call[1]))
       .join('');
 
-    const header = 'startedIso,endedIso,durationSeconds,idleSeconds,linesAdded,linesDeleted,perFileSeconds,perLanguageSeconds,authorName,authorEmail,machine,workspace,repoPath,branch,issueKey,comment';
+    const header = 'startedIso,endedIso,durationSeconds,idleSeconds,linesAdded,linesDeleted,perFileSeconds,perLanguageSeconds,authorName,authorEmail,machine,ideName,workspace,repoPath,branch,issueKey,comment';
     const lines = content.split('\n').filter(Boolean);
 
     expect(content).toContain(header);          // header present
