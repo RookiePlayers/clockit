@@ -19,6 +19,7 @@ export function makeSession(args: {
   authorName?: string;
   authorEmail?: string;
   machine?: string;
+  ideName?: string;
   workspace?: string;
   repoPath?: string;
   branch?: string | null;
@@ -28,7 +29,7 @@ export function makeSession(args: {
 }): Session {
   const {
     startedIso, endedIso, durationSeconds, idleSeconds, linesAdded, linesDeleted,
-    perFileSeconds, perLanguageSeconds, authorName, authorEmail, machine,
+    perFileSeconds, perLanguageSeconds, authorName, authorEmail, machine, ideName,
     workspace, repoPath, branch, issueKey, comment, meta
   } = args;
 
@@ -49,6 +50,7 @@ export function makeSession(args: {
     authorName,
     authorEmail,
     machine,
+    ideName,
     workspace,
     repoPath,
     branch: branch ?? null,

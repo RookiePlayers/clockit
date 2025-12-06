@@ -37,7 +37,7 @@ export class CsvSink extends BaseSink {
   const addHeader = Boolean(this.options.addHeaderIfMissing ?? true);
   const p = path.join(dir, file);
 
-  const header = 'startedIso,endedIso,durationSeconds,idleSeconds,linesAdded,linesDeleted,perFileSeconds,perLanguageSeconds,authorName,authorEmail,machine,workspace,repoPath,branch,issueKey,comment\n';
+  const header = 'startedIso,endedIso,durationSeconds,idleSeconds,linesAdded,linesDeleted,perFileSeconds,perLanguageSeconds,authorName,authorEmail,machine,ideName,workspace,repoPath,branch,issueKey,comment\n';
   const row = [
     s.startedIso, s.endedIso, s.durationSeconds,
     s.idleSeconds ?? 0,
@@ -46,6 +46,7 @@ export class CsvSink extends BaseSink {
     JSON.stringify(s.perFileSeconds ?? {}),
     JSON.stringify(s.perLanguageSeconds ?? {}),
     s.authorName ?? '', s.authorEmail ?? '', s.machine ?? '',
+    s.ideName ?? '',
     s.workspace ?? '', s.repoPath ?? '', s.branch ?? '', s.issueKey ?? '', s.comment ?? ''
   ].map(v => {
     const str = String(v ?? '');

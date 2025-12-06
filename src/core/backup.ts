@@ -21,6 +21,7 @@ export type BackupRow = {
   authorName?: string;
   authorEmail?: string;
   machine?: string;
+  ideName?: string;
   workspace?: string;
   repoPath?: string;
   branch?: string | null;
@@ -88,7 +89,7 @@ export class BackupManager {
 
     const exists = fssync.existsSync(file);
     const header =
-      'startedIso,endedIso,durationSeconds,idleSeconds,linesAdded,linesDeleted,perFileSeconds,perLanguageSeconds,authorName,authorEmail,machine,workspace,repoPath,branch,issueKey,comment\n';
+      'startedIso,endedIso,durationSeconds,idleSeconds,linesAdded,linesDeleted,perFileSeconds,perLanguageSeconds,authorName,authorEmail,machine,ideName,workspace,repoPath,branch,issueKey,comment\n';
 
     const line =
       [
@@ -103,6 +104,7 @@ export class BackupManager {
         csv(this.pending.authorName ?? ''),
         csv(this.pending.authorEmail ?? ''),
         csv(this.pending.machine ?? ''),
+        csv(this.pending.ideName ?? ''),
         csv(this.pending.workspace ?? ''),
         csv(this.pending.repoPath ?? ''),
         csv(this.pending.branch ?? ''),

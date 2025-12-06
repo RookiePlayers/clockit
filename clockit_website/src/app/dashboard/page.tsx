@@ -3,15 +3,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { auth, db } from "@/lib/firebase";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { doc, getDoc, Timestamp } from "firebase/firestore";
 import Link from "next/link";
 import UploadCSV from "@/components/UploadCSV";
 import Stats from "@/components/Stats";
 import Image from "next/image";
-import { IconHourglassEmpty, IconSum, IconTimeDuration0 } from "@tabler/icons-react";
+import { IconCode, IconHourglassEmpty, IconSum, IconTimeDuration0 } from "@tabler/icons-react";
 import { useRouter } from "next/navigation";
-import { useSnackbar } from "notistack";
-import Cooldown from "@/components/Cooldown";
 import NavBar from "@/components/NavBar";
 import {
   Legend,
@@ -23,6 +21,9 @@ import {
   ResponsiveContainer,
   Tooltip,
 } from "recharts";
+import FocusRadars from "@/components/FocusRadars";
+import RefreshAggregates from "@/components/RefreshAggregates";
+import { metricAverage, metricSum } from "@/hooks/useFetchAggregates";
 
 type Range = "week" | "month" | "year" | "all";
 
@@ -65,11 +66,9 @@ export default function DashboardPage() {
   const [isLoadingStats, setIsLoadingStats] = useState(true);
   const [statsError, setStatsError] = useState<string | null>(null);
   const router = useRouter();
-  const [refreshing, setRefreshing] = useState(false);
   const [lastRefresh, setLastRefresh] = useState<number | null>(null);
   const [lastUpdated, setLastUpdated] = useState<number | null>(null);
   const COOLDOWN_MS = 60 * 60 * 1000; // 1 hour
-  const { enqueueSnackbar } = useSnackbar();
 
   useEffect(() => {
     if (!user) {
@@ -90,7 +89,7 @@ export default function DashboardPage() {
           setStatsError("No aggregated stats found yet.");
           return;
         }
-        const data = snap.data() as { aggregates?: Aggregates; lastRefreshRequested?: number; lastAggregatedAt?: any; updatedAt?: any };
+        const data = snap.data() as { aggregates?: Aggregates; lastRefreshRequested?: number; lastAggregatedAt?: Timestamp; updatedAt?: Timestamp };
         setAggregates(data.aggregates || null);
         const ts = data.lastRefreshRequested;
         if (typeof ts === "number" && Number.isFinite(ts)) {
@@ -113,26 +112,12 @@ export default function DashboardPage() {
 
   const active = useMemo(() => {
     const list = aggregates?.[range];
+    console.log("Aggregates for range", range, list);
     if (!list || list.length === 0) return undefined;
     const sorted = [...list].sort((a, b) => (a.periodStart > b.periodStart ? -1 : 1));
     return sorted[0];
   }, [aggregates, range]);
 
-  const languageRadarData = useMemo(() => {
-    const totals = languageTotalsForRange(aggregates, focusRange);
-    return Object.entries(totals)
-      .map(([language, seconds]) => ({ language, hours: Number(toHours(seconds).toFixed(2)) }))
-      .sort((a, b) => b.hours - a.hours)
-      .slice(0, 12);
-  }, [aggregates, focusRange]);
-
-  const workspaceRadarData = useMemo(() => {
-    const totals = workspaceTotalsForRange(aggregates, focusRange);
-    return Object.entries(totals)
-      .map(([workspace, seconds]) => ({ workspace, hours: Number(toHours(seconds).toFixed(2)) }))
-      .sort((a, b) => b.hours - a.hours)
-      .slice(0, 12);
-  }, [aggregates, focusRange]);
 
   const topWorkspaces = useMemo(() => {
     const current = active;
@@ -170,43 +155,6 @@ export default function DashboardPage() {
     if (target.closest("button, select, option, a, input, textarea")) {return;}
     event.preventDefault();
     navigateToRecentTable();
-  };
-
-  const remainingMs = useMemo(() => {
-    if (!lastRefresh) {return 0;}
-    const diff = Date.now() - lastRefresh;
-    return Math.max(0, COOLDOWN_MS - diff);
-  }, [lastRefresh]);
-
-  const handleRefreshAggregates = async () => {
-    if (!user) {return;}
-    setRefreshing(true);
-    enqueueSnackbar("Starting refresh…", { variant: "info" });
-    try {
-      const now = Date.now();
-      if (remainingMs > 0) {
-        enqueueSnackbar("Please wait for the cooldown to expire before refreshing again.", { variant: "warning" });
-        return;
-      }
-      const resp = await fetch("https://clockit-stats-refresh.travpal.workers.dev/api/refresh-aggregation", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ userId: user.uid, forceMigration: false }),
-      });
-      if (!resp.ok) {
-        throw new Error(`Refresh failed with status ${resp.status}`);
-      }
-      setLastRefresh(now);
-      await setDoc(doc(db, "MaterializedStats", user.uid), { lastRefreshRequested: now }, { merge: true });
-      enqueueSnackbar("Refresh triggered. Aggregates will update shortly.", { variant: "success" });
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Failed to trigger refresh.";
-      enqueueSnackbar(msg, { variant: "error" });
-    } finally {
-      setRefreshing(false);
-    }
   };
 
   if (loadingUser || isLoadingStats) {
@@ -285,16 +233,12 @@ export default function DashboardPage() {
                 {rangeLabels[key]}
               </button>
             ))}
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handleRefreshAggregates}
-                disabled={!user || refreshing || remainingMs > 0}
-                className="px-3 py-1.5 rounded-full text-sm font-semibold border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 disabled:opacity-60 disabled:cursor-not-allowed"
-              >
-                {refreshing ? "Refreshing…" : "Refresh stats"}
-              </button>
-              <Cooldown remainingMs={remainingMs} />
-            </div>
+            <RefreshAggregates
+              userId={user?.uid}
+              lastRefresh={lastRefresh}
+              onRefreshed={setLastRefresh}
+              cooldownMs={COOLDOWN_MS}
+            />
           </div>
         </header>
 
@@ -315,12 +259,12 @@ export default function DashboardPage() {
           <div className="card-clean bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Most used language</h2>
             {active?.topLanguage ? (
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600 mb-1">Language</p>
-                  <p className="text-2xl font-bold text-gray-900">{active.topLanguage.language}</p>
+              <div className="flex flex-col items-start gap-4">
+                <div className="flex items-center gap-3 mb-2">
+                  <IconCode className="w-6 h-6 text-gray-400" />
+                  <p className="text-xl font-bold text-gray-900">{active.topLanguage.language}</p>
                 </div>
-                <div className="text-right">
+                <div>
                   <p className="text-sm text-gray-600 mb-1">Focused time</p>
                   <p className="text-xl font-semibold text-blue-700">{formatDuration(active.topLanguage.seconds)}</p>
                 </div>
@@ -382,45 +326,9 @@ export default function DashboardPage() {
           </div>
         </section>
 
-        <section className="card-clean bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-6">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900">Focus radars</h2>
-              <p className="text-sm text-gray-600">Language and workspace focus for {rangeLabels[focusRange].toLowerCase()} data.</p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {(["week", "month", "year", "all"] as Range[]).map((key) => (
-                <button
-                  key={key}
-                  onClick={() => setFocusRange(key)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
-                    focusRange === key
-                      ? "bg-indigo-50 text-indigo-700 border-indigo-200"
-                      : "bg-white text-gray-700 border-gray-200 hover:border-indigo-200 hover:text-indigo-700"
-                  }`}
-                >
-                  {rangeLabels[key]}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-            <RadarPanel
-              title="Language focus"
-              emptyLabel={statsError || "No language time recorded for this range yet."}
-              data={languageRadarData.map((d) => ({ label: d.language, hours: d.hours }))}
-              color="#6366f1"
-              chartKey={`lang-${focusRange}`}
-            />
-            <RadarPanel
-              title="Workspace focus"
-              emptyLabel={statsError || "No workspace time recorded for this range yet."}
-              data={workspaceRadarData.map((d) => ({ label: d.workspace, hours: d.hours }))}
-              color="#0ea5e9"
-              chartKey={`ws-${focusRange}`}
-            />
-          </div>
-        </section>
+        <div className="card-clean bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+          <FocusRadars />
+        </div>
 
         {user && (
           <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -545,50 +453,6 @@ function RadarPanel({
   );
 }
 
-function metricSum(value: MetricValue | undefined | null) {
-  if (typeof value === "number") {
-    return Number.isFinite(value) ? value : 0;
-  }
-  if (value && typeof value.sum === "number" && Number.isFinite(value.sum)) {
-    return value.sum;
-  }
-  return 0;
-}
-
-function toHours(value: MetricValue | undefined | null) {
-  const seconds = metricSum(value);
-  return Number((seconds / 3600).toFixed(2));
-}
-
-function languageTotalsForRange(aggregates: Aggregates | null, range: Range) {
-  const totals: Record<string, number> = {};
-  const entries = aggregates?.[range] ?? [];
-  for (const entry of entries) {
-    const langSeconds = entry.languageSeconds || {};
-    for (const [lang, seconds] of Object.entries(langSeconds)) {
-      totals[lang] = (totals[lang] || 0) + metricSum(seconds);
-    }
-  }
-  return totals;
-}
-
-function workspaceTotalsForRange(aggregates: Aggregates | null, range: Range) {
-  const totals: Record<string, number> = {};
-  const entries = aggregates?.[range] ?? [];
-  for (const entry of entries) {
-    const wsSeconds = entry.workspaceSeconds || {};
-    const hasWorkspaceSeconds = Object.keys(wsSeconds).length > 0;
-    for (const [ws, seconds] of Object.entries(wsSeconds)) {
-      totals[ws] = (totals[ws] || 0) + metricSum(seconds);
-    }
-    if (!hasWorkspaceSeconds && entry.topWorkspaces) {
-      for (const tw of entry.topWorkspaces) {
-        totals[tw.workspace] = (totals[tw.workspace] || 0) + metricSum(tw.seconds);
-      }
-    }
-  }
-  return totals;
-}
 
 function formatDuration(totalSeconds: MetricValue | undefined | null) {
   const seconds = metricSum(totalSeconds);

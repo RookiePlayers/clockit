@@ -63,6 +63,7 @@ async function stopSession(utils: Utils) {
   session.authorName = identity.authorName;
   session.authorEmail = identity.authorEmail;
   session.machine = identity.machine;
+  session.ideName = vscode.env.appName;
   const metrics = utils.getMetricsSnapshot();
   session.idleSeconds = metrics.idleSeconds;
   session.linesAdded = metrics.linesAdded;

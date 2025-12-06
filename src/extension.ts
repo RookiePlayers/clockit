@@ -30,6 +30,7 @@ export function updateBackupFromSession(s?: Session) {
     authorName: s.authorName,
     authorEmail: s.authorEmail,
     machine: s.machine,
+    ideName: s.ideName,
     workspace: s.workspace,
     repoPath: s.repoPath,
     branch: s.branch ?? null,

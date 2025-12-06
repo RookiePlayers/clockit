@@ -34,6 +34,7 @@ export interface Session {
   authorName?: string;
   authorEmail?: string;
   machine?: string;
+  ideName?: string;
   workspace?: string;
   repoPath?: string;
   branch?: string | null;

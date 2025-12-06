@@ -7,12 +7,10 @@ export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { auth, db } from "@/lib/firebase";
 import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
-import Cooldown from "@/components/Cooldown";
 import NavBar from "@/components/NavBar";
 import {
   Area,
@@ -23,58 +21,18 @@ import {
   Legend,
   Line,
   LineChart,
-  PolarAngleAxis,
-  PolarGrid,
-  PolarRadiusAxis,
-  Radar,
-  RadarChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
-import { useSnackbar } from "notistack";
+import { AggregateEntry, Aggregates, ChartView, Grade, MetricValue, Range, rangeLabels } from "@/types";
+import FocusRadars from "@/components/FocusRadars";
+import { metricAverage, toHours } from "@/hooks/useFetchAggregates";
+import RefreshAggregates from "@/components/RefreshAggregates";
+import RangeTotals from "@/components/RangeTotals";
 
-type Range = "week" | "month" | "year" | "all";
-
-export type MetricStats = {
-  sum: number;
-  avg: number;
-  min: number;
-  max: number;
-};
-
-type MetricValue = number | MetricStats;
-
-export type AggregateEntry = {
-  periodStart: string;
-  totalSeconds: MetricValue;
-  workingSeconds: MetricValue;
-  idleSeconds: MetricValue;
-  sessionCount?: MetricValue;
-  productivityScore?: number;
-  productivityPercent: number;
-  languageSeconds?: Record<string, MetricValue>;
-  topLanguage?: { language: string; seconds: MetricValue } | null;
-  workspaceSeconds?: Record<string, MetricValue>;
-  topWorkspaces?: { workspace: string; seconds: MetricValue }[];
-};
-
-
-type Aggregates = Partial<Record<Range, AggregateEntry[]>>;
-
-type Grade = { letter: string; description: string };
-
-const rangeLabels: Record<Range, string> = {
-  week: "Weekly",
-  month: "Monthly",
-  year: "Yearly",
-  all: "All time",
-};
-
-type ChartView = "stackedArea" | "stackedBar" | "line";
-
-const chartViews: Array<{ key: ChartView; label: string }> = [
+export const chartViews: Array<{ key: ChartView; label: string }> = [
   { key: "stackedArea", label: "Stacked area" },
   { key: "stackedBar", label: "Stacked bars" },
   { key: "line", label: "Lines" },
@@ -83,15 +41,12 @@ const chartViews: Array<{ key: ChartView; label: string }> = [
 export default function AdvancedStatsPage() {
   const [user, loadingUser, authError] = useAuthState(auth);
   const [range, setRange] = useState<Range>("week");
-  const [languageRange, setLanguageRange] = useState<Range>("week");
   const [chartView, setChartView] = useState<ChartView>("stackedArea");
   const [aggregates, setAggregates] = useState<Aggregates | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [statsError, setStatsError] = useState<string | null>(null);
-  const [refreshing, setRefreshing] = useState(false);
   const [lastRefresh, setLastRefresh] = useState<number | null>(null);
   const COOLDOWN_MS = 60 * 60 * 1000; // 1 hour
-  const { enqueueSnackbar } = useSnackbar();
   const lastSavedBadgesRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -130,49 +85,6 @@ export default function AdvancedStatsPage() {
     void fetchAggregates();
   }, [user]);
 
-  const remainingMs = useMemo(() => {
-    if (!lastRefresh) {return 0;}
-    const diff = Date.now() - lastRefresh;
-    return Math.max(0, COOLDOWN_MS - diff);
-  }, [lastRefresh]);
-
-  const handleRefreshAggregates = async () => {
-    if (!user) {return;}
-    setRefreshing(true);
-    enqueueSnackbar("Starting refresh…", { variant: "info" });
-    try {
-      if (remainingMs > 0) {
-        enqueueSnackbar("Please wait for the cooldown to expire before refreshing again.", { variant: "warning" });
-        return;
-      }
-      const now = Date.now();
-      const resp = await fetch("https://clockit-stats-refresh.travpal.workers.dev/api/refresh-aggregation", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ userId: user.uid, forceMigration: false }),
-      });
-      if (!resp.ok) {
-        throw new Error(`Refresh failed with status ${resp.status}`);
-      }
-      setLastRefresh(now);
-      await setDoc(doc(db, "MaterializedStats", user.uid), { lastRefreshRequested: now }, { merge: true });
-      enqueueSnackbar("Refresh triggered. Aggregates will update shortly.", { variant: "success" });
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Failed to trigger refresh.";
-      enqueueSnackbar(msg, { variant: "error" });
-    } finally {
-      setRefreshing(false);
-    }
-  };
-
-  const formatCooldown = () => {
-    if (remainingMs <= 0) return "Ready to refresh";
-    const mins = Math.ceil(remainingMs / 60000);
-    return `Available in ${mins} min`;
-  };
-
   const trendData = useMemo(() => {
     const list = aggregates?.[range] ?? [];
     return [...list]
@@ -185,30 +97,13 @@ export default function AdvancedStatsPage() {
       }));
   }, [aggregates, range]);
 
-  const radarData = useMemo(() => {
-    const totals = languageTotalsForRange(aggregates, languageRange);
-    return Object.entries(totals)
-      .map(([language, seconds]) => ({ language, hours: Number(toHours(seconds).toFixed(2)) }))
-      .sort((a, b) => b.hours - a.hours)
-      .slice(0, 12);
-  }, [aggregates, languageRange]);
 
-  const workspaceRadarData = useMemo(() => {
-    const totals = workspaceTotalsForRange(aggregates, languageRange);
-    return Object.entries(totals)
-      .map(([workspace, seconds]) => ({ workspace, hours: Number(toHours(seconds).toFixed(2)) }))
-      .sort((a, b) => b.hours - a.hours)
-      .slice(0, 12);
-  }, [aggregates, languageRange]);
 
-  const rangeTotals = useMemo(() => computeRangeTotals(aggregates, range), [aggregates, range]);
-  const rangeLanguageTotals = useMemo(() => languageTotalsForRange(aggregates, range), [aggregates, range]);
-  const rangeWorkspaceTotals = useMemo(() => workspaceTotalsForRange(aggregates, range), [aggregates, range]);
   const yearSummary = useMemo(() => computeYearSummary(aggregates), [aggregates]);
   const badges = useMemo(() => computeBadges(aggregates), [aggregates]);
 
   useEffect(() => {
-    if (!user || !aggregates) {return;}
+    if (!user || !aggregates) { return; }
     const summary = badges.map((b) => ({
       title: b.title,
       description: b.description,
@@ -216,7 +111,7 @@ export default function AdvancedStatsPage() {
       earned: b.earned,
     }));
     const serialized = JSON.stringify(summary);
-    if (serialized === lastSavedBadgesRef.current) {return;}
+    if (serialized === lastSavedBadgesRef.current) { return; }
     lastSavedBadgesRef.current = serialized;
     void setDoc(
       doc(db, "Achievements", user.uid),
@@ -290,27 +185,21 @@ export default function AdvancedStatsPage() {
                 key={key}
                 onClick={() => {
                   setRange(key);
-                  setLanguageRange(key); // keep radars in sync with primary range selection
                 }}
-                className={`px-3 py-1.5 rounded-full text-sm font-semibold border transition-colors ${
-                  range === key
+                className={`px-3 py-1.5 rounded-full text-sm font-semibold border transition-colors ${range === key
                     ? "bg-blue-50 text-blue-700 border-blue-200"
                     : "bg-white text-gray-700 border-gray-200 hover:border-blue-200 hover:text-blue-700"
-                }`}
+                  }`}
               >
                 {rangeLabels[key]}
               </button>
             ))}
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handleRefreshAggregates}
-                disabled={!user || refreshing || remainingMs > 0}
-                className="px-3 py-1.5 rounded-full text-sm font-semibold border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 disabled:opacity-60 disabled:cursor-not-allowed"
-              >
-                {refreshing ? "Refreshing…" : "Refresh aggregates"}
-              </button>
-              <Cooldown remainingMs={remainingMs} />
-            </div>
+            <RefreshAggregates
+              userId={user?.uid}
+              lastRefresh={lastRefresh}
+              onRefreshed={setLastRefresh}
+              cooldownMs={COOLDOWN_MS}
+            />
           </div>
         </header>
 
@@ -325,11 +214,10 @@ export default function AdvancedStatsPage() {
                 <button
                   key={key}
                   onClick={() => setChartView(key)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
-                    chartView === key
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${chartView === key
                       ? "bg-blue-600 text-white border-blue-600"
                       : "bg-white text-gray-700 border-gray-200 hover:border-blue-200 hover:text-blue-700"
-                  }`}
+                    }`}
                 >
                   {label}
                 </button>
@@ -355,86 +243,10 @@ export default function AdvancedStatsPage() {
           </div>
         </section>
 
-        <section className="card-clean bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-4">
-          <div className="flex items-center justify-between gap-2">
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900">Range totals</h2>
-              <p className="text-sm text-gray-600">Sums across all aggregated entries for this view.</p>
-            </div>
-            <span className="px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-700">
-              {rangeLabels[range]}
-            </span>
-          </div>
-          {!rangeTotals ? (
-            <p className="text-sm text-gray-500">{statsError || "No aggregated data yet for this range."}</p>
-          ) : (
-            <>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <MiniStat label="Total time" value={`${toHours(rangeTotals.totalSeconds).toFixed(1)} h`} />
-                <MiniStat label="Working time" value={`${toHours(rangeTotals.workingSeconds).toFixed(1)} h`} />
-                <MiniStat label="Idle time" value={`${toHours(rangeTotals.idleSeconds).toFixed(1)} h`} />
-                {rangeTotals.sessions > 0 && (
-                  <MiniStat label="Sessions" value={`${rangeTotals.sessions.toFixed(0)}`} />
-                )}
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <TotalsList
-                  title="Languages"
-                  emptyLabel="No language data yet for this range."
-                  items={Object.entries(rangeLanguageTotals)
-                    .map(([label, seconds]) => ({ label, value: toHours(seconds) }))
-                    .sort((a, b) => b.value - a.value)
-                    .slice(0, 5)}
-                />
-                <TotalsList
-                  title="Workspaces"
-                  emptyLabel="No workspace data yet for this range."
-                  items={Object.entries(rangeWorkspaceTotals)
-                    .map(([label, seconds]) => ({ label, value: toHours(seconds) }))
-                    .sort((a, b) => b.value - a.value)
-                    .slice(0, 5)}
-                />
-              </div>
-            </>
-          )}
-        </section>
+        <RangeTotals aggregates={aggregates} range={range} statsError={statsError} />
 
         <section className="card-clean bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-6">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900">Focus radars</h2>
-              <p className="text-sm text-gray-600">Language and workspace focus across {rangeLabels[languageRange].toLowerCase()} buckets.</p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {(["week", "month", "year", "all"] as Range[]).map((key) => (
-                <button
-                  key={key}
-                  onClick={() => setLanguageRange(key)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
-                    languageRange === key
-                      ? "bg-indigo-50 text-indigo-700 border-indigo-200"
-                      : "bg-white text-gray-700 border-gray-200 hover:border-indigo-200 hover:text-indigo-700"
-                  }`}
-                >
-                  {rangeLabels[key]}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-            <RadarPanel
-              title="Language focus"
-              emptyLabel={statsError || "No language time recorded for this range yet."}
-              data={radarData.map((d) => ({ label: d.language, hours: d.hours }))}
-              color="#6366f1"
-            />
-            <RadarPanel
-              title="Workspace focus"
-              emptyLabel={statsError || "No workspace time recorded for this range yet."}
-              data={workspaceRadarData.map((d) => ({ label: d.workspace, hours: d.hours }))}
-              color="#0ea5e9"
-            />
-          </div>
+          <FocusRadars />
         </section>
 
         <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -451,8 +263,8 @@ export default function AdvancedStatsPage() {
               <div className="space-y-4">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   <MiniStat label="Year" value={yearSummary.yearLabel} />
-                  <MiniStat label="Working time" value={`${yearSummary.workingHours.toFixed(1)} h`} />
-                  <MiniStat label="Idle time" value={`${yearSummary.idleHours.toFixed(1)} h`} />
+                  <MiniStat label="Avg Working time" value={`${yearSummary.workingHours.toFixed(1)} h`} />
+                  <MiniStat label="Avg Idle time" value={`${yearSummary.idleHours.toFixed(1)} h`} />
                   <MiniStat label="Avg productivity" value={`${yearSummary.avgProductivity.toFixed(0)}%`} />
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -469,33 +281,33 @@ export default function AdvancedStatsPage() {
               </div>
             )}
           </div>
-            <div className="card-clean bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between h-full">
+          <div className="card-clean bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between h-full">
             <div className="flex flex-col flex-1 justify-center items-center text-center">
               <h2 className="text-lg font-semibold text-gray-900 mb-1">Final grade</h2>
               <span className="text-sm text-gray-500 mb-3">based on focus and throughput</span>
               {!yearSummary ? (
-              <p className="text-sm text-gray-500">No yearly data yet to compute a grade.</p>
+                <p className="text-sm text-gray-500">No yearly data yet to compute a grade.</p>
               ) : (
-              <div className="flex items-center justify-center mb-2 flex-1">
-                <span className="text-[5em] font-black text-blue-700">{yearSummary.grade.letter}</span>
-              </div>
+                <div className="flex items-center justify-center mb-2 flex-1">
+                  <span className="text-[5em] font-black text-blue-700">{yearSummary.grade.letter}</span>
+                </div>
               )}
             </div>
             {yearSummary && (
               <div className="mt-4">
-              <p className="text-sm text-gray-700 mt-2 mb-4">{yearSummary.grade.description}</p>
-              <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
-                <div
-                className="h-full bg-blue-600 rounded-full"
-                style={{ width: `${Math.min(100, yearSummary.avgProductivity)}%` }}
-                />
-              </div>
-              <p className="text-xs text-gray-500 mt-2">
-                Grade blends productivity and total working time for the year.
-              </p>
+                <p className="text-sm text-gray-700 mt-2 mb-4">{yearSummary.grade.description}</p>
+                <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-blue-600 rounded-full"
+                    style={{ width: `${Math.min(100, yearSummary.avgProductivity)}%` }}
+                  />
+                </div>
+                <p className="text-xs text-gray-500 mt-2">
+                  Grade blends productivity and total working time for the year.
+                </p>
               </div>
             )}
-            </div>
+          </div>
         </section>
 
         <section className="card-clean bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-4">
@@ -596,73 +408,9 @@ function RecapCard({ title, value, hint }: { title: string; value: string; hint?
   );
 }
 
-function RadarPanel({
-  title,
-  emptyLabel,
-  data,
-  color,
-}: {
-  title: string;
-  emptyLabel: string;
-  data: Array<{ label: string; hours: number }>;
-  color: string;
-}) {
-  const hasData = data.length > 0;
-  return (
-    <div className="card-clean bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-base font-semibold text-gray-900">{title}</h3>
-        {hasData && <span className="text-xs text-gray-500">{data.length} entries</span>}
-      </div>
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-center">
-        <div className="lg:col-span-2 h-[280px]">
-          {!hasData ? (
-            <div className="h-full flex items-center justify-center text-sm text-gray-500">{emptyLabel}</div>
-          ) : (
-            <ResponsiveContainer width="100%" height="100%">
-              <RadarChart data={data}>
-                <PolarGrid />
-                <PolarAngleAxis dataKey="label" />
-                <PolarRadiusAxis angle={45} />
-                <Radar name="Hours" dataKey="hours" stroke={color} fill={color} fillOpacity={0.4} />
-                <Legend verticalAlign="middle" align="left" layout="vertical" />
-                <Tooltip />
-              </RadarChart>
-            </ResponsiveContainer>
-          )}
-        </div>
-        <div className="space-y-2">
-          {!hasData ? (
-            <p className="text-sm text-gray-500">{emptyLabel}</p>
-          ) : (
-            data.slice(0, 6).map((row, idx) => (
-              <div
-                key={row.label}
-                className="flex items-center justify-between px-3 py-2 rounded-lg border border-gray-100 bg-gray-50"
-              >
-                <div className="flex items-center gap-2">
-                  <span className="w-7 h-7 rounded-full bg-white border border-gray-200 flex items-center justify-center text-xs font-semibold" style={{ color }}>
-                    {idx + 1}
-                  </span>
-                  <div>
-                    <p className="text-sm font-semibold text-gray-900">{row.label}</p>
-                    <p className="text-xs text-gray-500">{row.hours.toFixed(2)} hours</p>
-                  </div>
-                </div>
-                {/* <span className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-700 font-semibold">
-                  {(row.hours * 60).toFixed(0)} mins
-                </span> */}
-              </div>
-            ))
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
 
 function formatBucketLabel(periodStart: string, range: Range) {
-  if (range === "all") {return "All time";}
+  if (range === "all") { return "All time"; }
   const date = new Date(periodStart);
   const options: Intl.DateTimeFormatOptions =
     range === "week"
@@ -673,20 +421,6 @@ function formatBucketLabel(periodStart: string, range: Range) {
   return new Intl.DateTimeFormat("en", options).format(date);
 }
 
-function metricSum(value: MetricValue | undefined | null) {
-  if (typeof value === "number") {
-    return Number.isFinite(value) ? value : 0;
-  }
-  if (value && typeof value.avg === "number" && Number.isFinite(value.avg)) {
-    return value.avg;
-  }
-  return 0;
-}
-
-function toHours(value: MetricValue | undefined | null) {
-  const seconds = metricSum(value);
-  return Number((seconds / 3600).toFixed(2));
-}
 
 function sum(values: number[]) {
   return values.reduce((acc, curr) => acc + (Number.isFinite(curr) ? curr : 0), 0);
@@ -694,57 +428,13 @@ function sum(values: number[]) {
 
 function average(values: number[]) {
   const filtered = values.filter((v) => Number.isFinite(v));
-  if (filtered.length === 0) {return 0;}
+  if (filtered.length === 0) { return 0; }
   return sum(filtered) / filtered.length;
-}
-
-function languageTotalsForRange(aggregates: Aggregates | null, range: Range) {
-  const totals: Record<string, number> = {};
-  const entries = aggregates?.[range] ?? [];
-  for (const entry of entries) {
-    const langSeconds = entry.languageSeconds || {};
-    for (const [lang, seconds] of Object.entries(langSeconds)) {
-      totals[lang] = (totals[lang] || 0) + metricSum(seconds);
-    }
-  }
-  return totals;
-}
-
-function workspaceTotalsForRange(aggregates: Aggregates | null, range: Range) {
-  const totals: Record<string, number> = {};
-  const entries = aggregates?.[range] ?? [];
-  for (const entry of entries) {
-    const wsSeconds = entry.workspaceSeconds || {};
-    const hasWorkspaceSeconds = Object.keys(wsSeconds).length > 0;
-    for (const [ws, seconds] of Object.entries(wsSeconds)) {
-      totals[ws] = (totals[ws] || 0) + metricSum(seconds);
-    }
-    if (!hasWorkspaceSeconds && entry.topWorkspaces) {
-      for (const tw of entry.topWorkspaces) {
-        totals[tw.workspace] = (totals[tw.workspace] || 0) + metricSum(tw.seconds);
-      }
-    }
-  }
-  return totals;
-}
-
-function computeRangeTotals(aggregates: Aggregates | null, range: Range) {
-  const entries = aggregates?.[range] ?? [];
-  if (!entries.length) {return null;}
-  return entries.reduce(
-    (acc, entry) => ({
-      totalSeconds: acc.totalSeconds + metricSum(entry.totalSeconds),
-      workingSeconds: acc.workingSeconds + metricSum(entry.workingSeconds),
-      idleSeconds: acc.idleSeconds + metricSum(entry.idleSeconds),
-      sessions: acc.sessions + (entry.sessionCount ? metricSum(entry.sessionCount) : 0),
-    }),
-    { totalSeconds: 0, workingSeconds: 0, idleSeconds: 0, sessions: 0 }
-  );
 }
 
 function computeYearSummary(aggregates: Aggregates | null) {
   const years = aggregates?.year ?? [];
-  if (!years.length) {return null;}
+  if (!years.length) { return null; }
   const sorted = [...years].sort((a, b) => new Date(b.periodStart).getTime() - new Date(a.periodStart).getTime());
   const latest = sorted[0];
   const currentYear = new Date(latest.periodStart).getFullYear();
@@ -752,11 +442,11 @@ function computeYearSummary(aggregates: Aggregates | null) {
   const weeks = (aggregates?.week ?? []).filter((w) => new Date(w.periodStart).getFullYear() === currentYear);
 
   const bestMonth = months.reduce<AggregateEntry | null>(
-    (best, curr) => (!best || metricSum(curr.workingSeconds) > metricSum(best.workingSeconds) ? curr : best),
+    (best, curr) => (!best || metricAverage(curr.workingSeconds) > metricAverage(best.workingSeconds) ? curr : best),
     null
   );
   const bestWeek = weeks.reduce<AggregateEntry | null>(
-    (best, curr) => (!best || metricSum(curr.workingSeconds) > metricSum(best.workingSeconds) ? curr : best),
+    (best, curr) => (!best || metricAverage(curr.workingSeconds) > metricAverage(best.workingSeconds) ? curr : best),
     null
   );
 
@@ -765,7 +455,7 @@ function computeYearSummary(aggregates: Aggregates | null) {
   const idleHours = toHours(latest.idleSeconds);
 
   const topLanguageEntry = latest.topLanguage?.language
-    ? { language: latest.topLanguage.language, seconds: metricSum(latest.topLanguage.seconds) }
+    ? { language: latest.topLanguage.language, seconds: metricAverage(latest.topLanguage.seconds) }
     : pickTopLanguage(latest.languageSeconds || {});
   const topWorkspaceEntry = pickTopWorkspace(latest);
 
@@ -807,17 +497,17 @@ function computeYearSummary(aggregates: Aggregates | null) {
 function computeGrade(avgProductivity: number, workingHours: number): Grade {
   const hoursScore = Math.min(100, (workingHours / 250) * 100);
   const blended = Math.round(avgProductivity * 0.65 + hoursScore * 0.35);
-  if (blended >= 95) {return { letter: "A+", description: "Elite focus and output across the year." };}
-  if (blended >= 85) {return { letter: "A", description: "Outstanding consistency with strong throughput." };}
-  if (blended >= 75) {return { letter: "B", description: "Great momentum—keep the cadence going." };}
-  if (blended >= 65) {return { letter: "C", description: "Solid foundation with room to tighten focus." };}
+  if (blended >= 95) { return { letter: "A+", description: "Elite focus and output across the year." }; }
+  if (blended >= 85) { return { letter: "A", description: "Outstanding consistency with strong throughput." }; }
+  if (blended >= 75) { return { letter: "B", description: "Great momentum—keep the cadence going." }; }
+  if (blended >= 65) { return { letter: "C", description: "Solid foundation with room to tighten focus." }; }
   return { letter: "D", description: "Opportunities to reduce idle time and increase deep work blocks." };
 }
 
 function pickTopLanguage(languageSeconds: Record<string, MetricValue>) {
   let best: { language: string; seconds: number } | null = null;
   for (const [language, seconds] of Object.entries(languageSeconds)) {
-    const totalSeconds = metricSum(seconds);
+    const totalSeconds = metricAverage(seconds);
     if (!best || totalSeconds > best.seconds) {
       best = { language, seconds: totalSeconds };
     }
@@ -827,14 +517,14 @@ function pickTopLanguage(languageSeconds: Record<string, MetricValue>) {
 
 function pickTopWorkspace(entry: AggregateEntry) {
   if (entry.topWorkspaces?.length) {
-    const sorted = [...entry.topWorkspaces].sort((a, b) => metricSum(b.seconds) - metricSum(a.seconds));
+    const sorted = [...entry.topWorkspaces].sort((a, b) => metricAverage(b.seconds) - metricAverage(a.seconds));
     const top = sorted[0];
-    return { workspace: top.workspace, seconds: metricSum(top.seconds) };
+    return { workspace: top.workspace, seconds: metricAverage(top.seconds) };
   }
   const wsMap = entry.workspaceSeconds || {};
   let best: { workspace: string; seconds: number } | null = null;
   for (const [workspace, seconds] of Object.entries(wsMap)) {
-    const totalSeconds = metricSum(seconds);
+    const totalSeconds = metricAverage(seconds);
     if (!best || totalSeconds > best.seconds) {
       best = { workspace, seconds: totalSeconds };
     }
@@ -845,20 +535,20 @@ function pickTopWorkspace(entry: AggregateEntry) {
 function computeBadges(aggregates: Aggregates | null) {
   const weeks = aggregates?.week ?? [];
   const months = aggregates?.month ?? [];
-  const activeWeeks = weeks.filter((w) => metricSum(w.workingSeconds) >= 3600).length;
+  const activeWeeks = weeks.filter((w) => metricAverage(w.workingSeconds) >= 3600).length;
   const avgProductivity = average(weeks.map((w) => w.productivityPercent));
   const allEntry = aggregates?.all?.[0];
   const totalHours = toHours(allEntry?.workingSeconds ?? 0);
   const idleRatio = allEntry
-    ? Math.round((metricSum(allEntry.idleSeconds) / Math.max(1, metricSum(allEntry.totalSeconds))) * 100)
+    ? Math.round((metricAverage(allEntry.idleSeconds) / Math.max(1, metricAverage(allEntry.totalSeconds))) * 100)
     : 0;
   const languageSeconds = allEntry?.languageSeconds || {};
   const strongLanguages = Object.values(languageSeconds).filter((sec) => toHours(sec) >= 3).length;
   const bestWeekHours = weeks.reduce((max, w) => Math.max(max, toHours(w.workingSeconds)), 0);
   const bestMonthHours = months.reduce((max, m) => Math.max(max, toHours(m.workingSeconds)), 0);
   const totalSessions =
-    metricSum(allEntry?.sessionCount) ||
-    weeks.reduce((acc, w) => acc + (w.sessionCount ? metricSum(w.sessionCount) : 0), 0);
+    metricAverage(allEntry?.sessionCount) ||
+    weeks.reduce((acc, w) => acc + (w.sessionCount ? metricAverage(w.sessionCount) : 0), 0);
 
   return [
     {
@@ -916,41 +606,4 @@ function computeBadges(aggregates: Aggregates | null) {
       earned: bestMonthHours >= 90,
     },
   ];
-}
-
-function TotalsList({
-  title,
-  items,
-  emptyLabel,
-}: {
-  title: string;
-  items: Array<{ label: string; value: number }>;
-  emptyLabel: string;
-}) {
-  const hasItems = items.length > 0;
-  return (
-    <div className="p-4 rounded-xl border border-gray-100 bg-gray-50">
-      <div className="flex items-center justify-between mb-2">
-        <h3 className="text-sm font-semibold text-gray-900">{title}</h3>
-        {hasItems && <span className="text-xs text-gray-500">{items.length} entries</span>}
-      </div>
-      {!hasItems ? (
-        <p className="text-sm text-gray-500">{emptyLabel}</p>
-      ) : (
-        <div className="space-y-2">
-          {items.map((row, idx) => (
-            <div key={row.label} className="flex items-center justify-between px-3 py-2 rounded-lg bg-white border border-gray-100">
-              <div className="flex items-center gap-2">
-                <span className="w-6 h-6 rounded-full bg-blue-50 border border-blue-100 text-blue-700 text-xs font-semibold flex items-center justify-center">
-                  {idx + 1}
-                </span>
-                <span className="font-semibold text-gray-900">{row.label}</span>
-              </div>
-              <span className="text-sm text-gray-700">{row.value.toFixed(2)} h</span>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
 }

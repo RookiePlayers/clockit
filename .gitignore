@@ -16,3 +16,4 @@ jest.config.js
 clockit_website/.firebase/hosting.Lm5leHQ.cache
 backup_20251124.csv
 *.csv
+/clockit_backup_*.csv

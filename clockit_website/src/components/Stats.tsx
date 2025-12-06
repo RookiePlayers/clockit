@@ -217,6 +217,15 @@ export default function Stats({ uid }: StatsProps) {
         )}
         {recentDocs.map(({ doc, data }) => {
           const rowCount = data.data?.length || 0;
+          const uploadedAtDate = data.uploadedAt?.toDate?.() ? data.uploadedAt.toDate() : null;
+          const uploadedAtLabel = uploadedAtDate
+            ? uploadedAtDate.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })
+            : "—";
+          const ideName = typeof data.ideName === "string" && data.ideName.trim()
+            ? data.ideName.trim()
+            : typeof data.meta?.ideName === "string" && data.meta.ideName.trim()
+              ? data.meta.ideName.trim()
+              : "Secret IDE";
           return (
             <motion.div
               key={doc.id}
@@ -241,8 +250,11 @@ export default function Stats({ uid }: StatsProps) {
                     >
                       {!data.filename ? "auto" : "manual"}
                     </span>
+                    <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-indigo-50 text-indigo-700 border border-indigo-100">
+                      {ideName}
+                    </span>
                   </div>
-                  <p className="text-xs text-gray-500 truncate">{data.uploadedAt?.toDate?.().toLocaleDateString()}</p>
+                  <p className="text-xs text-gray-500 truncate">{uploadedAtLabel}</p>
                 </div>
               </div>
               <div className="text-left sm:text-right w-full sm:w-auto">

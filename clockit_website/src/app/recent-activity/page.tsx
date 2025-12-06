@@ -16,6 +16,7 @@ type UploadRow = {
   uploadedAt?: Date | null;
   count: number;
   source: "manual" | "auto";
+  ideName?: string;
 };
 
 export default function RecentActivityPage() {
@@ -72,7 +73,13 @@ export default function RecentActivityPage() {
     const filename = data.filename || doc.id;
     const count = Array.isArray(data.data) ? data.data.length : 0;
     const source: UploadRow["source"] = data.filename ? "manual" : "auto";
-    return { id: doc.id, filename, uploadedAt, count, source };
+    const ideName =
+      typeof data.ideName === "string" && data.ideName.trim()
+        ? data.ideName.trim()
+        : typeof data.meta?.ideName === "string" && data.meta.ideName.trim()
+          ? data.meta.ideName.trim()
+          : undefined;
+    return { id: doc.id, filename, uploadedAt, count, source, ideName };
   });
 
   const filteredRows = rows.filter((row) => sourceFilter === "all" || row.source === sourceFilter);
@@ -144,20 +151,21 @@ export default function RecentActivityPage() {
             </div>
           )}
           <div className="overflow-x-auto">
-            <table className="min-w-[780px] w-full text-sm text-gray-800">
+            <table className="min-w-[860px] w-full text-sm text-gray-800">
               <thead className="bg-gray-50 text-gray-600 border-b border-gray-100">
                 <tr>
                   <th className="text-left px-4 py-2 font-semibold">Filename</th>
                   <th className="text-left px-4 py-2 font-semibold whitespace-nowrap">Uploaded at</th>
                   <th className="text-left px-4 py-2 font-semibold">Entries</th>
                   <th className="text-left px-4 py-2 font-semibold">Source</th>
+                  <th className="text-left px-4 py-2 font-semibold whitespace-nowrap">IDE</th>
                   <th className="text-left px-4 py-2 font-semibold">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredRows.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="px-4 py-6 text-center text-gray-500">
+                    <td colSpan={6} className="px-4 py-6 text-center text-gray-500">
                       {rows.length === 0
                         ? "No uploads yet. Upload a CSV from the dashboard to see activity here."
                         : "No uploads match this source filter."}
@@ -175,6 +183,9 @@ export default function RecentActivityPage() {
                       <span className={`px-2 py-1 rounded-full text-xs font-semibold ${row.source === "manual" ? "bg-green-100 text-green-700" : "bg-blue-100 text-blue-700"}`}>
                         {row.source}
                       </span>
+                    </td>
+                    <td className="px-4 py-3 text-gray-700 whitespace-nowrap">
+                      {row.ideName ?? "—"}
                     </td>
                     <td className="px-4 py-3">
                       <Link

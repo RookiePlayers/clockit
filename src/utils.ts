@@ -21,6 +21,7 @@ export class Utils {
   private authorName?: string;
   private authorEmail?: string;
   private machine?: string;
+  private ideName?: string;
 
   private tickTimer: NodeJS.Timeout | null = null;
   private idleChecker: NodeJS.Timeout | null = null;
@@ -311,6 +312,7 @@ export class Utils {
       authorName: this.authorName,
       authorEmail: this.authorEmail,
       machine: this.machine,
+      ideName: this.ideName,
       workspace: this.vscode.workspace.name,
       repoPath: this.vscode.workspace.workspaceFolders?.[0]?.uri.fsPath,
       branch: null,
@@ -343,6 +345,7 @@ export class Utils {
     this.authorName = nameCfg || this.readGitConfig('user.name') || undefined;
     this.authorEmail = emailCfg || this.readGitConfig('user.email') || undefined;
     this.machine = machineCfg || os.hostname();
+    this.ideName = this.vscode.env.appName;
   }
 
   private readGitConfig(key: string) {
