@@ -80,7 +80,7 @@ afterEach(() => {
 
     const txt = await fs.readFile(expected, 'utf8');
     expect(txt.split('\n')[0]).toMatch(
-      /^startedIso,endedIso,durationSeconds,idleSeconds,linesAdded,linesDeleted,perFileSeconds,perLanguageSeconds,authorName,authorEmail,machine,workspace,repoPath,branch,issueKey,comment/
+      /^startedIso,endedIso,durationSeconds,idleSeconds,linesAdded,linesDeleted,perFileSeconds,perLanguageSeconds,authorName,authorEmail,machine,ideName,workspace,repoPath,branch,issueKey,comment/
     );
     expect(txt).toContain('2025-01-01T10:15:00.000Z');
     expect(txt).toContain(',ABC-1,');
