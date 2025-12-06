@@ -13,6 +13,16 @@ import { useRouter } from "next/navigation";
 import { useSnackbar } from "notistack";
 import Cooldown from "@/components/Cooldown";
 import NavBar from "@/components/NavBar";
+import {
+  Legend,
+  PolarAngleAxis,
+  PolarGrid,
+  PolarRadiusAxis,
+  Radar,
+  RadarChart,
+  ResponsiveContainer,
+  Tooltip,
+} from "recharts";
 
 type Range = "week" | "month" | "year" | "all";
 
@@ -50,6 +60,7 @@ const rangeLabels: Record<Range, string> = {
 export default function DashboardPage() {
   const [user, loadingUser, authError] = useAuthState(auth);
   const [range, setRange] = useState<Range>("week");
+  const [focusRange, setFocusRange] = useState<Range>("week");
   const [aggregates, setAggregates] = useState<Aggregates | null>(null);
   const [isLoadingStats, setIsLoadingStats] = useState(true);
   const [statsError, setStatsError] = useState<string | null>(null);
@@ -106,6 +117,22 @@ export default function DashboardPage() {
     const sorted = [...list].sort((a, b) => (a.periodStart > b.periodStart ? -1 : 1));
     return sorted[0];
   }, [aggregates, range]);
+
+  const languageRadarData = useMemo(() => {
+    const totals = languageTotalsForRange(aggregates, focusRange);
+    return Object.entries(totals)
+      .map(([language, seconds]) => ({ language, hours: Number(toHours(seconds).toFixed(2)) }))
+      .sort((a, b) => b.hours - a.hours)
+      .slice(0, 12);
+  }, [aggregates, focusRange]);
+
+  const workspaceRadarData = useMemo(() => {
+    const totals = workspaceTotalsForRange(aggregates, focusRange);
+    return Object.entries(totals)
+      .map(([workspace, seconds]) => ({ workspace, hours: Number(toHours(seconds).toFixed(2)) }))
+      .sort((a, b) => b.hours - a.hours)
+      .slice(0, 12);
+  }, [aggregates, focusRange]);
 
   const topWorkspaces = useMemo(() => {
     const current = active;
@@ -245,7 +272,10 @@ export default function DashboardPage() {
             {(["week", "month", "year", "all"] as Range[]).map((key) => (
               <button
                 key={key}
-                onClick={() => setRange(key)}
+                onClick={() => {
+                  setRange(key);
+                  setFocusRange(key);
+                }}
                 className={`px-3 py-1.5 rounded-full text-sm font-semibold border transition-colors ${
                   range === key
                     ? "bg-blue-50 text-blue-700 border-blue-200"
@@ -352,6 +382,46 @@ export default function DashboardPage() {
           </div>
         </section>
 
+        <section className="card-clean bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">Focus radars</h2>
+              <p className="text-sm text-gray-600">Language and workspace focus for {rangeLabels[focusRange].toLowerCase()} data.</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {(["week", "month", "year", "all"] as Range[]).map((key) => (
+                <button
+                  key={key}
+                  onClick={() => setFocusRange(key)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
+                    focusRange === key
+                      ? "bg-indigo-50 text-indigo-700 border-indigo-200"
+                      : "bg-white text-gray-700 border-gray-200 hover:border-indigo-200 hover:text-indigo-700"
+                  }`}
+                >
+                  {rangeLabels[key]}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            <RadarPanel
+              title="Language focus"
+              emptyLabel={statsError || "No language time recorded for this range yet."}
+              data={languageRadarData.map((d) => ({ label: d.language, hours: d.hours }))}
+              color="#6366f1"
+              chartKey={`lang-${focusRange}`}
+            />
+            <RadarPanel
+              title="Workspace focus"
+              emptyLabel={statsError || "No workspace time recorded for this range yet."}
+              data={workspaceRadarData.map((d) => ({ label: d.workspace, hours: d.hours }))}
+              color="#0ea5e9"
+              chartKey={`ws-${focusRange}`}
+            />
+          </div>
+        </section>
+
         {user && (
           <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div
@@ -411,6 +481,70 @@ function MetricRow({
   );
 }
 
+function RadarPanel({
+  title,
+  emptyLabel,
+  data,
+  color,
+  chartKey,
+}: {
+  title: string;
+  emptyLabel: string;
+  data: Array<{ label: string; hours: number }>;
+  color: string;
+  chartKey?: string;
+}) {
+  const hasData = data.length > 0;
+  return (
+    <div className="card-clean bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-base font-semibold text-gray-900">{title}</h3>
+        {hasData && <span className="text-xs text-gray-500">{data.length} entries</span>}
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-center">
+        <div className="lg:col-span-2 h-[260px]">
+          {!hasData ? (
+            <div className="h-full flex items-center justify-center text-sm text-gray-500">{emptyLabel}</div>
+          ) : (
+            <ResponsiveContainer width="100%" height="100%">
+              <RadarChart data={data} key={chartKey}>
+                <PolarGrid />
+                <PolarAngleAxis dataKey="label" />
+                <PolarRadiusAxis angle={45} />
+                <Radar name="Hours" dataKey="hours" stroke={color} fill={color} fillOpacity={0.4} />
+                <Legend verticalAlign="middle" align="left" layout="vertical" />
+                <Tooltip />
+              </RadarChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+        <div className="space-y-2">
+          {!hasData ? (
+            <p className="text-sm text-gray-500">{emptyLabel}</p>
+          ) : (
+            data.slice(0, 6).map((row, idx) => (
+              <div
+                key={row.label}
+                className="flex items-center justify-between px-3 py-2 rounded-lg border border-gray-100 bg-gray-50"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="w-7 h-7 rounded-full bg-white border border-gray-200 flex items-center justify-center text-xs font-semibold" style={{ color }}>
+                    {idx + 1}
+                  </span>
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900">{row.label}</p>
+                    <p className="text-xs text-gray-500">{row.hours.toFixed(2)} hours</p>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function metricSum(value: MetricValue | undefined | null) {
   if (typeof value === "number") {
     return Number.isFinite(value) ? value : 0;
@@ -419,6 +553,41 @@ function metricSum(value: MetricValue | undefined | null) {
     return value.sum;
   }
   return 0;
+}
+
+function toHours(value: MetricValue | undefined | null) {
+  const seconds = metricSum(value);
+  return Number((seconds / 3600).toFixed(2));
+}
+
+function languageTotalsForRange(aggregates: Aggregates | null, range: Range) {
+  const totals: Record<string, number> = {};
+  const entries = aggregates?.[range] ?? [];
+  for (const entry of entries) {
+    const langSeconds = entry.languageSeconds || {};
+    for (const [lang, seconds] of Object.entries(langSeconds)) {
+      totals[lang] = (totals[lang] || 0) + metricSum(seconds);
+    }
+  }
+  return totals;
+}
+
+function workspaceTotalsForRange(aggregates: Aggregates | null, range: Range) {
+  const totals: Record<string, number> = {};
+  const entries = aggregates?.[range] ?? [];
+  for (const entry of entries) {
+    const wsSeconds = entry.workspaceSeconds || {};
+    const hasWorkspaceSeconds = Object.keys(wsSeconds).length > 0;
+    for (const [ws, seconds] of Object.entries(wsSeconds)) {
+      totals[ws] = (totals[ws] || 0) + metricSum(seconds);
+    }
+    if (!hasWorkspaceSeconds && entry.topWorkspaces) {
+      for (const tw of entry.topWorkspaces) {
+        totals[tw.workspace] = (totals[tw.workspace] || 0) + metricSum(tw.seconds);
+      }
+    }
+  }
+  return totals;
 }
 
 function formatDuration(totalSeconds: MetricValue | undefined | null) {
