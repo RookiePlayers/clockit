@@ -1,3 +1,17 @@
+# [1.8.0](https://github.com/RookiePlayers/clockit/compare/v1.7.1...v1.8.0) (2025-12-06)
+
+
+### Bug Fixes
+
+* Correct CSV header in CsvSink tests ([536c178](https://github.com/RookiePlayers/clockit/commit/536c17860e149ef84e3e776238b4d8c53bffea9e))
+* Update CSV header to include 'ideName' in tests ([bc7738d](https://github.com/RookiePlayers/clockit/commit/bc7738d5573300e7715686384cff8254f1da1278))
+
+
+### Features
+
+* Big quality of life improvements on clockit cloud ([c830e9e](https://github.com/RookiePlayers/clockit/commit/c830e9e6a500621d6d4416b01c09178d0864df35))
+* Big quality of life improvements on clockit cloud ([cd100f3](https://github.com/RookiePlayers/clockit/commit/cd100f3a5b1057654c0424bfb6a6688caf63b800))
+
 ## [1.7.1](https://github.com/RookiePlayers/clockit/compare/v1.7.0...v1.7.1) (2025-12-03)
 
 
