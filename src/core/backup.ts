@@ -27,6 +27,7 @@ export type BackupRow = {
   branch?: string | null;
   issueKey?: string | null;
   comment?: string | null;
+  goals?: import('./types').Goal[];
 };
 
 type Opts = {
@@ -89,7 +90,7 @@ export class BackupManager {
 
     const exists = fssync.existsSync(file);
     const header =
-      'startedIso,endedIso,durationSeconds,idleSeconds,linesAdded,linesDeleted,perFileSeconds,perLanguageSeconds,authorName,authorEmail,machine,ideName,workspace,repoPath,branch,issueKey,comment\n';
+      'startedIso,endedIso,durationSeconds,idleSeconds,linesAdded,linesDeleted,perFileSeconds,perLanguageSeconds,authorName,authorEmail,machine,ideName,workspace,repoPath,branch,issueKey,comment,goals\n';
 
     const line =
       [
@@ -110,6 +111,7 @@ export class BackupManager {
         csv(this.pending.branch ?? ''),
         csv(this.pending.issueKey ?? ''),
         csv(this.pending.comment ?? this.pending.title ?? ''),
+        csv(JSON.stringify(this.pending.goals ?? [])),
       ].join(',') + '\n';
 
     // Skip duplicate snapshots to avoid repeated identical lines

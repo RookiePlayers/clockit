@@ -13,6 +13,8 @@ import {
   IconMessageCircle,
   IconShare2,
   IconTable,
+  IconTimeDuration15,
+  IconTargetArrow,
   IconX,
 } from "@tabler/icons-react";
 import type { ComponentType } from "react";
@@ -23,6 +25,7 @@ type SectionId =
   | "features"
   | "installation"
   | "session-tracking"
+  | "goals"
   | "credential-management"
   | "export-jira"
   | "export-notion"
@@ -30,6 +33,7 @@ type SectionId =
   | "cloud-backup"
   | "configuration"
   | "commands"
+  | "faq"
   | "troubleshooting";
 
 type SectionMeta = {
@@ -85,7 +89,8 @@ const sectionMeta: Record<SectionId, SectionMeta> = {
   introduction: { id: "introduction", title: "Introduction", keywords: ["overview", "docs", "about", "clockit"] },
   features: { id: "features", title: "Features", keywords: ["auto track", "idle detection", "export", "csv", "jira", "notion"] },
   installation: { id: "installation", title: "Installation", keywords: ["install", "marketplace", "vsix"] },
-  "session-tracking": { id: "session-tracking", title: "Session Tracking", keywords: ["start", "pause", "resume", "stop", "idle", "data"] },
+  "session-tracking": { id: "session-tracking", title: "Session Tracking", keywords: ["start", "pause", "resume", "stop", "idle", "data", "focus timer"] },
+  goals: { id: "goals", title: "Goals", keywords: ["goals", "jira subtasks", "focus", "checklist"] },
   "credential-management": { id: "credential-management", title: "Credentials", keywords: ["storage", "security", "jira", "notion", "csv"] },
   "export-jira": { id: "export-jira", title: "Jira Export", keywords: ["worklog", "api token", "issue", "atlassian"] },
   "export-notion": { id: "export-notion", title: "Notion Export", keywords: ["integration token", "database", "page", "columns"] },
@@ -93,15 +98,16 @@ const sectionMeta: Record<SectionId, SectionMeta> = {
   "cloud-backup": { id: "cloud-backup", title: "IDE Cloud sync", keywords: ["cloud", "token", "ingest", "api"] },
   configuration: { id: "configuration", title: "Configuration", keywords: ["settings", "options", "defaults"] },
   commands: { id: "commands", title: "Command Summary", keywords: ["command palette", "actions"] },
+  faq: { id: "faq", title: "FAQ", keywords: ["faq", "privacy", "goals", "focus", "csv"] },
   troubleshooting: { id: "troubleshooting", title: "Troubleshooting", keywords: ["errors", "jira", "notion"] },
 };
 
 const navGroups: NavGroup[] = [
   { title: "Getting Started", ids: ["introduction", "features", "installation"] },
-  { title: "Core Concepts", ids: ["session-tracking", "credential-management"] },
+  { title: "Core Concepts", ids: ["session-tracking", "goals", "credential-management"] },
   { title: "Cloud", ids: ["cloud-backup"] },
   { title: "Exporting", ids: ["export-jira", "export-notion", "export-csv"] },
-  { title: "Reference", ids: ["configuration", "commands", "troubleshooting"] },
+  { title: "Reference", ids: ["configuration", "commands", "faq", "troubleshooting"] },
 ];
 
 const baseFeatures: FeatureItem[] = [
@@ -109,10 +115,13 @@ const baseFeatures: FeatureItem[] = [
   { text: "Idle detection and trimming for accurate duration", Icon: IconActivity },
   { text: "Per-file and per-language focus time captured automatically", Icon: IconFileCode },
   { text: "Line changes counted (added and deleted)", Icon: IconFileDiff },
+  { text: "Pause/resume and a focus timer with countdown in the status bar", Icon: IconTimeDuration15 },
   { text: "Optional session comments on stop", Icon: IconMessageCircle },
+  { text: "Goals side panel to add/complete/delete goals; completed goals attach to sessions", Icon: IconTargetArrow },
   { text: "Multi-sink export to CSV, Jira, and Notion", Icon: IconShare2 },
   { text: "Guided credential prompts stored securely", Icon: IconKey },
   { text: "CSV menu in the status bar for quick access", Icon: IconTable },
+  { text: "Quick link to Clockit Cloud from the CSV menu", Icon: IconBrandGithub },
 ];
 
 const baseConfigurationOptions = [
@@ -143,8 +152,15 @@ const baseConfigurationOptions = [
 ];
 
 const baseCommands = [
-  { command: "clockit.startTimeTracking", title: "Clockit: Start Time Tracking" },
-  { command: "clockit.stopTimeTracking", title: "Clockit: Stop Time Tracking" },
+  { command: "clockit.startTimeTracking", title: "Clockit: Start Time" },
+  { command: "clockit.stopTimeTracking", title: "Clockit: Stop Time" },
+  { command: "clockit.pauseTimeTracking", title: "Clockit: Pause Time Tracking" },
+  { command: "clockit.resumeTimeTracking", title: "Clockit: Resume Time Tracking" },
+  { command: "clockit.setFocusTimer", title: "Clockit: Set Focus Timer" },
+  { command: "clockit.goals.openView", title: "Clockit: Open Goals" },
+  { command: "clockit.goals.add", title: "Clockit: Add Goal" },
+  { command: "clockit.goals.toggle", title: "Clockit: Toggle Goal" },
+  { command: "clockit.goals.delete", title: "Clockit: Delete Goal" },
   { command: "clockit.showTimeLog", title: "Clockit: Show Time Log" },
   { command: "clockit.clearTimeLog", title: "Clockit: Clear Time Log" },
   { command: "clockit.toggle", title: "Clockit: Toggle Time Tracking" },
@@ -424,7 +440,6 @@ export default function DocsPage() {
                   </section>
                 )}
 
-                {/* Session Tracking */}
                 {visibleSectionIds.has("session-tracking") && (
                   <section id="session-tracking" className="mb-16 scroll-mt-24">
                     <h2 className="text-2xl font-bold text-gray-900 mb-6">Session Tracking</h2>
@@ -469,6 +484,20 @@ export default function DocsPage() {
                       <p className="text-gray-600 text-sm mt-3">
                         Clockit keeps this data local until you choose an export sink. If you only export to CSV, nothing leaves your machine.
                       </p>
+                    </div>
+                  </section>
+                )}
+
+                {visibleSectionIds.has("goals") && (
+                  <section id="goals" className="mb-16 scroll-mt-24">
+                    <h2 className="text-2xl font-bold text-gray-900 mb-6">Goals</h2>
+                    <p className="text-gray-700 mb-3">
+                      Manage goals from the Clockit Goals side panel: add, complete, delete, or import from Jira. Completed goals attach to your next session and clear after a successful CSV write.
+                    </p>
+                    <div className="space-y-2 text-sm text-gray-700">
+                      <p><span className="font-semibold">Add goals</span>: Use “Add goal…” in the Goals panel. Enter a title or choose “Import from Jira issue” to search issues and pull subtasks as goals.</p>
+                      <p><span className="font-semibold">Jira integration</span>: Searches use your Jira credentials; subtasks become goals with their summaries as titles. When imported from an issue, the issue key is remembered so you do not have to type a session comment again.</p>
+                      <p><span className="font-semibold">Completion</span>: Mark goals done in the panel; completion time is captured. On session stop, completed goals populate the session comment automatically (“Complete goals set”) and are flushed after a successful CSV write.</p>
                     </div>
                   </section>
                 )}
@@ -522,7 +551,7 @@ export default function DocsPage() {
                   Turn on automatic backups from the Clockit VS Code plugin to your account using an API token. Local CSV exports remain unchanged.
                 </p>
                 <ol className="list-decimal list-inside space-y-3 text-gray-700">
-                  <li>Sign in at <a className="text-blue-600 hover:underline" href="https://clockit.octech.dev/dashboard" target="_blank" rel="noreferrer">clockit.app/dashboard</a> and open <strong>Profile → API Tokens</strong>.</li>
+                  <li>Sign in at <a className="text-blue-600 hover:underline" href="https://clockit.octech.dev/dashboard" target="_blank" rel="noreferrer">clockit.octech.dev/dashboard</a> and open <strong>Profile → API Tokens</strong>.</li>
                   <li>Create a token (optional expiry) and copy it once.</li>
                   <li>In VS Code settings, set:
                     <ul className="list-disc list-inside ml-5 text-sm text-gray-700 space-y-1">
@@ -608,10 +637,10 @@ export default function DocsPage() {
                     <h2 className="text-2xl font-bold text-gray-900 mb-6">CSV Export</h2>
                     <p className="text-gray-600 mb-4">Every completed session is appended to a CSV file for local analysis.</p>
                     <div className="bg-gray-900 text-gray-200 p-4 rounded-lg overflow-x-auto text-sm font-mono">
-                      startedIso, endedIso, durationSeconds, idleSeconds, linesAdded, linesDeleted, perFileSeconds, perLanguageSeconds, comment, issueKey, repoPath, branch
+                      startedIso, endedIso, durationSeconds, idleSeconds, linesAdded, linesDeleted, perFileSeconds, perLanguageSeconds, authorName, authorEmail, machine, ideName, workspace, repoPath, branch, issueKey, comment, goals
                     </div>
                     <p className="text-gray-600 mt-3 text-sm">
-                      The CSV stays on disk and can be opened through the status bar menu. The Clockit website can read this CSV to show charts of your focus time, repos, branches, and issues without sharing data externally.
+                      The CSV stays on disk and can be opened through the status bar menu (which also links to Clockit Cloud). The Clockit website can read this CSV to show charts of your focus time, repos, branches, IDE, and issues without sharing data externally.
                     </p>
                   </section>
                 )}
@@ -664,6 +693,30 @@ export default function DocsPage() {
                           ))}
                         </tbody>
                       </table>
+                    </div>
+                  </section>
+                )}
+
+                {visibleSectionIds.has("faq") && (
+                  <section id="faq" className="mb-16 scroll-mt-24">
+                    <h2 className="text-2xl font-bold text-gray-900 mb-6">FAQ</h2>
+                    <div className="space-y-4 text-sm text-gray-700">
+                      <div>
+                        <h4 className="font-semibold text-gray-900">Does Clockit send my data anywhere?</h4>
+                        <p>CSV is written locally. Cloud backup only runs if you enable it and set an API token. Goals stay local and clear after export.</p>
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-gray-900">How do goals work?</h4>
+                        <p>Add goals in the Goals side panel; import subtasks from Jira issues if connected. Completed goals attach to the next session comment and are cleared after a successful CSV write.</p>
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-gray-900">What about the focus timer?</h4>
+                        <p>Run “Clockit: Set Focus Timer” with <code className="bg-gray-100 px-1 py-0.5 rounded">mm:ss</code> or minutes. The status bar shows the countdown, and you get a notification when it ends.</p>
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-gray-900">Can I disable CSV export?</h4>
+                        <p>CSV is always enabled (default sink) to keep a local record. You can add Jira/Notion alongside it.</p>
+                      </div>
                     </div>
                   </section>
                 )}

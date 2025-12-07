@@ -37,7 +37,7 @@ export class CsvSink extends BaseSink {
   const addHeader = Boolean(this.options.addHeaderIfMissing ?? true);
   const p = path.join(dir, file);
 
-  const header = 'startedIso,endedIso,durationSeconds,idleSeconds,linesAdded,linesDeleted,perFileSeconds,perLanguageSeconds,authorName,authorEmail,machine,ideName,workspace,repoPath,branch,issueKey,comment\n';
+  const header = 'startedIso,endedIso,durationSeconds,idleSeconds,linesAdded,linesDeleted,perFileSeconds,perLanguageSeconds,authorName,authorEmail,machine,ideName,workspace,repoPath,branch,issueKey,comment,goals\n';
   const row = [
     s.startedIso, s.endedIso, s.durationSeconds,
     s.idleSeconds ?? 0,
@@ -47,7 +47,8 @@ export class CsvSink extends BaseSink {
     JSON.stringify(s.perLanguageSeconds ?? {}),
     s.authorName ?? '', s.authorEmail ?? '', s.machine ?? '',
     s.ideName ?? '',
-    s.workspace ?? '', s.repoPath ?? '', s.branch ?? '', s.issueKey ?? '', s.comment ?? ''
+    s.workspace ?? '', s.repoPath ?? '', s.branch ?? '', s.issueKey ?? '', s.comment ?? '',
+    JSON.stringify(s.goals ?? []),
   ].map(v => {
     const str = String(v ?? '');
     return /[",\n]/.test(str) ? `"${str.replace(/"/g, '""')}"` : str;
@@ -111,10 +112,24 @@ export class CsvSink extends BaseSink {
       console.warn('[Clockit][CSV] Cloud backup failed:', e);
       backupNote = `Cloud backup skipped: ${e?.message || e}`;
     }
-    return {
+    const result: Result = {
       ok: true,
       message: `CSV -> ${successPath.path}${successPath.isFallback ? ' (fallback path)' : ''}${backupNote ? `; ${backupNote}` : ''}`,
     };
+    // After a successful write, clear completed goals to avoid reusing them next session
+    try {
+      if (s.goals && s.goals.length) {
+        const store = await import('../services/goals-store');
+        const refreshed = s.goals.filter((g: any) => !g.completedAt);
+        (store.clearGoals as any)?.();
+        if (refreshed.length) {
+          refreshed.forEach((g: any) => void (store.addGoal as any)?.(g.title));
+        }
+      }
+    } catch {
+      // best-effort; do not fail export on cleanup
+    }
+    return result;
   }
 
   private async backupToCloud(session: Session): Promise<string | undefined> {

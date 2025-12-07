@@ -105,9 +105,18 @@ async function promptForSinks(current?: string[]) {
   const all = ['csv', 'jira', 'notion'];
   const selected = new Set(current && current.length ? current : ['csv']);
   const picks = await vscode.window.showQuickPick(
-    all.map(v => ({ label: v.toUpperCase(), picked: selected.has(v), value: v })),
-    { canPickMany: true, title: 'Select export sinks for this session' }
+    all.map(v => ({
+      label: v.toUpperCase(),
+      picked: selected.has(v) || v === 'csv', // force CSV picked
+      value: v,
+      description: v === 'csv' ? 'Always enabled' : undefined,
+      alwaysShow: true,
+      disabled: v === 'csv',
+    })),
+    { canPickMany: true, title: 'Select export sinks for this session (CSV always on)' }
   );
   if (!picks) {return undefined;}
-  return picks.map(p => p.value);
+  const values = new Set(picks.filter(p => p.value === 'csv' || !p.disabled).map(p => p.value));
+  values.add('csv'); // enforce CSV
+  return Array.from(values);
 }

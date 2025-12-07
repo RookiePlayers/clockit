@@ -8,6 +8,9 @@ import { CsvFolderService } from './services/csv-folder';
 import { Utils } from './utils';
 import { BackupManager } from './core/backup';
 import type { Session } from './core/types';
+import { initGoalsStore } from './services/goals-store';
+import { GoalsTreeProvider, handleDeleteGoal, handleToggleGoal, promptAddGoal } from './services/goals-view';
+import { setJiraSecretStore } from './services/jira-creds';
 
 let channel: vscode.OutputChannel;
 let statusBar: vscode.StatusBarItem;
@@ -36,6 +39,7 @@ export function updateBackupFromSession(s?: Session) {
     branch: s.branch ?? null,
     issueKey: s.issueKey ?? null,
     comment: s.comment ?? null,
+    goals: s.goals ?? [],
   });
 }
 
@@ -108,8 +112,8 @@ export async function activate(ctx: vscode.ExtensionContext) {
 
   // CSV menu button
   const csvMenuBtn = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, CSV_PRIORITY);
-  csvMenuBtn.text = '$(folder) Clockit CSV';
-  csvMenuBtn.tooltip = 'Clockit CSV actions';
+  csvMenuBtn.text = '$(folder) Clockit Menu';
+  csvMenuBtn.tooltip = 'Clockit menu (CSV, timers, cloud)';
   csvMenuBtn.command = 'clockit.csvMenu';
   csvMenuBtn.show();
   ctx.subscriptions.push(csvMenuBtn);
@@ -127,6 +131,25 @@ export async function activate(ctx: vscode.ExtensionContext) {
   registerSessionCommands(ctx, utils);
   registerExportCommands(ctx, utils);
   registerCredentialCommands(ctx);
+  initGoalsStore(ctx);
+  setJiraSecretStore(ctx.secrets);
+
+  // Goals side panel
+  const goalsProvider = new GoalsTreeProvider();
+  const goalsView = vscode.window.createTreeView('clockitGoals', { treeDataProvider: goalsProvider });
+  ctx.subscriptions.push(goalsView);
+  ctx.subscriptions.push(
+    vscode.commands.registerCommand('clockit.goals.refresh', () => goalsProvider.refresh()),
+    vscode.commands.registerCommand('clockit.goals.add', async () => { await promptAddGoal(); goalsProvider.refresh(); }),
+    vscode.commands.registerCommand('clockit.goals.toggle', async (index?: number) => { await handleToggleGoal(index); goalsProvider.refresh(); }),
+    vscode.commands.registerCommand('clockit.goals.delete', async (index?: number) => { await handleDeleteGoal(index); goalsProvider.refresh(); }),
+    vscode.commands.registerCommand('clockit.goals.searchJira', async () => { await promptAddGoal(); goalsProvider.refresh(); }),
+    vscode.commands.registerCommand('clockit.goals.openView', async () => {
+      await vscode.commands.executeCommand('workbench.view.explorer');
+      await vscode.commands.executeCommand('clockitGoals.focus');
+      goalsProvider.refresh();
+    })
+  );
 
   // Optional: expose an internal command so other modules can push snapshots without importing the function
   ctx.subscriptions.push(

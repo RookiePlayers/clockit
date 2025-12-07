@@ -29,12 +29,21 @@ export class CsvFolderService {
           id: cloudEnabled ? 'noop' : 'loginCloud',
           alwaysShow: true,
         },
+        { label: '$(watch) Start time', id: 'startTimer' },
+        { label: '$(primitive-square) Stop time', id: 'stopTimer' },
+        { label: '$(debug-pause) Pause/Resume time', id: 'pauseTimer' },
+        { label: '$(clock) Set focus timer…', id: 'focusTimer' },
+        {
+          label: '$(cloud) Open Clockit Cloud',
+          description: 'View dashboard in your browser',
+          id: 'openCloud',
+        },
         { label: '$(book) Open current CSV', id: 'openCurrent' },
         { label: '$(folder-opened) Open CSV folder', id: 'openFolder' },
         { label: '$(replace) Change CSV folder', id: 'changeFolder' },
         { label: '$(history) Browse past logs…', id: 'browsePast' },
       ],
-      { placeHolder: 'Clockit — CSV actions', ignoreFocusOut: true }
+      { placeHolder: 'Clockit Menu — timers, CSV, cloud', ignoreFocusOut: true }
     );
     if (!pick || pick.id === 'noop') {return;}
 
@@ -54,6 +63,40 @@ export class CsvFolderService {
       case 'loginCloud':
         await this.promptCloudSetup();
         break;
+      case 'openCloud':
+        await this.openCloud();
+        break;
+      case 'startTimer':
+        await this.vscode.commands.executeCommand('clockit.startTimeTracking');
+        break;
+      case 'stopTimer':
+        await this.vscode.commands.executeCommand('clockit.stopTimeTracking');
+        break;
+      case 'pauseTimer':
+        await this.vscode.commands.executeCommand('clockit.pauseTimeTracking');
+        break;
+      case 'focusTimer': {
+        const raw = await this.vscode.window.showInputBox({
+          prompt: 'Set a focus timer (mm:ss)',
+          placeHolder: '25:00',
+          ignoreFocusOut: true,
+          validateInput: (val) => {
+            const re = /^(\d{1,3}):([0-5]?\d)$/;
+            if (!re.test(val.trim())) {return 'Use mm:ss (e.g., 25:00)';}
+            const [, mm, ss] = val.trim().match(re) ?? [];
+            const total = Number(mm) * 60 + Number(ss);
+            return total > 0 ? null : 'Duration must be > 0 seconds';
+          },
+        });
+        if (!raw) {break;}
+        const match = raw.trim().match(/^(\d{1,3}):([0-5]?\d)$/);
+        if (!match) {break;}
+        const minutes = Number(match[1]);
+        const seconds = Number(match[2]);
+        const totalMinutes = (minutes * 60 + seconds) / 60;
+        await this.vscode.commands.executeCommand('clockit.setFocusTimer', totalMinutes);
+        break;
+      }
     }
   }
 
@@ -115,6 +158,10 @@ async  browsePastLogs() {
 
   const doc = await this.vscode.workspace.openTextDocument(this.vscode.Uri.file((qp as any).full));
   await this.vscode.window.showTextDocument(doc, { preview: false });
+}
+
+async openCloud() {
+  await this.vscode.env.openExternal(this.vscode.Uri.parse('https://clockit.octech.dev'));
 }
 
 async  openCsvLog() {
@@ -199,4 +246,5 @@ private ensureCloudConfigRegistered(cfg: import('vscode').WorkspaceConfiguration
   }
   return registered;
 }
+
 }

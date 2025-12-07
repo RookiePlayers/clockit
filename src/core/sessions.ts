@@ -26,11 +26,12 @@ export function makeSession(args: {
   issueKey?: string | null;
   comment?: string;
   meta?: Record<string, unknown>;
+  goals?: import('./types').Goal[];
 }): Session {
   const {
     startedIso, endedIso, durationSeconds, idleSeconds, linesAdded, linesDeleted,
     perFileSeconds, perLanguageSeconds, authorName, authorEmail, machine, ideName,
-    workspace, repoPath, branch, issueKey, comment, meta
+    workspace, repoPath, branch, issueKey, comment, meta, goals
   } = args;
 
   let duration = durationSeconds ?? Math.max(0,
@@ -56,7 +57,8 @@ export function makeSession(args: {
     branch: branch ?? null,
     issueKey: issueKey ?? null,
     comment,
-    meta
+    meta,
+    goals
   };
 }
 

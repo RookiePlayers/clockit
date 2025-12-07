@@ -4,6 +4,7 @@ import { PromptService, SuggestionItem } from '../core/prompts';
 import type { TimeSink, FieldSpec, TimeSinkConfig } from '../core/sink';
 import { BaseSink } from '../core/sink';
 import type { Session, Result } from '../core/types';
+import { buildJqlFromQuery, searchForIssue } from '../services/jira-search';
 
 function extractIssueKeyFrom(text?: string | null): string | null {
   if (!text) {return null;}
@@ -290,88 +291,3 @@ export class JiraSink extends BaseSink implements TimeSink {
 async function safeText(res: Response): Promise<string> {
   try { return await res.text(); } catch { return ''; }
 }
-type FetchLike = (input: string | URL, init?: RequestInit) => Promise<Response>;
-
-// utils/jql.ts
-export function buildJqlFromQuery(q: string): string {
-  // strip common prefixes like "issueKey:" etc.
-  let s = (q || '').trim().replace(/^(issue(key|type|id|number)?\s*:)\s*/i, '');
-  if (!s) {return 'ORDER BY updated DESC';}
-
-  const up = s.toUpperCase();
-
-  // Exact key: ABC-123
-  const mExact = up.match(/^([A-Z][A-Z0-9]+)-(\d+)$/);
-  if (mExact) {
-    return `issueKey = ${mExact[1]}-${mExact[2]} ORDER BY updated DESC`;
-  }
-
-  // Key prefix (project + digits being typed): ABC-12 → range
-  const mPrefixNum = up.match(/^([A-Z][A-Z0-9]+)-(\d*)$/);
-  if (mPrefixNum) {
-    const proj = mPrefixNum[1];
-    const digits = mPrefixNum[2];
-    // If only "ABC-" (no digits yet), show recent from that project
-    if (digits === '') {return `project = ${proj} ORDER BY updated DESC`;}
-    const n = Number(digits);
-    const next = (n + 1).toString();
-    return `issueKey >= ${proj}-${n} AND issueKey < ${proj}-${next} ORDER BY issueKey ASC`;
-  }
-
-  // Project token only
-  const mProjOnly = up.match(/^([A-Z][A-Z0-9]+)$/);
-  if (mProjOnly) {return `project = ${mProjOnly[1]} ORDER BY updated DESC`;}
-
-  // Fallback: fuzzy
-  return `text ~ "${up.replace(/"/g, '\\"')}" ORDER BY updated DESC`;
-}
-
-const searchForIssue = async ({
-  query, cursor, options, fetchFn, authHeader, signal,
-}: {
-  query: string;
-  cursor?: string;
-  options: Record<string, unknown>;
-  fetchFn: (input: string | URL, init?: RequestInit) => Promise<Response>;
-  authHeader: () => string;
-  signal?: AbortSignal;
-}): Promise<{ items: SuggestionItem[]; nextCursor?: string }> => {
-  const raw = (options['jira.domain'] || '').toString().trim();
-  const host = raw.replace(/^https?:\/\//i, '').replace(/\/+$/, '');
-  const url = `https://${host}/rest/api/3/search/jql`;
-
-  const jql = buildJqlFromQuery(query);
-  const body: any = {
-    jql,
-    fields: ['key', 'summary', 'issuetype', 'project'],
-  };
-  if (cursor) {body.cursor = cursor;}  // <— new pagination model
-
-  const res = await fetchFn(url, {
-    method: 'POST',
-    headers: {
-      Authorization: authHeader(),
-      Accept: 'application/json',
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(body),
-    signal,                           // <— allow aborts
-  });
-
-  if (!res.ok) {return { items: [], nextCursor: undefined };}
-
-  const data = await res.json() as {
-    issues?: Array<{ key: string; fields: { summary?: string } }>;
-    nextPage?: string;                // Atlassian returns a cursor token
-    isLast?: boolean;
-  };
-
-  const items: SuggestionItem[] = (data.issues || []).map(iss => ({
-    id: iss.key,
-    title: iss.key,
-    description: iss.fields?.summary ?? '(no summary)',
-    raw: iss,
-  }));
-
-  return { items, nextCursor: data.nextPage };
-};

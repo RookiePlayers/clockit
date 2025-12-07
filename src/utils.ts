@@ -22,6 +22,10 @@ export class Utils {
   private authorEmail?: string;
   private machine?: string;
   private ideName?: string;
+  private paused = false;
+  private focusTimerEnd: number | null = null;
+  private focusTimerTimeout: NodeJS.Timeout | null = null;
+  private focusTicker: NodeJS.Timeout | null = null;
 
   private tickTimer: NodeJS.Timeout | null = null;
   private idleChecker: NodeJS.Timeout | null = null;
@@ -55,6 +59,7 @@ export class Utils {
   // ── session helpers (preferred over mutating fields externally)
   beginSession(now = Date.now()) {
     this.running = true;
+    this.paused = false;
     this.startedAt = now;
     this.startedIso = new Date(now).toISOString();
     this.lastActive = now;
@@ -78,6 +83,7 @@ export class Utils {
 
     this.accrueTime(now);
     this.running = false;
+    this.paused = false;
     this.clearTimers();
     this.updateStatusBar();
 
@@ -101,7 +107,7 @@ export class Utils {
   recordTextChange(e: import('vscode').TextDocumentChangeEvent) {
     const now = Date.now();
     this.markActivity(now);
-    if (!this.running) {return;}
+    if (!this.running || this.paused) {return;}
 
     // Approximate line deltas
     for (const change of e.contentChanges) {
@@ -125,6 +131,48 @@ export class Utils {
 
   isRunning() { return this.running; }
   getStartedIso() { return this.startedIso; }
+  isPaused() { return this.paused; }
+
+  pauseSession() {
+    if (!this.running || this.paused) {return;}
+    this.accrueTime(Date.now());
+    this.paused = true;
+    this.updateStatusBar();
+  }
+
+  resumeSession() {
+    if (!this.running || !this.paused) {return;}
+    const now = Date.now();
+    this.paused = false;
+    this.lastActive = now;
+    this.lastTick = now;
+    this.updateStatusBar();
+  }
+
+  startFocusTimer(minutes: number) {
+    const ms = Math.max(1, Math.floor(minutes * 60 * 1000));
+    if (this.focusTimerTimeout) {clearTimeout(this.focusTimerTimeout);}
+    if (this.focusTicker) {clearInterval(this.focusTicker);}
+    this.focusTimerEnd = Date.now() + ms;
+    this.focusTimerTimeout = setTimeout(() => {
+      this.focusTimerEnd = null;
+      this.focusTimerTimeout = null;
+      this.focusTicker && clearInterval(this.focusTicker);
+      this.focusTicker = null;
+      this.updateStatusBar();
+      this.notify(`Focus timer done (${minutes}m)!`);
+    }, ms);
+    this.focusTicker = setInterval(() => {
+      if (!this.focusTimerEnd) {
+        if (this.focusTicker) {clearInterval(this.focusTicker);}
+        this.focusTicker = null;
+        return;
+      }
+      this.updateStatusBar();
+    }, 1000);
+    this.updateStatusBar();
+    this.notify(`Focus timer set for ${minutes}m.`);
+  }
 
   // ── timers / status
   private startTimers() {
@@ -135,8 +183,11 @@ export class Utils {
       const now = Date.now();
       this.accrueTime(now);
       const sec = Math.max(0, Math.floor((now - this.startedAt) / 1000));
-      this.statusBar.text = `$(watch) ${secondsToHMS(sec)} — Stop`;
+      this.statusBar.text = this.paused
+        ? `$(debug-pause) Paused`
+        : `$(watch) ${secondsToHMS(sec)} — Stop`;
       void this.pushBackupSnapshot(now);
+      this.updateStatusBar();
     }, 1000);
 
     this.idleChecker = setInterval(() => {
@@ -155,15 +206,30 @@ export class Utils {
     if (this.idleChecker) {clearInterval(this.idleChecker);}
     this.tickTimer = null;
     this.idleChecker = null;
+    if (this.focusTimerTimeout) {clearTimeout(this.focusTimerTimeout);}
+    if (this.focusTicker) {clearInterval(this.focusTicker);}
+    this.focusTimerTimeout = null;
+    this.focusTicker = null;
   }
 
   updateStatusBar() {
     if (this.running) {
       const sec = Math.max(0, Math.floor((Date.now() - this.startedAt) / 1000));
-      this.statusBar.text = `$(watch) ${secondsToHMS(sec)} — Stop`;
-      this.statusBar.tooltip = 'Clockit | Click to stop & log';
+      const focusText = this.focusTimerEnd
+        ? ` | Focus ${secondsToHMS(Math.max(0, Math.ceil((this.focusTimerEnd - Date.now()) / 1000)))}`
+        : '';
+      if (this.paused) {
+        this.statusBar.text = `$(debug-pause) Paused${focusText}`;
+        this.statusBar.tooltip = 'Clockit | Click pause/resume via commands';
+      } else {
+        this.statusBar.text = `$(watch) ${secondsToHMS(sec)} — Stop${focusText}`;
+        this.statusBar.tooltip = 'Clockit | Click to stop & log';
+      }
     } else {
-      this.statusBar.text = '$(watch) Start';
+      const focusText = this.focusTimerEnd
+        ? ` | Focus ${secondsToHMS(Math.max(0, Math.ceil((this.focusTimerEnd - Date.now()) / 1000)))}`
+        : '';
+      this.statusBar.text = `$(watch) Start${focusText}`;
       this.statusBar.tooltip = 'Clockit | Click to start logging';
     }
   }
@@ -361,7 +427,7 @@ export class Utils {
   }
 
   private accrueTime(now: number) {
-    if (!this.running) { this.lastTick = now; return; }
+    if (!this.running || this.paused) { this.lastTick = now; return; }
 
     const delta = Math.max(0, Math.floor((now - this.lastTick) / 1000));
     if (!delta) {return;}

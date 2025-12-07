@@ -1,36 +1,28 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Clockit Website
 
-## Getting Started
+Marketing, docs, and dashboard UI for the Clockit VS Code extension. Built with Next.js (App Router), Tailwind, and Firebase auth.
 
-First, run the development server:
+## Key Pages
+- **Dashboard / Advanced Stats**: charts fed by uploaded CSVs, focus radars, range totals with paging/mode filters.
+- **Recent Activity**: latest CSV uploads with IDE badges and timestamps.
+- **Docs**: extension usage, commands, exports (CSV/Jira/Notion/Cloud).
+- **Profile / Data tools**: profile, CSV upload, request/delete data flows.
 
+## Dev Setup
 ```bash
+cd clockit_website
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# open http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Environment: Firebase client keys live in `.env.local` (see `src/lib/firebase.ts`). Routes are dynamic and expect those env vars at runtime.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Notable UI Features
+- Focus radars with expandable modals.
+- Range totals with pagination (10 per page) and Sum/Avg/Min/Max modes; smooth size transitions.
+- Recent activity cards include upload time + IDE badge.
+- Docs highlight pause/resume, focus timer, and CSV/Clockit Cloud actions.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Deploy
+We deploy via Vercel. Set Firebase/API env vars in project settings before shipping. 

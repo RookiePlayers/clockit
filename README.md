@@ -35,6 +35,7 @@ https://github.com/user-attachments/assets/4a6f36cf-c224-47b1-bd08-fb2f39038b11
 - **Automatic time tracking** when you start coding  
 - **Idle detection & trimming** for accurate duration  
 - **Idle seconds recorded** for visibility per session  
+- **Pause / resume controls** plus a **focus timer** with countdown in the status bar  
 - **Per-file and per-language focus time** captured automatically  
 - **Line changes counted** (added/deleted) for lightweight effort signals  
 - **Session comments** on stop (defaults to latest git commit subject if empty)  
@@ -42,8 +43,9 @@ https://github.com/user-attachments/assets/4a6f36cf-c224-47b1-bd08-fb2f39038b11
 - **Guided credential prompts** (stored securely)  
 - **Edit or clear credentials anytime**  
 - **Sink selection each session**  
-- **CSV menu** in the status bar for quick access  
+- **CSV menu** in the status bar for quick access (open current log, folder, or Clockit Cloud)  
 - **Optional cloud backup** via Clockit API token (keep local CSV too)  
+- **Goals tracking**: create/complete goals in the Goals side panel, import subtasks from Jira issues, and have completed goals auto-attach to sessions (then clear after CSV export)  
 
 ---
 
@@ -58,7 +60,7 @@ Command: clockit: Start Time Tracking
 Command: clockit: Pause or clockit: Resume.
   • Stop Session
 Command: clockit: Stop
-→ Prompts for a short comment (e.g. “Refactored API routes”).
+→ Prompts for a short comment (e.g. “Refactored API routes”). If you completed goals, Clockit fills “Complete goals set” automatically and includes the list in the CSV row.
 
 What gets tracked:
   • Start and end time (ISO)
@@ -67,8 +69,15 @@ What gets tracked:
   • Git repository path and branch
   • Associated issue (from Jira or branch name)
   • Comment
+  • Goals (if any were completed)
 
 You’ll see the current timer and controls in the status bar (bottom-left).
+
+### Goals and Jira subtasks
+
+- Open the **Goals** side panel to add, complete, or delete goals. Completion time is recorded.  
+- If Jira is connected, choose **Import from Jira issue** to search by key/summary and pull subtasks into goals automatically.  
+- When you stop a session and any goals are completed, Clockit skips the freeform comment and uses “Complete goals set,” attaching the goal titles and durations to the CSV and exports.  
 
 ---
 ## Exporting Worklogs
@@ -124,7 +133,7 @@ or whatever you set in
 clockit_logger.csv.outputDirectory.
   • Each entry includes:
 ```bash
-startedIso, endedIso, durationSeconds, idleSeconds, linesAdded, linesDeleted, perFileSeconds, perLanguageSeconds, authorName, authorEmail, machine, workspace, repoPath, branch, issueKey, comment
+startedIso, endedIso, durationSeconds, idleSeconds, linesAdded, linesDeleted, perFileSeconds, perLanguageSeconds, authorName, authorEmail, machine, ideName, workspace, repoPath, branch, issueKey, comment, goals
 ```
 
 *You can open it in Excel, Numbers, or Google Sheets for timesheet analysis.*
@@ -166,6 +175,15 @@ If you run your own ingest (e.g., custom Firebase Function deploy), set `CLOCKIT
   ```
 
 - Add a session comment when prompted.
+
+### Pause / resume
+
+- Run `Clockit: Pause Time Tracking` and `Clockit: Resume Time Tracking` to temporarily halt accrual (idle and per-file/language are paused).
+
+### Set a focus timer
+
+- Run `Clockit: Set Focus Timer` and enter minutes. A countdown shows in the status bar; you’ll get a notification when it ends.
+- Input can be `mm:ss` for precise focus bursts.
 
 ### Choose export sinks
 
@@ -237,15 +255,23 @@ Values are stored securely using:
 
 | Description                  | Command                            |
 |------------------------------|------------------------------------|
-| Begin a new session          | clockit: Start Time Tracking        |
-| Description                  | clockit: Pause Time Tracking        |
-| Temporarily pause            | clockit: Resume Time Tracking       |
-| Continue paused session      | clockit: Stop Time Tracking         |
-| End session and export       | clockit: Configure Jira             |
-| Set up Jira credentials      | clockit: Configure Notion           |
-| Set up Notion integration    | clockit: CSV Menu                   |
-| Open quick actions for CSV   | clockit: Toggle Status Bar          |
-| Show/hide status widget      |                                    |
+| Begin a new session          | Clockit: Start Time                 |
+| Stop and export              | Clockit: Stop Time                  |
+| Pause tracking               | Clockit: Pause Time Tracking        |
+| Resume tracking              | Clockit: Resume Time Tracking       |
+| Set a focus timer            | Clockit: Set Focus Timer            |
+| Open Goals view              | Clockit: Open Goals                 |
+| Add a goal                   | Clockit: Add Goal                   |
+| Toggle goal completion       | Clockit: Toggle Goal                |
+| Delete a goal                | Clockit: Delete Goal                |
+| Configure Jira               | Clockit: Configure Jira             |
+| Configure Notion             | Clockit: Configure Notion           |
+| Choose sinks (CSV always on) | Clockit: Choose Sinks               |
+| Open CSV log                 | Clockit: Open CSV Log               |
+| Choose CSV folder            | Clockit: Choose CSV Output Folder   |
+| Edit credentials             | Clockit: Edit Credentials           |
+| Clear credentials            | Clockit: Clear Credentials          |
+| Toggle status bar widget     | Clockit: Toggle Status Bar          |
 
 
 ### Automatic background

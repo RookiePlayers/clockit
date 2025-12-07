@@ -42,4 +42,12 @@ export interface Session {
   comment?: string;
   /** arbitrary bag for future rules/integrations */
   meta?: Record<string, unknown>;
+  goals?: Goal[];
 }
+
+export type Goal = {
+  title: string;
+  createdAt: string;
+  completedAt?: string | null;
+  timeTaken?: number | null;
+};

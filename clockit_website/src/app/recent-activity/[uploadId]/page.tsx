@@ -30,6 +30,8 @@ export default function UploadDetailPage() {
   const [commentContent, setCommentContent] = useState<string | null>(null);
   const [isExtraModalOpen, setIsExtraModalOpen] = useState(false);
   const [extraContent, setExtraContent] = useState<string>("");
+  const [isGoalsModalOpen, setIsGoalsModalOpen] = useState(false);
+  const [goalModalContent, setGoalModalContent] = useState<{ title: string; goals: GoalDisplay[] } | null>(null);
 
   useEffect(() => {
     if (!user || !uploadId) {
@@ -187,11 +189,11 @@ export default function UploadDetailPage() {
                     <th
                       key={col}
                       className={`text-left px-4 py-2 font-semibold whitespace-nowrap  ${isWideColumn(col) ? "min-w-[210px]" : "min-w-[180px]"}`}
-                    >
-                      {col}
-                    </th>
-                  ))}
-                </tr>
+                      >
+                        {col}
+                      </th>
+                    ))}
+                  </tr>
               </thead>
               <tbody>
                 {(!upload || upload.rows.length === 0) && (
@@ -237,6 +239,14 @@ export default function UploadDetailPage() {
                           >
                             {renderCommentPreview((row as Record<string, unknown>)[col])}
                           </button>
+                        ) : col === "goals" ? (
+                          <GoalsCell
+                            row={row as Record<string, unknown>}
+                            onOpen={(goals) => {
+                              setGoalModalContent({ title: "Goals", goals });
+                              setIsGoalsModalOpen(true);
+                            }}
+                          />
                         ) : col === "__parsed_extra" ? (
                           <button
                             type="button"
@@ -357,10 +367,71 @@ export default function UploadDetailPage() {
             </div>
           </div>
         )}
+        {isGoalsModalOpen && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-black/50"
+            role="dialog"
+            aria-modal="true"
+          >
+            <div className="bg-white rounded-xl shadow-2xl max-w-3xl w-full max-h-[80vh] overflow-hidden border border-gray-200">
+              <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+                <h3 className="text-lg font-semibold text-gray-900">{goalModalContent?.title ?? "Goals"}</h3>
+                <button
+                  type="button"
+                  className="text-gray-500 hover:text-gray-800"
+                  onClick={() => setIsGoalsModalOpen(false)}
+                  aria-label="Close modal"
+                >
+                  ✕
+                </button>
+              </div>
+              <div className="p-4 overflow-auto">
+                {!goalModalContent || goalModalContent.goals.length === 0 ? (
+                  <p className="text-sm text-gray-600">No goals recorded for this session.</p>
+                ) : (
+                  <div className="space-y-2 max-h-[65vh] overflow-y-auto pr-1">
+                    {goalModalContent.goals.map((goal, idx) => (
+                      <div
+                        key={`${goal.title}-${goal.completedAt ?? goal.createdAt ?? idx}`}
+                        className="flex items-start gap-3 px-3 py-2 rounded-lg border border-gray-100 bg-gray-50"
+                      >
+                        <input type="checkbox" checked={goal.completed} readOnly className="mt-1 h-4 w-4 accent-blue-600" />
+                        <div className="flex-1">
+                          <p className="font-medium text-gray-900 break-words">{goal.title || "Untitled goal"}</p>
+                          <div className="flex flex-wrap gap-2 mt-1">
+                            {goal.timeTakenSeconds !== null && goal.timeTakenSeconds !== undefined && (
+                              <span className="px-2 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">
+                                Time: {formatDurationShort(goal.timeTakenSeconds)}
+                              </span>
+                            )}
+                            {goal.fromEndSeconds !== null && goal.fromEndSeconds !== undefined && (
+                              <span className="px-2 py-1 rounded-full text-xs font-semibold bg-purple-100 text-purple-700">
+                                From end: {formatFromEnd(goal.fromEndSeconds)}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );
 }
+
+type GoalDisplay = {
+  title: string;
+  completed: boolean;
+  createdAt?: string | null;
+  completedAt?: string | null;
+  timeTakenSeconds?: number | null;
+  fromEndSeconds?: number | null;
+};
 
 function Cell({ value, column }: { value: unknown; column: string }) {
   const numericColumns = new Set(["durationSeconds", "idleSeconds", "linesAdded", "linesDeleted"]);
@@ -469,4 +540,108 @@ function formatJson(value: unknown) {
   } catch {
     return String(value);
   }
+}
+
+function formatDurationShort(seconds: number) {
+  if (!Number.isFinite(seconds)) {return "—";}
+  if (seconds < 60) {return `${Math.round(seconds)}s`;}
+  const minutes = seconds / 60;
+  if (minutes < 60) {return `${minutes.toFixed(minutes < 10 ? 1 : 0)}m`;}
+  const hours = minutes / 60;
+  return `${hours.toFixed(hours < 10 ? 1 : 0)}h`;
+}
+
+function formatFromEnd(secondsFromEnd: number) {
+  const label = formatDurationShort(Math.abs(secondsFromEnd));
+  return secondsFromEnd >= 0 ? `${label} before end` : `${label} after end`;
+}
+
+function GoalsCell({
+  row,
+  onOpen,
+}: {
+  row: Record<string, unknown>;
+  onOpen: (goals: GoalDisplay[]) => void;
+}) {
+  const endedIso = (row.endedIso as string) || (row.endedISO as string) || "";
+  const goals = parseGoals(row.goals, endedIso);
+  const disabled = goals.length === 0;
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      className={`w-full text-center px-3 py-1.5 text-xs font-semibold rounded-lg border transition-colors ${
+        disabled
+          ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
+          : "text-green-700 bg-green-50 border-green-100 hover:bg-green-100"
+      }`}
+      onClick={() => {
+        if (!disabled) {
+          onOpen(goals);
+        }
+      }}
+    >
+      {disabled ? "No goals" : "View goals"}
+    </button>
+  );
+}
+
+function parseGoals(raw: unknown, endedIso?: string): GoalDisplay[] {
+  if (!raw) {return [];}
+  let data: unknown = raw;
+  if (typeof raw === "string") {
+    try {
+      data = JSON.parse(raw);
+    } catch {
+      return [];
+    }
+  }
+  if (!Array.isArray(data)) {
+    return [];
+  }
+  const ended = safeParseDate(endedIso);
+  return data
+    .map((g) => {
+      if (typeof g !== "object" || g === null) {return null;}
+      const title = typeof (g as any).title === "string" ? (g as any).title : "";
+      const createdAt = typeof (g as any).createdAt === "string" ? (g as any).createdAt : null;
+      const completedAt = typeof (g as any).completedAt === "string" ? (g as any).completedAt : null;
+      const timeTakenSecondsRaw = (g as any).timeTaken;
+      const timeTakenSeconds =
+        typeof timeTakenSecondsRaw === "number" && Number.isFinite(timeTakenSecondsRaw)
+          ? timeTakenSecondsRaw
+          : deriveTimeTaken(createdAt, completedAt);
+      const fromEndSeconds = deriveFromEndSeconds(ended, completedAt || createdAt);
+      return {
+        title,
+        completed: Boolean(completedAt),
+        createdAt,
+        completedAt,
+        timeTakenSeconds,
+        fromEndSeconds,
+      } as GoalDisplay;
+    })
+    .filter((g): g is GoalDisplay => Boolean(g));
+}
+
+function safeParseDate(value?: string | null) {
+  if (!value || typeof value !== "string") {return null;}
+  const dt = new Date(value);
+  return Number.isNaN(dt.getTime()) ? null : dt;
+}
+
+function deriveTimeTaken(createdAt?: string | null, completedAt?: string | null) {
+  const created = safeParseDate(createdAt);
+  const completed = safeParseDate(completedAt);
+  if (!created || !completed) {return null;}
+  const seconds = Math.max(0, (completed.getTime() - created.getTime()) / 1000);
+  return Number.isFinite(seconds) ? seconds : null;
+}
+
+function deriveFromEndSeconds(ended: Date | null, referenceIso?: string | null) {
+  if (!ended) {return null;}
+  const ref = safeParseDate(referenceIso || undefined);
+  if (!ref) {return null;}
+  const seconds = Math.round((ended.getTime() - ref.getTime()) / 1000);
+  return Number.isFinite(seconds) ? seconds : null;
 }

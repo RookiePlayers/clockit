@@ -22,11 +22,11 @@
     "commands": [
       {
         "command": "clockit.startTimeTracking",
-        "title": "Clockit: Start Time Tracking"
+        "title": "Clockit: Start Time"
       },
       {
         "command": "clockit.stopTimeTracking",
-        "title": "Clockit: Stop Time Tracking"
+        "title": "Clockit: Stop Time"
       },
       {
         "command": "clockit.showTimeLog",
@@ -67,8 +67,54 @@
       {
         "command": "clockit.signIn.notion",
         "title": "Clockit: Sign in to Notion (Coming Soon)"
+      },
+      {
+        "command": "clockit.goals.openView",
+        "title": "Clockit: Open Goals"
+      },
+      {
+        "command": "clockit.goals.add",
+        "title": "Clockit: Add Goal"
+      },
+      {
+        "command": "clockit.goals.toggle",
+        "title": "Clockit: Toggle Goal"
+      },
+      {
+        "command": "clockit.goals.delete",
+        "title": "Clockit: Delete Goal"
+      },
+      {
+        "command": "clockit.goals.refresh",
+        "title": "Clockit: Refresh Goals"
+      },
+      {
+        "command": "clockit.goals.searchJira",
+        "title": "Clockit: Search Jira Issues for Goals"
       }
     ],
+    "views": {
+      "explorer": [
+        {
+          "id": "clockitGoals",
+          "name": "Clockit Goals"
+        }
+      ]
+    },
+    "menus": {
+      "view/item/context": [
+        {
+          "command": "clockit.goals.toggle",
+          "when": "view == clockitGoals && viewItem == clockitGoalItem",
+          "group": "inline"
+        },
+        {
+          "command": "clockit.goals.delete",
+          "when": "view == clockitGoals && viewItem == clockitGoalItem",
+          "group": "inline"
+        }
+      ]
+    },
     "configuration": {
       "title": "Clockit Settings",
       "properties": {
@@ -217,6 +263,11 @@
           "type": "string",
           "default": "",
           "description": "Clockit API token generated in your profile (stored as a secret)."
+        },
+        "clockit.goals.importFromJiraSubtasks": {
+          "type": "boolean",
+          "default": true,
+          "description": "When stopping a session with a detected Jira issue key, pull subtasks into Goals automatically."
         }
       }
     }
