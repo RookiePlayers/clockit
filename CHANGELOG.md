@@ -1,3 +1,10 @@
+# [1.9.0](https://github.com/RookiePlayers/clockit/compare/v1.8.0...v1.9.0) (2025-12-07)
+
+
+### Features
+
+* Add goals management and integration with Jira ([97b8f71](https://github.com/RookiePlayers/clockit/commit/97b8f71ed056af16d2d2f957e00225fa168ea6e2))
+
 # [1.8.0](https://github.com/RookiePlayers/clockit/compare/v1.7.1...v1.8.0) (2025-12-06)
 
 
