@@ -9,7 +9,7 @@ import type { GroupView } from "../types";
 import GoalGroupCard from "./GoalGroupCard";
 import QuickAddGoal from "./QuickAddGoal";
 import { db } from "@/lib/firebase";
-import { collection, doc, getDocs, setDoc } from "firebase/firestore";
+import { collection, deleteDoc, doc, getDocs, setDoc } from "firebase/firestore";
 import { useSnackbar } from "notistack";
 
 type Props = {
@@ -19,6 +19,8 @@ type Props = {
   onStartClockit: (group: GroupView) => void;
   showQuickAdd?: boolean;
 };
+
+type GoalsTabProps = Props & { goalsEnabled?: boolean };
 
 const SAMPLE_BASE = Date.parse("2024-01-01T12:00:00Z");
 const makeIso = (offsetDays: number, hour: number) => {
@@ -58,7 +60,7 @@ const arrayMove = <T,>(list: T[], from: number, to: number) => {
   return clone;
 };
 
-export default function GoalsTab({ user, goals, setGoals, onStartClockit, showQuickAdd = true }: Props) {
+export default function GoalsTab({ user, goals, setGoals, onStartClockit, showQuickAdd = true, goalsEnabled = true }: GoalsTabProps) {
   const readPersistedGoals = () => {
     if (typeof window === "undefined") {return null;}
     const stored = localStorage.getItem(STORAGE_KEY_GOALS);
@@ -107,7 +109,7 @@ export default function GoalsTab({ user, goals, setGoals, onStartClockit, showQu
     const loadFromCloud = async () => {
       if (!user?.uid || hasLoadedCloud.current) {return;}
       try {
-        const snap = await getDocs(collection(db, "uploads", user.uid, "Goals"));
+        const snap = await getDocs(collection(db, "Uploads", user.uid, "Goals"));
         const cloudGoals = snap.docs.map((d) => ({ ...(d.data() as Goal), id: d.id }));
         setGoals(cloudGoals);
         setUsingSampleGoals(false);
@@ -123,7 +125,7 @@ export default function GoalsTab({ user, goals, setGoals, onStartClockit, showQu
     const loadGroupsFromCloud = async () => {
       if (!user?.uid || hasLoadedGroups.current) {return;}
       try {
-        const snap = await getDocs(collection(db, "uploads", user.uid, "GoalGroups"));
+        const snap = await getDocs(collection(db, "Uploads", user.uid, "GoalGroups"));
         const groups = snap.docs.map((d) => {
           const { ...rest } = d.data() as GoalGroup;
           return {  ...rest, id: d.id, };
@@ -142,7 +144,7 @@ export default function GoalsTab({ user, goals, setGoals, onStartClockit, showQu
   useEffect(() => {
     const pushToCloud = async () => {
       if (!user?.uid) {return;}
-      const colRef = collection(db, "uploads", user.uid, "Goals");
+      const colRef = collection(db, "Uploads", user.uid, "Goals");
       try {
         await Promise.all(goals.map((goal) => setDoc(doc(colRef, goal.id), goal)));
       } catch {
@@ -157,7 +159,7 @@ export default function GoalsTab({ user, goals, setGoals, onStartClockit, showQu
   useEffect(() => {
     const pushGroupsToCloud = async () => {
       if (!user?.uid) {return;}
-      const colRef = collection(db, "uploads", user.uid, "GoalGroups");
+      const colRef = collection(db, "Uploads", user.uid, "GoalGroups");
       try {
         await Promise.all(customGroups.map((group) => setDoc(doc(colRef, group.id), group)));
       } catch {
@@ -215,10 +217,16 @@ export default function GoalsTab({ user, goals, setGoals, onStartClockit, showQu
   }, [baseGoals, searchTerm]);
 
   const groupedGoals = useMemo<GroupView[]>(() => {
-    const buildDayGroups = () => {
+    const buildDayGroups = (excludeCustomFromDay: boolean) => {
+      const customCountByDate = new Map<string, number>();
       const buckets = new Map<string, Goal[]>();
       for (const goal of filteredGoals) {
-        const key = `day-${toDateKey(goal.createdAt)}`;
+        const dateKey = toDateKey(goal.createdAt);
+        if (!goal.groupId.startsWith("day-") && excludeCustomFromDay) {
+          customCountByDate.set(dateKey, (customCountByDate.get(dateKey) ?? 0) + 1);
+          continue;
+        }
+        const key = `day-${dateKey}`;
         const existing = buckets.get(key) ?? [];
         existing.push(goal);
         buckets.set(key, existing);
@@ -227,10 +235,13 @@ export default function GoalsTab({ user, goals, setGoals, onStartClockit, showQu
         .sort(([a], [b]) => (a > b ? -1 : 1))
         .map(([key, list]) => {
           const dateKey = key.replace("day-", "");
+          const customCount = customCountByDate.get(dateKey) ?? 0;
+          const subtitleBase = `${list.length} goal${list.length === 1 ? "" : "s"}`;
+          const subtitle = customCount ? `${subtitleBase} (+${customCount} custom)` : subtitleBase;
           return {
             id: key,
             label: formatDayLabel(dateKey),
-            subtitle: `${list.length} goal${list.length === 1 ? "" : "s"}`,
+            subtitle,
             goals: sortGoals(list),
             kind: "day" as const,
             dateKey,
@@ -241,6 +252,7 @@ export default function GoalsTab({ user, goals, setGoals, onStartClockit, showQu
     const buildCustomGroups = () => {
       const byGroup = new Map<string, Goal[]>();
       for (const goal of filteredGoals) {
+        if (goal.groupId?.startsWith("day-")) {continue;} // skip day buckets from custom grouping
         const existing = byGroup.get(goal.groupId) ?? [];
         existing.push(goal);
         byGroup.set(goal.groupId, existing);
@@ -267,13 +279,13 @@ export default function GoalsTab({ user, goals, setGoals, onStartClockit, showQu
     };
 
     if (viewTab === "daily") {
-      return buildDayGroups();
+      return buildDayGroups(false);
     }
     if (viewTab === "custom") {
       return buildCustomGroups();
     }
-    // "all" shows both day buckets and custom groups
-    const dayGroups = buildDayGroups();
+    // "all" shows both day buckets and custom groups; avoid duplicates by excluding custom goals from day buckets but reference the count
+    const dayGroups = buildDayGroups(true);
     const customGroupViews = buildCustomGroups();
     return [...dayGroups, ...customGroupViews];
   }, [customGroups, filteredGoals, viewTab]);
@@ -325,6 +337,17 @@ export default function GoalsTab({ user, goals, setGoals, onStartClockit, showQu
     setExpandedGroupId(targetGroupId);
     setVisibleGoalCount((prev) => ({ ...prev, [targetGroupId]: Math.max(prev[targetGroupId] ?? DEFAULT_PAGE_SIZE, DEFAULT_PAGE_SIZE) }));
     return goal;
+  };
+
+  const handleDeleteGoal = async (goalId: string) => {
+    setGoals((prev) => prev.filter((g) => g.id !== goalId));
+    if (user?.uid) {
+      try {
+        await deleteDoc(doc(db, "Uploads", user.uid, "Goals", goalId));
+      } catch {
+        // ignore delete errors silently for now
+      }
+    }
   };
 
   const belongsToGroup = (goal: Goal, group: GroupView) => {
@@ -400,7 +423,7 @@ export default function GoalsTab({ user, goals, setGoals, onStartClockit, showQu
   );
 
   return (
-    <div className="space-y-4 pb-20">
+    <div className="space-y-4 pb-20 mt-5">
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
           <p className="text-sm text-blue-600 flex items-center gap-2">
@@ -464,7 +487,11 @@ export default function GoalsTab({ user, goals, setGoals, onStartClockit, showQu
         </div>
       </div>
 
-      {groupedGoals.length === 0 ? (
+      {!goalsEnabled ? (
+        <div className="border border-[var(--border)] rounded-2xl bg-[var(--card)] p-6 text-center text-[var(--muted)] opacity-65">
+          Goals are disabled for your account. Contact support to enable the Clockit Goals feature.
+        </div>
+      ) : groupedGoals.length === 0 ? (
         <div className="border border-[var(--border)] rounded-2xl bg-[var(--card)] p-6 text-center text-[var(--muted)] opacity-65">
           No goals yet. Add one from the input card below to populate today&apos;s accordion.
         </div>
@@ -481,6 +508,7 @@ export default function GoalsTab({ user, goals, setGoals, onStartClockit, showQu
             onStart={() => onStartClockit(group)}
             onLoadMore={() => handleLoadMore(group.id)}
             onToggleGoal={(goalId) => toggleGoal(goalId)}
+            onDeleteGoal={handleDeleteGoal}
             onDrop={(fromId, toId) => reorderGoal(group, fromId, toId)}
             onMove={moveGoalToGroup}
             allGroups={moveTargets}
@@ -492,15 +520,17 @@ export default function GoalsTab({ user, goals, setGoals, onStartClockit, showQu
         ))
       )}
 
-      <QuickAddGoal
-        visible={showQuickAdd}
-        user={user}
-        customGroups={customGroups}
-        onCreateGoal={handleCreateGoal}
-        onCreateGroup={handleCreateGroup}
-        showCreateGroup
-        sessionLayout={false}
-      />
+      {goalsEnabled && (
+        <QuickAddGoal
+          visible={showQuickAdd}
+          user={user}
+          customGroups={customGroups}
+          onCreateGoal={handleCreateGoal}
+          onCreateGroup={handleCreateGroup}
+          showCreateGroup
+          sessionLayout={false}
+        />
+      )}
     </div>
   );
 }

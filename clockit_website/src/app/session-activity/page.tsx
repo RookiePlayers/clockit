@@ -37,7 +37,7 @@ export default function RecentActivityPage() {
   if (loadingUser || loadingUploads) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-[var(--primary)] border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -54,12 +54,12 @@ export default function RecentActivityPage() {
   if (!user) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen gap-4 text-gray-800">
-        <p className="text-lg font-semibold">You need to sign in to view recent activity!</p>
+        <p className="text-lg font-semibold">You need to sign in to view session activity!</p>
         <div className="flex gap-3">
-          <Link href="/auth" className="px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition-colors">
+          <Link href="/auth" className="px-4 py-2 bg-blue-600 text-[var(--text)] rounded-lg shadow hover:bg-blue-700 transition-colors">
             Sign in
           </Link>
-          <Link href="/auth?mode=signup" className="px-4 py-2 border border-gray-200 rounded-lg text-gray-700 hover:border-blue-200 hover:text-blue-700 transition-colors">
+          <Link href="/auth?mode=signup" className="px-4 py-2 border border-gray-200 rounded-lg text-gray-700 hover:border-[var(--border)] hover:text-[var(--primary)] transition-colors">
             Create account
           </Link>
         </div>
@@ -90,14 +90,15 @@ export default function RecentActivityPage() {
   const paginatedRows = filteredRows.slice(startIndex, endIndex);
 
   return (
-    <div className="min-h-screen bg-[#f8f9fa] text-gray-900">
+    <div className="min-h-screen bg-[var(--background)] text-[var(--text)]">
       <NavBar
         userName={user.displayName || user.email || undefined}
         onSignOut={() => auth.signOut()}
         links={[
           { href: "/dashboard", label: "Dashboard" },
+          { href: "/clockit-online", label: "Clockit Online" },
           { href: "/advanced-stats", label: "Advanced Stats" },
-          { href: "/recent-activity", label: "Recent Activity", active: true },
+          { href: "/session-activity", label: "Session Activity", active: true },
           { href: "/docs", label: "Docs" },
           { href: "/profile", label: "Profile" },
         ]}
@@ -106,23 +107,22 @@ export default function RecentActivityPage() {
       <main className="max-w-7xl mx-auto px-6 py-10 space-y-6">
         <header className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
           <div>
-            <p className="text-sm text-blue-600 font-semibold">Recent activity</p>
-            <h1 className="text-3xl font-bold text-gray-900">Full uploads table</h1>
-            <p className="text-sm text-gray-600 mt-1">Shows your latest uploads ordered by most recent.</p>
+            <h1 className="text-3xl font-bold text-[var(--text)]">Session Activity</h1>
+            <p className="text-sm text-[var(--muted)] mt-1">Shows your latest uploads ordered by most recent.</p>
           </div>
           <div className="flex gap-2">
-            <Link href="/dashboard" className="px-4 py-2 rounded-lg text-sm font-semibold text-gray-700 border border-gray-200 hover:border-blue-200 hover:text-blue-700 transition-colors">
+            <Link href="/dashboard" className="px-4 py-2 rounded-lg text-sm font-semibold text-[var(--text)] border border-[var(--border)] hover:border-[var(--primary)] hover:text-[var(--primary)] transition-colors">
               Back to dashboard
             </Link>
           </div>
         </header>
 
-        <section className="bg-white border border-gray-100 rounded-2xl shadow-sm">
-          <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between gap-3 flex-wrap">
-            <h2 className="text-lg font-semibold text-gray-900">Uploads</h2>
+        <section className="bg-[var(--card)] border border-[var(--border)] rounded-2xl shadow-sm">
+          <div className="px-4 py-3 border-b border-[var(--border)] flex items-center justify-between gap-3 flex-wrap">
+            <h2 className="text-lg font-semibold text-[var(--text)]">Uploads</h2>
             <div className="flex items-center gap-3 flex-wrap justify-end">
               <div className="flex items-center gap-2 text-xs">
-                <label className="text-gray-600 font-medium">Source:</label>
+                <label className="text-[var(--muted)] font-medium">Source:</label>
                 {(["all", "manual", "auto"] as const).map((opt) => (
                   <button
                     key={opt}
@@ -132,15 +132,15 @@ export default function RecentActivityPage() {
                     }}
                     className={`px-3 py-1.5 rounded-full border text-xs font-semibold transition-colors ${
                       sourceFilter === opt
-                        ? "bg-blue-50 text-blue-700 border-blue-200"
-                        : "bg-white text-gray-600 border-gray-200 hover:border-blue-200 hover:text-blue-700"
+                        ? "bg-[var(--blue-50)] text-[var(--blue-700)] border-[var(--blue-200)]"
+                        : "bg-[var(--white)] text-[var(--gray-600)] border-[var(--gray-200)] hover:border-[var(--blue-200)] hover:text-[var(--blue-700)]"
                     }`}
                   >
                     {opt === "all" ? "All sources" : opt === "manual" ? "Manual" : "Auto"}
                   </button>
                 ))}
               </div>
-              <span className="text-xs text-gray-500">
+              <span className="text-xs text-[var(--muted)]">
                 Showing {filteredRows.length === 0 ? 0 : startIndex + 1}-{Math.min(endIndex, filteredRows.length)} of {filteredRows.length}
               </span>
             </div>
@@ -151,8 +151,8 @@ export default function RecentActivityPage() {
             </div>
           )}
           <div className="overflow-x-auto">
-            <table className="min-w-[860px] w-full text-sm text-gray-800">
-              <thead className="bg-gray-50 text-gray-600 border-b border-gray-100">
+            <table className="min-w-[860px] w-full text-sm text-[var(--text)]">
+              <thead className="bg-[var(--gray-50)] text-[var(--gray-600)] border-b border-[var(--gray-100)]">
                 <tr>
                   <th className="text-left px-4 py-2 font-semibold">Filename</th>
                   <th className="text-left px-4 py-2 font-semibold whitespace-nowrap">Uploaded at</th>
@@ -165,7 +165,7 @@ export default function RecentActivityPage() {
               <tbody>
                 {filteredRows.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="px-4 py-6 text-center text-gray-500">
+                    <td colSpan={6} className="px-4 py-6 text-center text-[var(--muted)]">
                       {rows.length === 0
                         ? "No uploads yet. Upload a CSV from the dashboard to see activity here."
                         : "No uploads match this source filter."}
@@ -173,23 +173,23 @@ export default function RecentActivityPage() {
                   </tr>
                 )}
                 {paginatedRows.map((row) => (
-                  <tr key={row.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                    <td className="px-4 py-3 font-medium text-gray-900 break-all">{row.filename}</td>
-                    <td className="px-4 py-3 text-gray-700 whitespace-nowrap">
+                  <tr key={row.id} className="border-b border-[var(--gray-100)] hover:bg-[var(--gray-50)] transition-colors">
+                    <td className="px-4 py-3 font-medium text-[var(--text)] break-all">{row.filename}</td>
+                    <td className="px-4 py-3 text-[var(--text-muted)] whitespace-nowrap">
                       {row.uploadedAt ? row.uploadedAt.toLocaleString() : "—"}
                     </td>
-                    <td className="px-4 py-3 text-gray-700">{row.count.toLocaleString()}</td>
+                    <td className="px-4 py-3 text-[var(--text-muted)]">{row.count.toLocaleString()}</td>
                     <td className="px-4 py-3">
                       <span className={`px-2 py-1 rounded-full text-xs font-semibold ${row.source === "manual" ? "bg-green-100 text-green-700" : "bg-blue-100 text-blue-700"}`}>
                         {row.source}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-gray-700 whitespace-nowrap">
+                    <td className="px-4 py-3 text-[var(--text-muted)] whitespace-nowrap">
                       {row.ideName ?? "—"}
                     </td>
                     <td className="px-4 py-3">
                       <Link
-                        href={`/recent-activity/${row.id}`}
+                        href={`/session-activity/${row.id}`}
                         className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-100 hover:bg-blue-100 transition-colors mr-2"
                       >
                         View rows
@@ -223,7 +223,7 @@ export default function RecentActivityPage() {
             </table>
           </div>
           {filteredRows.length > 0 && (
-            <div className="px-4 py-3 border-t border-gray-100 flex items-center justify-between gap-3 text-xs text-gray-600">
+            <div className="px-4 py-3 border-t border-[var(--gray-100)] flex items-center justify-between gap-3 text-xs text-[var(--muted)]">
               <span>
                 Page {currentPage} of {totalPages}
               </span>
@@ -231,14 +231,14 @@ export default function RecentActivityPage() {
                 <button
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={currentPage === 1}
-                  className="px-3 py-1.5 rounded-lg border border-gray-200 bg-white hover:border-blue-200 hover:text-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-3 py-1.5 rounded-lg border border-[var(--gray-200)] bg-[var(--background)] hover:border-[var(--blue-200)] hover:text-[var(--blue-700)] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Previous
                 </button>
                 <button
                   onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                   disabled={currentPage === totalPages}
-                  className="px-3 py-1.5 rounded-lg border border-gray-200 bg-white hover:border-blue-200 hover:text-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-3 py-1.5 rounded-lg border border-[var(--gray-200)] bg-[var(--background)] hover:border-[var(--blue-200)] hover:text-[var(--blue-700)] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Next
                 </button>

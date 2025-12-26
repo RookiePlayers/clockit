@@ -141,7 +141,7 @@ export default function DashboardPage() {
       .slice(0, 5);
   }, [active]);
 
-  const navigateToRecentTable = () => router.push("/recent-activity");
+  const navigateToRecentTable = () => router.push("/session-activity");
 
   const handleRecentCardClick = (event: React.MouseEvent<HTMLDivElement>) => {
     const target = event.target as HTMLElement;
@@ -176,13 +176,13 @@ export default function DashboardPage() {
 
   if (!user) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen gap-4 text-gray-800">
+      <div className="flex flex-col items-center justify-center min-h-screen gap-4 text-[var(--text)]">
         <p className="text-lg font-semibold">You need to sign in to view your dashboard.</p>
         <div className="flex gap-3">
-          <Link href="/auth" className="px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition-colors">
+          <Link href="/auth" className="px-4 py-2 bg-[var(--primary)] text-[var(--primary-contrast)] rounded-lg shadow hover:opacity-90 transition-colors">
             Sign in
           </Link>
-          <Link href="/auth?mode=signup" className="px-4 py-2 border border-gray-200 rounded-lg text-gray-700 hover:border-blue-200 hover:text-blue-700 transition-colors">
+          <Link href="/auth?mode=signup" className="px-4 py-2 border border-[var(--border)] rounded-lg text-[var(--text)] hover:border-[var(--primary)]/40 hover:text-[var(--primary)] transition-colors">
             Create account
           </Link>
         </div>
@@ -193,14 +193,15 @@ export default function DashboardPage() {
   const title = user.displayName || user.email || "Developer";
 
   return (
-    <div className="min-h-screen bg-[#f8f9fa] text-gray-900">
+    <div className="min-h-screen bg-[var(--bg)] text-[var(--text)]">
       <NavBar
         userName={title}
         onSignOut={() => auth.signOut()}
         links={[
           { href: "/dashboard", label: "Dashboard", active: true },
+          { href: "/clockit-online", label: "Clockit Online" },
           { href: "/advanced-stats", label: "Advanced Stats" },
-          { href: "/recent-activity", label: "Recent Activity" },
+          { href: "/session-activity", label: "Session Activity" },
           { href: "/docs", label: "Docs" },
           { href: "/profile", label: "Profile" },
         ]}
@@ -210,8 +211,8 @@ export default function DashboardPage() {
         <header className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
           <div>
             <p className="text-sm text-blue-600 font-semibold">Dashboard</p>
-            <h1 className="text-3xl font-bold text-gray-900">Your productivity at a glance</h1>
-            <p className="text-sm text-gray-600 mt-1">
+            <h1 className="text-3xl font-bold text-[var(--text)]">Your productivity at a glance</h1>
+            <p className="text-sm text-[var(--muted)] mt-1">
               Data shown for {rangeLabels[range].toLowerCase()}
               {lastUpdated ? ` — last updated ${new Date(lastUpdated).toLocaleString()}` : ""}.
             </p>
@@ -226,8 +227,8 @@ export default function DashboardPage() {
                 }}
                 className={`px-3 py-1.5 rounded-full text-sm font-semibold border transition-colors ${
                   range === key
-                    ? "bg-blue-50 text-blue-700 border-blue-200"
-                    : "bg-white text-gray-700 border-gray-200 hover:border-blue-200 hover:text-blue-700"
+                    ? "bg-[var(--primary)]/10 text-[var(--primary)] border-[var(--primary)]"
+                    : "bg-[var(--card-soft)] text-[var(--text)] border-[var(--border)] hover:bg-[var(--primary)] hover:text-[var(--primary-contrast)] hover:border-[var(--primary)"
                 }`}
               >
                 {rangeLabels[key]}
@@ -243,8 +244,8 @@ export default function DashboardPage() {
         </header>
 
         <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="card-clean bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Total time</h2>
+          <div className="border border-[var(--border)] bg-[var(--card)] rounded-2xl shadow-lg shadow-blue-900/10 p-6 rounded-2xl">
+            <h2 className="text-lg font-semibold text-[var(--text)] mb-4">Total time</h2>
             {active ? (
               <div className="space-y-3">
                 <MetricRow icon={<IconSum/>} label="Total time" value={formatDuration(active.totalSeconds)} />
@@ -252,73 +253,73 @@ export default function DashboardPage() {
                 <MetricRow icon={<IconHourglassEmpty />} label="Idle time" value={formatDuration(active.idleSeconds)} />
               </div>
             ) : (
-              <p className="text-sm text-gray-500">{statsError || "No data available."}</p>
+              <p className="text-sm text-[var(--muted)]">{statsError || "No data available."}</p>
             )}
           </div>
 
-          <div className="card-clean bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Most used language</h2>
+          <div className=" p-6 border border-[var(--border)] bg-[var(--card)] rounded-2xl shadow-lg shadow-blue-900/10">
+            <h2 className="text-lg font-semibold text-[var(--text)] mb-4">Most used language</h2>
             {active?.topLanguage ? (
               <div className="flex flex-col items-start gap-4">
                 <div className="flex items-center gap-3 mb-2">
-                  <IconCode className="w-6 h-6 text-gray-400" />
-                  <p className="text-xl font-bold text-gray-900">{active.topLanguage.language}</p>
+                  <IconCode className="w-6 h-6 text-[var(--muted)]" />
+                  <p className="text-xl font-bold text-[var(--text)]">{active.topLanguage.language}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600 mb-1">Focused time</p>
-                  <p className="text-xl font-semibold text-blue-700">{formatDuration(active.topLanguage.seconds)}</p>
+                  <p className="text-sm text-[var(--muted)] mb-1">Focused time</p>
+                  <p className="text-xl font-semibold text-[var(--primary)]">{formatDuration(active.topLanguage.seconds)}</p>
                 </div>
               </div>
             ) : (
-              <p className="text-sm text-gray-500">{statsError || "No language data available."}</p>
+              <p className="text-sm text-[var(--muted)]">{statsError || "No language data available."}</p>
             )}
           </div>
 
-          <div className="card-clean bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-            <h2 className="text-lg font-semibold text-gray-900 mb-1">Productivity score</h2>
-                    <div className="relative group inline-block mb-2">
-                    <span className="text-sm text-gray-600 cursor-pointer underline decoration-dotted">
-                      Working vs idle ratio
-                    </span>
-                    <div className="absolute left-1/2 -translate-x-1/2 mt-2 w-64 bg-white border border-gray-200 rounded-lg shadow-lg p-3 text-xs text-gray-700 opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-opacity z-10">
-                      Based on aggregated sessions.
-                    </div>
-                    </div>
+          <div className=" border border-[var(--border)] bg-[var(--card)] rounded-2xl card-clean shadow-lg shadow-blue-900/10 p-6 rounded-2xl">
+            <h2 className="text-lg font-semibold text-[var(--text)] mb-1">Productivity score</h2>
+            <div className="relative group inline-block mb-2">
+              <span className="text-sm text-[var(--muted)] cursor-pointer underline decoration-dotted">
+                Working vs idle ratio
+              </span>
+              <div className="absolute left-1/2 -translate-x-1/2 mt-2 w-64 bg-[var(--card)] border border-[var(--border)] rounded-lg shadow-lg p-3 text-xs text-[var(--text)] opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-opacity z-10">
+                Based on aggregated sessions.
+              </div>
+            </div>
             {active ? (
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <p className="text-3xl font-bold text-gray-900">{active.productivityPercent}%</p>
+                  <p className="text-3xl font-bold text-[var(--text)]">{active.productivityPercent}%</p>
                 </div>
-                <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                <div className="w-full h-2 bg-[var(--card-soft)] rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-blue-600 rounded-full"
+                    className="h-full bg-[var(--primary)] rounded-full"
                     style={{ width: `${active.productivityPercent}%` }}
                   />
                 </div>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-[var(--muted)]">
                   Working: {formatDuration(active.workingSeconds)} · Idle: {formatDuration(active.idleSeconds)}
                 </p>
               </div>
             ) : (
-              <p className="text-sm text-gray-500">{statsError || "No productivity data available."}</p>
+              <p className="text-sm text-[var(--muted)]">{statsError || "No productivity data available."}</p>
             )}
           </div>
 
-          <div className="card-clean bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Top workspaces</h2>
+          <div className=" border border-[var(--border)] bg-[var(--card)] card-clean shadow-lg shadow-blue-900/10 p-6 rounded-2xl">
+            <h2 className="text-lg font-semibold text-[var(--text)] mb-4">Top workspaces</h2>
             {topWorkspaces.length === 0 ? (
-              <p className="text-sm text-gray-500">{statsError || "No workspace data available."}</p>
+              <p className="text-sm text-[var(--muted)]">{statsError || "No workspace data available."}</p>
             ) : (
               <div className="space-y-2">
                 {topWorkspaces.map((ws, idx) => (
                   <div key={ws.workspace} className="flex items-center justify-between text-sm">
                     <div className="flex items-center gap-2">
-                      <span className="w-6 h-6 rounded-full bg-blue-50 border border-blue-100 text-blue-700 text-xs font-semibold flex items-center justify-center">
+                      <span className="w-6 h-6 rounded-full bg-[var(--primary)]/10 border border-[var(--primary)]/30 text-[var(--primary)] text-xs font-semibold flex items-center justify-center">
                         {idx + 1}
                       </span>
-                      <span className="font-semibold text-gray-900">{ws.workspace}</span>
+                      <span className="font-semibold text-[var(--text)]">{ws.workspace}</span>
                     </div>
-                    <span className="text-gray-600">{formatDuration(ws.seconds)}</span>
+                    <span className="text-[var(--muted)]">{formatDuration(ws.seconds)}</span>
                   </div>
                 ))}
               </div>
@@ -326,14 +327,14 @@ export default function DashboardPage() {
           </div>
         </section>
 
-        <div className="card-clean bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+        <div className=" border border-[var(--border)] bg-[var(--card)] rounded-2xl card-clean shadow-lg shadow-blue-900/10 p-6 rounded-2xl">
           <FocusRadars />
         </div>
 
         {user && (
           <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div
-              className="lg:col-span-2 card-clean bg-white p-6 rounded-2xl border border-gray-100 shadow-sm cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-200"
+              className="lg:col-span-2  border border-[var(--border)] bg-[var(--card)] rounded-2xl card-clean shadow-lg shadow-blue-900/10 p-6 rounded-2xl cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/30"
               role="button"
               tabIndex={0}
               onClick={handleRecentCardClick}
@@ -342,12 +343,12 @@ export default function DashboardPage() {
             >
               <div className="flex items-start justify-between gap-3 mb-4">
                 <div>
-                  <h2 className="text-lg font-semibold text-gray-900">Recent activity</h2>
-                  <p className="text-xs text-gray-500">Click to open the full table view.</p>
+                  <h2 className="text-lg font-semibold text-[var(--text)]">Recent activity</h2>
+                  <p className="text-xs text-[var(--muted)]">Click to open the full table view.</p>
                 </div>
                 <button
                   type="button"
-                  className="px-3 py-1.5 text-xs font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+                  className="px-3 py-1.5 text-xs font-semibold text-[var(--primary-contrast)] bg-[var(--primary)] rounded-lg hover:opacity-90 transition-colors"
                   onClick={(e) => {
                     e.stopPropagation();
                     navigateToRecentTable();
@@ -358,8 +359,8 @@ export default function DashboardPage() {
               </div>
               <Stats uid={user.uid} />
             </div>
-            <div className="card-clean bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Upload CSV</h2>
+        <div className=" border border-[var(--border)] bg-[var(--card)] rounded-2xl card-clean shadow-lg shadow-blue-900/10 p-6 rounded-2xl">
+          <h2 className="text-lg font-semibold text-[var(--text)] mb-4">Upload CSV</h2>
               <UploadCSV uid={user.uid} />
             </div>
           </section>
@@ -381,10 +382,10 @@ function MetricRow({
   return (
     <div className="flex items-center justify-between py-1">
       <div className="flex items-center gap-2">
-        {icon && <span className="text-gray-500">{icon}</span>}
-        <p className="text-sm text-gray-600">{label}</p>
+        {icon && <span className="text-[var(--muted)]">{icon}</span>}
+        <p className="text-sm text-[var(--muted)]">{label}</p>
       </div>
-      <p className="text-base font-semibold text-gray-900">{value}</p>
+      <p className="text-base font-semibold text-[var(--text)]">{value}</p>
     </div>
   );
 }
@@ -404,15 +405,15 @@ function RadarPanel({
 }) {
   const hasData = data.length > 0;
   return (
-    <div className="card-clean bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
+    <div className=" border border-[var(--border)] bg-[var(--card)] rounded-2xl card-clean shadow-lg shadow-blue-900/10 p-4 rounded-2xl">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-base font-semibold text-gray-900">{title}</h3>
-        {hasData && <span className="text-xs text-gray-500">{data.length} entries</span>}
+        <h3 className="text-base font-semibold text-[var(--text)]">{title}</h3>
+        {hasData && <span className="text-xs text-[var(--muted)]">{data.length} entries</span>}
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-center">
         <div className="lg:col-span-2 h-[260px]">
           {!hasData ? (
-            <div className="h-full flex items-center justify-center text-sm text-gray-500">{emptyLabel}</div>
+            <div className="h-full flex items-center justify-center text-sm text-[var(--muted)]">{emptyLabel}</div>
           ) : (
             <ResponsiveContainer width="100%" height="100%">
               <RadarChart data={data} key={chartKey}>
@@ -428,20 +429,20 @@ function RadarPanel({
         </div>
         <div className="space-y-2">
           {!hasData ? (
-            <p className="text-sm text-gray-500">{emptyLabel}</p>
+            <p className="text-sm text-[var(--muted)]">{emptyLabel}</p>
           ) : (
             data.slice(0, 6).map((row, idx) => (
               <div
                 key={row.label}
-                className="flex items-center justify-between px-3 py-2 rounded-lg border border-gray-100 bg-gray-50"
+                className="flex items-center justify-between px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--card-soft)]"
               >
                 <div className="flex items-center gap-2">
-                  <span className="w-7 h-7 rounded-full bg-white border border-gray-200 flex items-center justify-center text-xs font-semibold" style={{ color }}>
+                  <span className="w-7 h-7 rounded-full bg-[var(--card)] border border-[var(--border)] flex items-center justify-center text-xs font-semibold" style={{ color }}>
                     {idx + 1}
                   </span>
                   <div>
-                    <p className="text-sm font-semibold text-gray-900">{row.label}</p>
-                    <p className="text-xs text-gray-500">{row.hours.toFixed(2)} hours</p>
+                    <p className="text-sm font-semibold text-[var(--text)]">{row.label}</p>
+                    <p className="text-xs text-[var(--muted)]">{row.hours.toFixed(2)} hours</p>
                   </div>
                 </div>
               </div>

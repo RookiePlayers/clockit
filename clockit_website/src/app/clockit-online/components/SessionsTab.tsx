@@ -4,12 +4,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { IconArrowRight, IconClockPlay, IconPlayerPlayFilled } from "@tabler/icons-react";
 import { useSnackbar } from "notistack";
 import { collection, doc, setDoc } from "firebase/firestore";
-import type { ClockitSession, Goal } from "@/types";
+import type { ClockitSession, ClockitSessionUpload, Goal } from "@/types";
 import type { GroupView } from "../types";
 import { CLOCKIT_SERVER_WS, STORAGE_KEY_SESSIONS } from "../constants";
-import { db } from "@/lib/firebase";
+import { auth, db } from "@/lib/firebase";
+import { formatDayLabel, toDateKey } from "../utils";
 import QuickAddGoal from "./QuickAddGoal";
 import SessionCard from "./SessionCard";
+import { createCSVFromSessionUpload, downloadSessionCsv } from "../utils";
 
 type SessionWire = {
   sessionId: string;
@@ -33,8 +35,8 @@ type Props = {
   setGoals: React.Dispatch<React.SetStateAction<Goal[]>>;
   setActiveTab: (tab: "goals" | "sessions") => void;
   onRegisterStartFromGroup: (fn: (group: GroupView) => void) => void;
-  downloadSessionCsv: (session: ClockitSession, userName?: string, userEmail?: string) => void;
   showQuickAdd?: boolean;
+  goalsEnabled?: boolean;
 };
 
 export default function SessionsTab({
@@ -44,29 +46,32 @@ export default function SessionsTab({
   setActiveTab,
   onRegisterStartFromGroup,
   showQuickAdd = false,
+  goalsEnabled = true,
 }: Props) {
   const { enqueueSnackbar } = useSnackbar();
   const [sessions, setSessions] = useState<ClockitSession[]>(() => {
-    if (typeof window === "undefined") {return [];}
+    if (typeof window === "undefined") { return []; }
     const storedSessions = localStorage.getItem(STORAGE_KEY_SESSIONS);
-    if (!storedSessions) {return [];}
+    if (!storedSessions) { return []; }
     try {
       return JSON.parse(storedSessions) as ClockitSession[];
     } catch {
       return [];
     }
   });
+  const [sessionsUpload, setSessionsUpload] = useState<Record<string, ClockitSessionUpload>>({});
   const [tickMap, setTickMap] = useState<Record<string, number>>({});
   const [connected, setConnected] = useState(false);
+  const [wsToken, setWsToken] = useState<string | null>(null);
   const [primarySessionId, setPrimarySessionId] = useState<string | null>(() => {
-    if (typeof window === "undefined") {return null;}
+    if (typeof window === "undefined") { return null; }
     return localStorage.getItem(STORAGE_KEY_PRIMARY);
   });
   const [renderNow, setRenderNow] = useState<number>(() => (typeof window !== "undefined" ? Date.now() : 0));
   const removedIdsRef = useRef<Set<string>>(new Set());
   const socketRef = useRef<WebSocket | null>(null);
   const nowRef = useRef<number>(0);
-  const connectSocketRef = useRef<() => void>(() => {});
+  const connectSocketRef = useRef<() => void>(() => { });
   const shouldReconnectRef = useRef(true);
 
   const availableGoals = useMemo(() => goals.filter((g) => !g.completed), [goals]);
@@ -78,12 +83,12 @@ export default function SessionsTab({
   }, [primarySessionId, sessions]);
 
   useEffect(() => {
-    if (typeof window === "undefined" || user) {return;}
+    if (typeof window === "undefined" || user) { return; }
     localStorage.setItem(STORAGE_KEY_SESSIONS, JSON.stringify(sessions));
   }, [sessions, user]);
 
   useEffect(() => {
-    if (typeof window === "undefined") {return;}
+    if (typeof window === "undefined") { return; }
     if (currentPrimaryId) {
       localStorage.setItem(STORAGE_KEY_PRIMARY, currentPrimaryId);
     } else {
@@ -101,10 +106,25 @@ export default function SessionsTab({
     return () => clearInterval(id);
   }, []);
 
-  const userId = user?.uid || user?.email || "guest";
+  useEffect(() => {
+    if (!user?.uid) {
+      const reset = () => setWsToken(null);
+      return reset();
+    }
+    const unsubscribe = auth.onIdTokenChanged(async (firebaseUser) => {
+      if (!firebaseUser) {
+        setWsToken(null);
+        return;
+      }
+      const token = await firebaseUser.getIdToken();
+      setWsToken(token);
+    });
+    return () => unsubscribe();
+  }, [user?.uid]);
 
   const connectSocket = useCallback(() => {
-    const url = `${CLOCKIT_SERVER_WS}?userId=${encodeURIComponent(userId)}`;
+    if (!wsToken) { return; }
+    const url = `${CLOCKIT_SERVER_WS}?token=${encodeURIComponent(wsToken)}`;
     const ws = new WebSocket(url);
     socketRef.current = ws;
 
@@ -148,10 +168,10 @@ export default function SessionsTab({
           if ("removed" in s && s.sessionId) {
             removedIdsRef.current.add(s.sessionId);
             setSessions((prev) => prev.filter((sess) => sess.id !== s.sessionId));
-            if (primarySessionId === s.sessionId) {setPrimarySessionId(null);}
+            if (primarySessionId === s.sessionId) { setPrimarySessionId(null); }
             return;
           }
-          if (!("sessionId" in s) || !("label" in s)) {return;}
+          if (!("sessionId" in s) || !("label" in s)) { return; }
           const mapped: ClockitSession = {
             id: s.sessionId,
             label: s.label,
@@ -184,7 +204,7 @@ export default function SessionsTab({
           setSessions((prev) =>
             prev.map((s) => {
               const tick = data.payload.find((t) => t.sessionId === s.id);
-              if (!tick) {return s;}
+              if (!tick) { return s; }
               return { ...s, running: tick.running, accumulatedMs: tick.elapsedMs };
             }),
           );
@@ -193,7 +213,7 @@ export default function SessionsTab({
         // ignore parse errors
       }
     });
-  }, [primarySessionId, userId]);
+  }, [primarySessionId, wsToken]);
 
   useEffect(() => {
     connectSocketRef.current = connectSocket;
@@ -201,12 +221,14 @@ export default function SessionsTab({
 
   useEffect(() => {
     shouldReconnectRef.current = true;
-    connectSocketRef.current?.();
+    if (wsToken) {
+      connectSocketRef.current?.();
+    }
     return () => {
       shouldReconnectRef.current = false;
       socketRef.current?.close();
     };
-  }, []);
+  }, [wsToken]);
 
   const sessionDuration = (session: ClockitSession) => {
     const base = session.accumulatedMs ?? 0;
@@ -224,7 +246,7 @@ export default function SessionsTab({
   useEffect(() => {
     const purge = () => {
       const cutoff = Date.now() - 12 * 60 * 60 * 1000;
-      setSessions((prev) => prev.filter((s) => !( !s.running && !s.endedAt && s.pausedAt && s.pausedAt < cutoff )));
+      setSessions((prev) => prev.filter((s) => !(!s.running && !s.endedAt && s.pausedAt && s.pausedAt < cutoff)));
     };
     const id = setInterval(purge, 60 * 1000);
     return () => clearInterval(id);
@@ -244,7 +266,7 @@ export default function SessionsTab({
 
   const attachableGoals = useMemo(() => {
     const allowed = new Set(sessionGroups.map((g) => g.id));
-    if (!allowed.size) {return [];}
+    if (!allowed.size) { return []; }
     return availableGoals.filter((g) => allowed.has(g.groupId));
   }, [availableGoals, sessionGroups]);
 
@@ -260,74 +282,41 @@ export default function SessionsTab({
     const endedAt = nowRef.current;
     if (finished) {
       const durationMs = sessionDuration(finished);
+      finished.endedAt = endedAt;
+      finished.accumulatedMs = durationMs ?? 0;
       if (user?.uid) {
-        const startedIso = new Date(finished.startedAt).toISOString();
-        const endedIso = new Date(endedAt).toISOString();
-        const durationSeconds = Math.max(1, Math.round(durationMs / 1000));
-        const csvHeader =
-          "startedIso,endedIso,durationSeconds,idleSeconds,linesAdded,linesDeleted,perFileSeconds,perLanguageSeconds,authorName,authorEmail,machine,ideName,workspace,repoPath,branch,issueKey,comment,goals\n";
-        const csvValues = [
-          startedIso,
-          endedIso,
-          durationSeconds,
-          finished.idleSeconds ?? 0,
-          finished.linesAdded ?? 0,
-          finished.linesDeleted ?? 0,
-          JSON.stringify(finished.perFileSeconds ?? {}),
-          JSON.stringify(finished.perLanguageSeconds ?? {}),
-          user.displayName || user.email || "Clockit Online",
-          user.email ?? "",
-          "Clockit Online",
-          "Clockit Online",
-          "Clockit Online",
-          "",
-          "",
-          finished.groupName ?? "",
-          finished.comment ?? "",
-          JSON.stringify(
-            finished.goals.map((g) => ({
-              title: g.title,
-              completed: g.completed,
-              completedAt: g.completedAt,
-              groupId: g.groupId,
-              groupName: g.groupName,
-              estimatedGoalTime: g.estimatedGoalTime,
-            })),
-          ),
-        ];
-        const csvRow =
-          csvValues
-            .map((value) => {
-              const str = String(value ?? "");
-              return /[",\n]/.test(str) ? `"${str.replace(/"/g, '""')}"` : str;
-            })
-            .join(",") + "\n";
-        const csv = csvHeader + csvRow;
-        const colRef = collection(db, "Uploads", user.uid, "ClockitOnline");
-        const docData = {
-          csv,
+        const data: ClockitSessionUpload = {
+          ...finished,
+          userEmail: user.email ?? undefined,
+          userName: user.displayName ?? undefined,
           sessionId,
           createdAt: new Date().toISOString(),
           lastUpdatedAt: new Date().toISOString(),
-          label: finished.label,
-          durationMs,
-          startedAt: finished.startedAt,
-          endedAt,
           groupId: finished.groupId ?? null,
           groupName: finished.groupName ?? null,
           comment: finished.comment ?? null,
           goals: finished.goals ?? [],
           running: false,
           accumulatedMs: durationMs,
-          pausedAt: finished.pausedAt ?? null,
+          pausedAt: finished.pausedAt ?? null
+        }
+        const csv = createCSVFromSessionUpload(data);
+        const colRef = collection(db, "Uploads", user.uid, "ClockitOnline");
+        const docData: ClockitSessionUpload = {
+          ...data,
+          csv,
+
         };
         const cleaned = Object.fromEntries(Object.entries(docData).filter(([, v]) => v !== undefined));
         setDoc(doc(colRef, finished.id), cleaned)
-          .then(()=>{
+          .then(() => {
             enqueueSnackbar("Session uploaded to cloud", { variant: "success" });
           }).catch(() => {
             enqueueSnackbar("Failed to upload session to cloud", { variant: "error" });
           });
+        setSessionsUpload({
+          [sessionId]: docData
+        });
       }
     }
     if (connected && socketRef.current?.readyState === WebSocket.OPEN) {
@@ -336,7 +325,7 @@ export default function SessionsTab({
     } else {
       setSessions((prev) =>
         prev.map((s) => {
-          if (s.id !== sessionId) {return s;}
+          if (s.id !== sessionId) { return s; }
           const accumulated = (s.accumulatedMs ?? 0) + (s.running ? endedAt - s.startedAt : 0);
           return { ...s, running: false, endedAt, accumulatedMs: accumulated };
         }),
@@ -371,8 +360,12 @@ export default function SessionsTab({
   };
 
   const attachGoalToSession = (sessionId: string, goalId: string, goalOverride?: Goal) => {
+    if (!goalsEnabled) {
+      enqueueSnackbar("Goals are disabled for your account", { variant: "warning" });
+      return;
+    }
     const goal = goalOverride || goals.find((g) => g.id === goalId);
-    if (!goal) {return;}
+    if (!goal) { return; }
     if (connected && socketRef.current?.readyState === WebSocket.OPEN) {
       socketRef.current.send(JSON.stringify({ type: "session-attach", payload: { sessionId, goal } }));
     } else {
@@ -392,11 +385,11 @@ export default function SessionsTab({
 
   const pauseSession = (sessionId: string) => {
     const current = sessions.find((s) => s.id === sessionId);
-    if (!current || !current.running) {return;}
+    if (!current || !current.running) { return; }
     const now = nowRef.current;
     setSessions((prev) =>
       prev.map((s) => {
-        if (s.id !== sessionId) {return s;}
+        if (s.id !== sessionId) { return s; }
         const accumulated = (s.accumulatedMs ?? 0) + (s.running ? now - s.startedAt : 0);
         return { ...s, running: false, accumulatedMs: accumulated, endedAt: undefined, pausedAt: now };
       }),
@@ -441,7 +434,7 @@ export default function SessionsTab({
     const payload = {
       sessionId,
       label: `${group.label} session`,
-      goals: group.goals,
+      goals: goalsEnabled ? group.goals : [],
       groupId: group.groupId ?? group.id,
       groupName: group.label,
       comment: `${group.kind === "day" ? "Day bucket" : "Custom group"} via Clockit Online`,
@@ -474,11 +467,11 @@ export default function SessionsTab({
       prev.map((s) =>
         s.id === sessionId
           ? {
-              ...s,
-              goals: s.goals.map((g) =>
-                g.id === goalId ? { ...g, completed: !g.completed, completedAt: g.completed ? undefined : new Date().toISOString() } : g,
-              ),
-            }
+            ...s,
+            goals: s.goals.map((g) =>
+              g.id === goalId ? { ...g, completed: !g.completed, completedAt: g.completed ? undefined : new Date().toISOString() } : g,
+            ),
+          }
           : s,
       ),
     );
@@ -486,20 +479,24 @@ export default function SessionsTab({
 
   return (
     <div className="space-y-5 pb-16" style={{ scrollBehavior: "smooth" }}>
-      {showQuickAdd && (
+      {showQuickAdd && goalsEnabled && (
         <QuickAddGoal
           visible={showQuickAdd}
           user={user}
           customGroups={sessionGroups.map((g) => ({ id: g.id, name: g.name, kind: "custom" }))}
           onCreateGoal={({ title, groupId, estimatedMinutes }) => {
             const createdAt = new Date().toISOString();
+            const targetGroupId = groupId === "day" ? `day-${toDateKey(createdAt)}` : groupId;
+            const groupName = targetGroupId.startsWith("day-")
+              ? formatDayLabel(targetGroupId.replace("day-", ""))
+              : sessionGroups.find((g) => g.id === targetGroupId)?.name || targetGroupId;
             const goal: Goal = {
               id: `goal-${Math.random().toString(36).slice(2, 9)}`,
               title: title.trim(),
               createdAt,
               completed: false,
-              groupId,
-              groupName: sessionGroups.find((g) => g.id === groupId)?.name || groupId,
+              groupId: targetGroupId,
+              groupName,
               estimatedGoalTime: typeof estimatedMinutes === "number" ? estimatedMinutes * 60 : undefined,
               locked: false,
             };
@@ -562,16 +559,22 @@ export default function SessionsTab({
                   duration={sessionDuration(primarySession)}
                   attachableGoals={attachableGoals.filter((g) => g.groupId === (primarySession.groupId || primarySession.id))}
                   onAttach={(sessionId, goalId) => attachGoalToSession(sessionId, goalId)}
-                onDetach={detachGoalFromSession}
-                onToggleGoal={toggleGoalCompletion}
-                onStop={stopSession}
-                onResume={resumeSession}
-                isPrimary
-                onPause={pauseSession}
-                onRemove={removeSession}
-              />
+                  onDetach={detachGoalFromSession}
+                  onToggleGoal={toggleGoalCompletion}
+                  onStop={stopSession}
+                  onResume={resumeSession}
+                  isPrimary
+                  onPause={pauseSession}
+                  onRemove={removeSession}
+                  onDownload={(sessionId) => {
+                    const target = sessions.find((s) => s.id === sessionId);
+                    if (target) {
+                      downloadSessionCsv(sessionsUpload[sessionId]);
+                    }
+                  }}
+                />
+              </div>
             </div>
-          </div>
           )}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4" style={{ scrollbarWidth: "thin" }}>
             {nonPrimarySessions.map((session) => {
@@ -583,16 +586,22 @@ export default function SessionsTab({
                   duration={sessionDuration(session)}
                   attachableGoals={cardGoals}
                   onAttach={(sessionId, goalId) => attachGoalToSession(sessionId, goalId)}
-                onDetach={detachGoalFromSession}
-                onToggleGoal={toggleGoalCompletion}
-                onStop={stopSession}
-                onResume={resumeSession}
-                onSetPrimary={setPrimary}
-                onPause={pauseSession}
-                onRemove={removeSession}
-              />
-            );
-          })}
+                  onDetach={detachGoalFromSession}
+                  onToggleGoal={toggleGoalCompletion}
+                  onStop={stopSession}
+                  onResume={resumeSession}
+                  onSetPrimary={setPrimary}
+                  onPause={pauseSession}
+                  onRemove={removeSession}
+                  onDownload={(sessionId) => {
+                    const target = sessions.find((s) => s.id === sessionId);
+                    if (target) {
+                      downloadSessionCsv(sessionsUpload[sessionId]);
+                    }
+                  }}
+                />
+              );
+            })}
           </div>
         </>
       )}

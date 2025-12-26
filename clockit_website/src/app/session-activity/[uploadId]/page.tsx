@@ -2,12 +2,13 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { auth, db } from "@/lib/firebase";
 import { doc, getDoc } from "firebase/firestore";
+import { Goal } from "@/types";
+import NavBar from "@/components/NavBar";
 
 type UploadRows = Array<Record<string, unknown>>;
 
@@ -120,13 +121,13 @@ export default function UploadDetailPage() {
 
   if (!user) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen gap-4 text-gray-800">
+      <div className="flex flex-col items-center justify-center min-h-screen gap-4 text-[var(--text)]">
         <p className="text-lg font-semibold">You need to sign in to view this upload.</p>
         <div className="flex gap-3">
-          <Link href="/auth" className="px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition-colors">
+          <Link href="/auth" className="px-4 py-2 bg-[var(--primary)] text-[var(--primary-contrast)] rounded-lg shadow hover:opacity-90 transition-colors">
             Sign in
           </Link>
-          <Link href="/auth?mode=signup" className="px-4 py-2 border border-gray-200 rounded-lg text-gray-700 hover:border-blue-200 hover:text-blue-700 transition-colors">
+          <Link href="/auth?mode=signup" className="px-4 py-2 border border-[var(--border)] rounded-lg text-[var(--text)] hover:border-[var(--primary)]/40 hover:text-[var(--primary)] transition-colors">
             Create account
           </Link>
         </div>
@@ -134,55 +135,50 @@ export default function UploadDetailPage() {
     );
   }
 
+  const title = user.displayName || user.email || "Developer";
+
   return (
-    <div className="min-h-screen bg-[#f8f9fa] text-gray-900">
-      <nav className="bg-white border-b border-gray-200 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <Image src="/icon.png" alt="Clockit Icon" width={28} height={28} className="rounded-full" />
-            <span className="font-bold text-lg text-gray-900">Clockit</span>
-          </Link>
-          <div className="flex flex-wrap items-center gap-3 text-sm">
-            <Link href="/dashboard" className="text-gray-600 hover:text-gray-900">Dashboard</Link>
-            <Link href="/advanced-stats" className="text-gray-600 hover:text-gray-900">Advanced Stats</Link>
-            <Link href="/docs" className="text-gray-600 hover:text-gray-900">Docs</Link>
-            <Link href="/recent-activity" className="text-gray-900 font-semibold">Recent Activity</Link>
-            <button
-              onClick={() => auth.signOut()}
-              className="px-3 py-1.5 rounded-lg font-semibold text-white bg-red-500 hover:bg-red-600 transition-colors"
-            >
-              Logout
-            </button>
-          </div>
-        </div>
-      </nav>
+    <div className="min-h-screen bg-[var(--bg)] text-[var(--text)]">
+      <NavBar
+        userName={title}
+        onSignOut={() => auth.signOut()}
+        links={[
+          { href: "/dashboard", label: "Dashboard" },
+          { href: "/clockit-online", label: "Clockit Online" },
+          { href: "/advanced-stats", label: "Advanced Stats" },
+          { href: "/recent-activity", label: "Recent Activity" },
+          { href: "/session-activity", label: "Session Activity", active: true },
+          { href: "/docs", label: "Docs" },
+          { href: "/profile", label: "Profile" },
+        ]}
+      />
 
       <main className="max-w-7xl mx-auto px-6 py-10 space-y-6">
         <header className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
           <div>
             <p className="text-sm text-blue-600 font-semibold">Upload detail</p>
-            <h1 className="text-3xl font-bold text-gray-900 break-all">{upload?.filename ?? "Upload"}</h1>
-            <p className="text-sm text-gray-600 mt-1">
+            <h1 className="text-3xl font-bold text-[var(--text)] break-all">{upload?.filename ?? "Upload"}</h1>
+            <p className="text-sm text-[var(--muted)] mt-1">
               {upload?.uploadedAt ? upload.uploadedAt.toLocaleString() : "Upload time unavailable"}
               {" · "}
               {upload?.rows?.length ?? 0} row{(upload?.rows?.length ?? 0) === 1 ? "" : "s"}
             </p>
           </div>
           <div className="flex gap-2">
-            <Link href="/recent-activity" className="px-4 py-2 rounded-lg text-sm font-semibold text-gray-700 border border-gray-200 hover:border-blue-200 hover:text-blue-700 transition-colors">
-              Back to recent activity
+            <Link href="/session-activity" className="px-4 py-2 rounded-lg text-sm font-semibold text-[var(--text)] border border-[var(--border)] hover:border-[var(--primary)]/40 hover:text-[var(--primary)] transition-colors">
+              Back to session activity
             </Link>
           </div>
         </header>
 
-        <section className="bg-white border border-gray-100 rounded-2xl shadow-sm">
-          <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between gap-3">
-            <h2 className="text-lg font-semibold text-gray-900">Rows</h2>
-            {loadError && <span className="text-sm text-red-600"> {loadError}</span>}
+        <section className="bg-[var(--card)] border border-[var(--border)] rounded-2xl shadow-lg shadow-blue-900/10">
+          <div className="px-4 py-3 border-b border-[var(--border)] flex items-center justify-between gap-3">
+            <h2 className="text-lg font-semibold text-[var(--text)]">Rows</h2>
+            {loadError && <span className="text-sm text-red-500"> {loadError}</span>}
           </div>
           <div className="overflow-x-auto">
-            <table className="min-w-[840px] w-full text-sm text-gray-800">
-              <thead className="bg-gray-50 text-gray-600 border-b border-gray-100">
+            <table className="min-w-[840px] w-full text-sm text-[var(--text)]">
+              <thead className="bg-[var(--card-soft)] text-[var(--muted)] border-b border-[var(--border)]">
                 <tr>
                   <th className="text-left px-4 py-2 font-semibold whitespace-nowrap">#</th>
                   {columns.map((col) => (
@@ -198,18 +194,18 @@ export default function UploadDetailPage() {
               <tbody>
                 {(!upload || upload.rows.length === 0) && (
                   <tr>
-                    <td colSpan={columns.length + 1} className="px-4 py-6 text-center text-gray-500">
+                    <td colSpan={columns.length + 1} className="px-4 py-6 text-center text-[var(--muted)]">
                       No rows found in this upload.
                     </td>
                   </tr>
                 )}
                 {upload?.rows.map((row, idx) => (
-                  <tr key={idx} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                    <td className="px-4 py-3 text-gray-600 whitespace-nowrap">{idx + 1}</td>
+                  <tr key={idx} className="border-b border-[var(--border)] hover:bg-[var(--card-soft)] transition-colors">
+                    <td className="px-4 py-3 text-[var(--muted)] whitespace-nowrap">{idx + 1}</td>
                     {columns.map((col) => (
                       <td
                         key={col}
-                        className={`px-4 py-3 text-gray-800 align-top min-w-[80px] ${isWideColumn(col) ? "min-w-[220px]" : ""}`}
+                        className={`px-4 py-3 text-[var(--text)] align-top min-w-[80px] ${isWideColumn(col) ? "min-w-[220px]" : ""}`}
                       >
                         {col === "perFileSeconds" || col === "perLanguageSeconds" ? (
                           <button
@@ -601,12 +597,12 @@ function parseGoals(raw: unknown, endedIso?: string): GoalDisplay[] {
   }
   const ended = safeParseDate(endedIso);
   return data
-    .map((g) => {
+    .map((g: Goal & Record<string, unknown>) => {
       if (typeof g !== "object" || g === null) {return null;}
-      const title = typeof (g as any).title === "string" ? (g as any).title : "";
-      const createdAt = typeof (g as any).createdAt === "string" ? (g as any).createdAt : null;
-      const completedAt = typeof (g as any).completedAt === "string" ? (g as any).completedAt : null;
-      const timeTakenSecondsRaw = (g as any).timeTaken;
+      const title = typeof (g).title === "string" ? (g).title : "";
+      const createdAt = typeof (g).createdAt === "string" ? (g).createdAt : null;
+      const completedAt = typeof (g).completedAt === "string" ? (g).completedAt : null;
+      const timeTakenSecondsRaw = (g).timeTaken;
       const timeTakenSeconds =
         typeof timeTakenSecondsRaw === "number" && Number.isFinite(timeTakenSecondsRaw)
           ? timeTakenSecondsRaw

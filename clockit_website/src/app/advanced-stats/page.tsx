@@ -159,14 +159,15 @@ export default function AdvancedStatsPage() {
   const title = user.displayName || user.email || "Developer";
 
   return (
-    <div className="min-h-screen bg-[#f8f9fa] text-gray-900">
+    <div className="min-h-screen bg-[var(--bg)] text-[var(--text)]">
       <NavBar
         userName={title}
         onSignOut={() => auth.signOut()}
         links={[
           { href: "/dashboard", label: "Dashboard" },
+          { href: "/clockit-online", label: "Clockit Online" },
           { href: "/advanced-stats", label: "Advanced Stats", active: true },
-          { href: "/recent-activity", label: "Recent Activity" },
+          { href: "/session-activity", label: "Session Activity" },
           { href: "/docs", label: "Docs" },
           { href: "/profile", label: "Profile" },
         ]}
@@ -175,9 +176,9 @@ export default function AdvancedStatsPage() {
       <main className="max-w-7xl mx-auto px-6 py-10 space-y-8">
         <header className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
           <div>
-            <p className="text-sm text-blue-600 font-semibold">Advanced stats</p>
-            <h1 className="text-3xl font-bold text-gray-900">Deep dive into your patterns</h1>
-            <p className="text-sm text-gray-600 mt-1">Explore working vs idle trends, language mix, and your yearly performance.</p>
+            <p className="text-sm text-[var(--primary)] font-semibold">Advanced stats</p>
+            <h1 className="text-3xl font-bold text-[var(--text)]">Deep dive into your patterns</h1>
+            <p className="text-sm text-[var(--muted)] mt-1">Explore working vs idle trends, language mix, and your yearly performance.</p>
           </div>
           <div className="flex flex-wrap gap-2 items-center">
             {(["week", "month", "year", "all"] as Range[]).map((key) => (
@@ -187,8 +188,8 @@ export default function AdvancedStatsPage() {
                   setRange(key);
                 }}
                 className={`px-3 py-1.5 rounded-full text-sm font-semibold border transition-colors ${range === key
-                    ? "bg-blue-50 text-blue-700 border-blue-200"
-                    : "bg-white text-gray-700 border-gray-200 hover:border-blue-200 hover:text-blue-700"
+                    ? "bg-[var(--primary)]/20 text-[var(--primary-contrast)] bg-[var(--primary)] border-[var(--border)]"
+                    : "bg-[var(--card)] text-[var(--text)] border-[var(--border)] hover:bg-[var(--primary)] hover:text-[var(--primary-contrast)] hover:border-[var(--primary)"
                   }`}
               >
                 {rangeLabels[key]}
@@ -203,11 +204,11 @@ export default function AdvancedStatsPage() {
           </div>
         </header>
 
-        <section className="card-clean bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-4">
+        <section className="card-clean bg-[var(--card)] p-6 rounded-2xl border border-[var(--border)] shadow-sm space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">Working vs idle</h2>
-              <p className="text-sm text-gray-600">Multi-view trend for {rangeLabels[range].toLowerCase()} buckets.</p>
+              <h2 className="text-lg font-semibold text-[var(--text)]">Working vs idle</h2>
+              <p className="text-sm text-[var(--muted)]">Multi-view trend for {rangeLabels[range].toLowerCase()} buckets.</p>
             </div>
             <div className="flex flex-wrap gap-2">
               {chartViews.map(({ key, label }) => (
@@ -215,8 +216,8 @@ export default function AdvancedStatsPage() {
                   key={key}
                   onClick={() => setChartView(key)}
                   className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${chartView === key
-                      ? "bg-blue-600 text-white border-blue-600"
-                      : "bg-white text-gray-700 border-gray-200 hover:border-blue-200 hover:text-blue-700"
+                      ? "bg-[var(--primary)] text-[var(--primary-contrast)] border-[var(--primary)]"
+                      : "bg-[var(--card)] text-[var(--text)] border-[var(--border)] hover:border-[var(--primary)] hover:text-[var(--primary)]"
                     }`}
                 >
                   {label}
@@ -245,20 +246,20 @@ export default function AdvancedStatsPage() {
 
         <RangeTotals aggregates={aggregates} range={range} statsError={statsError} />
 
-        <section className="card-clean bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-6">
+        <section className="card-clean bg-[var(--card)] p-6 rounded-2xl border border-[var(--border)] shadow-sm space-y-6">
           <FocusRadars />
         </section>
 
         <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 card-clean bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-4">
+          <div className="lg:col-span-2 card-clean bg-[var(--card)] p-6 rounded-2xl border border-[var(--border)] shadow-sm space-y-4">
             <div className="flex items-center justify-between gap-2">
               <div>
-                <h2 className="text-lg font-semibold text-gray-900">Yearly recap</h2>
-                <p className="text-sm text-gray-600">Highlights pulled from your latest full year.</p>
+                <h2 className="text-lg font-semibold text-[var(--text)]">Yearly recap</h2>
+                <p className="text-sm text-[var(--muted)]">Highlights pulled from your latest full year.</p>
               </div>
             </div>
             {!yearSummary ? (
-              <p className="text-sm text-gray-500">We&apos;ll surface a recap once yearly data is available.</p>
+              <p className="text-sm text-[var(--muted)]">We&apos;ll surface a recap once yearly data is available.</p>
             ) : (
               <div className="space-y-4">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -273,36 +274,36 @@ export default function AdvancedStatsPage() {
                   <RecapCard title="Top language" value={yearSummary.topLanguage ?? "—"} hint={yearSummary.topLanguageHint} />
                   <RecapCard title="Top workspace" value={yearSummary.topWorkspace ?? "—"} hint={yearSummary.topWorkspaceHint} />
                 </div>
-                <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3">
-                  <p className="text-sm text-blue-900">
+                <div className="rounded-xl border border-[var(--primary)] bg-[var(--primary-contrast)] px-4 py-3">
+                  <p className="text-sm text-[var(--primary)]">
                     {yearSummary.narrative}
                   </p>
                 </div>
               </div>
             )}
           </div>
-          <div className="card-clean bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between h-full">
+          <div className="card-clean bg-[var(--card)] p-6 rounded-2xl border border-[var(--border)] shadow-sm flex flex-col justify-between h-full">
             <div className="flex flex-col flex-1 justify-center items-center text-center">
-              <h2 className="text-lg font-semibold text-gray-900 mb-1">Final grade</h2>
-              <span className="text-sm text-gray-500 mb-3">based on focus and throughput</span>
+              <h2 className="text-lg font-semibold text-[var(--text)] mb-1">Final grade</h2>
+              <span className="text-sm text-[var(--muted)] mb-3">based on focus and throughput</span>
               {!yearSummary ? (
-                <p className="text-sm text-gray-500">No yearly data yet to compute a grade.</p>
+                <p className="text-sm text-[var(--muted)]">No yearly data yet to compute a grade.</p>
               ) : (
                 <div className="flex items-center justify-center mb-2 flex-1">
-                  <span className="text-[5em] font-black text-blue-700">{yearSummary.grade.letter}</span>
+                  <span className="text-[5em] font-black text-[var(--primary)]">{yearSummary.grade.letter}</span>
                 </div>
               )}
             </div>
             {yearSummary && (
               <div className="mt-4">
-                <p className="text-sm text-gray-700 mt-2 mb-4">{yearSummary.grade.description}</p>
-                <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                <p className="text-sm text-[var(--text)] mt-2 mb-4">{yearSummary.grade.description}</p>
+                <div className="w-full h-2 bg-[var(--border)] rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-blue-600 rounded-full"
+                    className="h-full bg-[var(--primary)] rounded-full"
                     style={{ width: `${Math.min(100, yearSummary.avgProductivity)}%` }}
                   />
                 </div>
-                <p className="text-xs text-gray-500 mt-2">
+                <p className="text-xs text-[var(--muted)] mt-2">
                   Grade blends productivity and total working time for the year.
                 </p>
               </div>
@@ -310,27 +311,27 @@ export default function AdvancedStatsPage() {
           </div>
         </section>
 
-        <section className="card-clean bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-4">
+        <section className="card-clean bg-[var(--card)] p-6 rounded-2xl border border-[var(--border)] shadow-sm space-y-4">
           <div className="flex items-center justify-between gap-2">
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">Badge cabinet</h2>
-              <p className="text-sm text-gray-600">Accolades unlocked from your aggregates.</p>
+              <h2 className="text-lg font-semibold text-[var(--text)]">Badge cabinet</h2>
+              <p className="text-sm text-[var(--muted)]">Accolades unlocked from your aggregates.</p>
             </div>
-            <span className="px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-700">
+            <span className="px-3 py-1 rounded-full text-xs font-semibold bg-[var(--muted)]/20 text-[var(--muted)]">
               {badges.filter((b) => b.earned).length} / {badges.length} unlocked
             </span>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4`}>
             {badges.map((badge) => (
               <div
                 key={badge.title}
-                className={`p-4 rounded-xl border shadow-sm ${badge.earned ? "border-green-200 bg-green-50" : "border-gray-100 bg-white"}`}
+                className={`p-4 rounded-xl border border-[var(--border)] bg-[var(--card)] shadow-lg shadow-blue-900/10 ${badge.earned ? "border-green-200/30 bg-green-50/30" : "bg-[var(--card)]"} ${badge.earned ? "opacity-100" : "opacity-60"}`}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-sm font-semibold text-gray-900">{badge.title}</p>
-                    <p className="text-xs text-gray-600 mt-1">{badge.description}</p>
-                    <p className="text-xs text-gray-500 mt-1">{badge.detail}</p>
+                    <p className="text-sm font-semibold text-[var(--text)]">{badge.title}</p>
+                    <p className="text-xs text-[var(--muted)] mt-1">{badge.description}</p>
+                    <p className="text-xs text-[var(--muted)] mt-1">{badge.detail}</p>
                   </div>
                   <span className={`px-2 py-1 rounded-full text-[11px] font-semibold ${badge.earned ? "bg-green-200 text-green-800" : "bg-gray-100 text-gray-500"}`}>
                     {badge.earned ? "Unlocked" : "Locked"}
@@ -391,19 +392,19 @@ function renderWorkingIdleChart(view: ChartView, data: Array<{ label: string; wo
 
 function MiniStat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="px-3 py-2 rounded-lg border border-gray-100 bg-gray-50">
-      <p className="text-xs text-gray-500">{label}</p>
-      <p className="text-sm font-semibold text-gray-900">{value}</p>
+    <div className="px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--card)] shadow-sm text-center">
+      <p className="text-xs text-[var(--muted)]">{label}</p>
+      <p className="text-sm font-semibold text-[var(--text)]">{value}</p>
     </div>
   );
 }
 
 function RecapCard({ title, value, hint }: { title: string; value: string; hint?: string }) {
   return (
-    <div className="px-4 py-3 rounded-lg border border-gray-100 bg-white shadow-sm">
-      <p className="text-xs text-gray-500">{title}</p>
-      <p className="text-lg font-semibold text-gray-900">{value}</p>
-      {hint && <p className="text-xs text-gray-500 mt-1">{hint}</p>}
+    <div className="px-4 py-3 rounded-lg border border-[var(--border)] bg-[var(--card)] shadow-sm">
+      <p className="text-xs text-[var(--muted)]">{title}</p>
+      <p className="text-lg font-semibold text-[var(--text)]">{value}</p>
+      {hint && <p className="text-xs text-[var(--muted)] mt-1">{hint}</p>}
     </div>
   );
 }

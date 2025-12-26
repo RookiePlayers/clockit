@@ -36,9 +36,13 @@ export default function QuickAddGoal({
   isCompact = false,
   onToggleCompact,
 }: Props) {
+  const GROUP_STORAGE_KEY = "clockit-online-selected-group";
   const [newGoalTitle, setNewGoalTitle] = useState("");
   const [estimatedMinutes, setEstimatedMinutes] = useState<number | "">("");
-  const [newGoalGroupId, setNewGoalGroupId] = useState<string>("day");
+  const [newGoalGroupId, setNewGoalGroupId] = useState<string>(() => {
+    if (typeof window === "undefined") {return "day";}
+    return localStorage.getItem(GROUP_STORAGE_KEY) || "day";
+  });
   const [newGroupName, setNewGroupName] = useState("");
   const [selectedSessionId, setSelectedSessionId] = useState<string>("");
   const [mounted, setMounted] = useState(false);
@@ -68,6 +72,11 @@ export default function QuickAddGoal({
       setSelectedSessionId(sessionOptions[0].id);
     }
   }, [sessionOptions, selectedSessionId]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {return;}
+    localStorage.setItem(GROUP_STORAGE_KEY, newGoalGroupId);
+  }, [newGoalGroupId]);
 
   const handleSubmit = () => {
     const title = newGoalTitle.trim();
@@ -151,95 +160,97 @@ export default function QuickAddGoal({
     );
   };
 
-  const configPanel = (
-    <AnimatePresence>
-      {configOpen && (
-        <>
-          <motion.div
-            className="fixed inset-0 bg-black/70 z-50 backdrop-blur-sm"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setConfigOpen(false)}
-          />
-          <motion.div
-            className="fixed inset-x-0 bottom-0 z-50 border-t border-[var(--border)] rounded-t-2xl p-4 shadow-2xl shadow-blue-900/20 bg-[var(--card)]/95 backdrop-blur-md sm:max-w-lg sm:mx-auto"
-            initial={{ y: "100%" }}
-            animate={{ y: 0 }}
-            exit={{ y: "100%" }}
-            transition={{ duration: 0.22, ease: "easeOut" }}
-          >
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-sm font-semibold text-[var(--text)]">Goal configuration</p>
-              <button
-                onClick={() => setConfigOpen(false)}
-                className="text-sm px-3 py-1.5 rounded-lg border border-[var(--border)] text-[var(--text)] hover:bg-[var(--card-soft)]"
-              >
-                Close
-              </button>
-            </div>
-            <div className="space-y-3">
-              <div className="flex flex-col gap-2">
-                <label className="text-xs text-[var(--muted)]">Group</label>
-                <select
-                  value={newGoalGroupId}
-                  onChange={(e) => setNewGoalGroupId(e.target.value)}
-                  className="w-full border border-[var(--border)] bg-[var(--card-soft)] text-[var(--text)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+  const renderConfigPanel = () =>
+    createPortal(
+      <AnimatePresence>
+        {configOpen && (
+          <>
+            <motion.div
+              className="fixed inset-0 bg-black/70 z-50 backdrop-blur-sm"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setConfigOpen(false)}
+            />
+            <motion.div
+              className="fixed inset-x-0 bottom-0 z-50 border-t border-[var(--border)] rounded-t-2xl p-4 shadow-2xl shadow-blue-900/20 bg-[var(--card)]/95 backdrop-blur-md sm:max-w-lg sm:mx-auto"
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ duration: 0.22, ease: "easeOut" }}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-sm font-semibold text-[var(--text)]">Goal configuration</p>
+                <button
+                  onClick={() => setConfigOpen(false)}
+                  className="text-sm px-3 py-1.5 rounded-lg border border-[var(--border)] text-[var(--text)] hover:bg-[var(--card-soft)]"
                 >
-                  <option value="day">Today (by day)</option>
-                  {customGroups.map((group) => (
-                    <option key={group.id} value={group.id}>
-                      {group.name}
-                    </option>
-                  ))}
-                </select>
+                  Close
+                </button>
               </div>
-              {showCreateGroup && (
+              <div className="space-y-3">
                 <div className="flex flex-col gap-2">
-                  <label className="text-xs text-[var(--muted)]">Create group</label>
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                    <input
-                      value={newGroupName}
-                      onChange={(e) => setNewGroupName(e.target.value)}
-                      placeholder="New custom group"
-                      className="flex-1 bg-[var(--card)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text)] placeholder:text-slate-400 focus:outline-none focus:border-[var(--text)]/40"
-                    />
-                    <button
-                      onClick={handleCreateGroup}
-                      className="px-3 py-2 rounded-lg bg-[var(--primary)] text-[var(--primary-contrast)] text-sm font-semibold hover:opacity-90 border border-[var(--primary)]"
-                    >
-                      Create group
-                    </button>
-                  </div>
-                </div>
-              )}
-              {sessionLayout && sessionOptions.length > 0 && (
-                <div className="flex flex-col gap-2">
-                  <label className="text-xs text-[var(--muted)]">Attach to session</label>
+                  <label className="text-xs text-[var(--muted)]">Group</label>
                   <select
-                    value={selectedSessionId}
-                    onChange={(e) => setSelectedSessionId(e.target.value)}
+                    value={newGoalGroupId}
+                    onChange={(e) => setNewGoalGroupId(e.target.value)}
                     className="w-full border border-[var(--border)] bg-[var(--card-soft)] text-[var(--text)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30"
                   >
-                    {sessionOptions.map((session) => (
-                      <option key={session.id} value={session.id}>
-                        {session.label}
+                    <option value="day">Today (by day)</option>
+                    {customGroups.map((group) => (
+                      <option key={group.id} value={group.id}>
+                        {group.name}
                       </option>
                     ))}
                   </select>
                 </div>
-              )}
-            </div>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
-  );
+                {showCreateGroup && (
+                  <div className="flex flex-col gap-2">
+                    <label className="text-xs text-[var(--muted)]">Create group</label>
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                      <input
+                        value={newGroupName}
+                        onChange={(e) => setNewGroupName(e.target.value)}
+                        placeholder="New custom group"
+                        className="flex-1 bg-[var(--card)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text)] placeholder:text-slate-400 focus:outline-none focus:border-[var(--text)]/40"
+                      />
+                      <button
+                        onClick={handleCreateGroup}
+                        className="px-3 py-2 rounded-lg bg-[var(--primary)] text-[var(--primary-contrast)] text-sm font-semibold hover:opacity-90 border border-[var(--primary)]"
+                      >
+                        Create group
+                      </button>
+                    </div>
+                  </div>
+                )}
+                {sessionLayout && sessionOptions.length > 0 && (
+                  <div className="flex flex-col gap-2">
+                    <label className="text-xs text-[var(--muted)]">Attach to session</label>
+                    <select
+                      value={selectedSessionId}
+                      onChange={(e) => setSelectedSessionId(e.target.value)}
+                      className="w-full border border-[var(--border)] bg-[var(--card-soft)] text-[var(--text)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                    >
+                      {sessionOptions.map((session) => (
+                        <option key={session.id} value={session.id}>
+                          {session.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>,
+      document.body,
+    );
 
   const header = (
     <div className="flex flex-wrap items-center gap-2">
-      <span className="hidden lg:block px-2 py-1 text-xs font-semibold rounded-full bg-[var(--pill)] text-[var(--text)]">Quick add</span>
-      <p className=" hidden lg:block text-sm text-[var(--muted)]">
+      <span className="hidden px-2 py-1 text-xs font-semibold rounded-full bg-[var(--pill)] text-[var(--text)]">Quick add</span>
+      <p className=" hidden text-sm text-[var(--muted)]">
         Add a goal to today or a custom group.
       </p>
       {!user && (
@@ -291,7 +302,7 @@ export default function QuickAddGoal({
                   {header}
                   <button
                     onClick={() => { setCompact(true); onToggleCompact?.(true); }}
-                    className="hidden lg:block text-sm px-3 py-1.5 rounded-lg border border-[var(--border)] text-[var(--text)] hover:bg-[var(--card-soft)]"
+                    className="hidden text-sm px-3 py-1.5 rounded-lg border border-[var(--border)] text-[var(--text)] hover:bg-[var(--card-soft)]"
                   >
                     Collapse
                   </button>
@@ -301,7 +312,7 @@ export default function QuickAddGoal({
             </motion.div>
           )}
         </AnimatePresence>
-        {configPanel}
+        {renderConfigPanel()}
         </div>
       </div>
     </div>,

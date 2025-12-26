@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { IconDownload, IconGripVertical, IconLayoutBottombarExpand, IconPlayerPlayFilled, IconPlayerStopFilled } from "@tabler/icons-react";
+import { IconDownload, IconLayoutBottombarExpand, IconPin, IconPlayerPauseFilled, IconPlayerPlayFilled, IconPlayerStopFilled, IconX } from "@tabler/icons-react";
+import { formatDistanceToNow } from "date-fns";
 import type { ClockitSession, Goal } from "@/types";
 import { formatDuration } from "../utils";
 import { AnimatePresence, motion } from "framer-motion";
@@ -15,8 +16,11 @@ type Props = {
   onToggleGoal: (sessionId: string, goalId: string) => void;
   onStop: (sessionId: string) => void;
   onResume: (sessionId: string) => void;
-  minimized?: boolean;
-  onToggleMinimize?: (next: boolean) => void;
+  onSetPrimary?: (sessionId: string) => void;
+  isPrimary?: boolean;
+  onPause?: (sessionId: string) => void;
+  onRemove?: (sessionId: string) => void;
+  onDownload?: (sessionId: string) => void;
 };
 
 export default function SessionCard({
@@ -28,15 +32,25 @@ export default function SessionCard({
   onToggleGoal,
   onStop,
   onResume,
-  minimized = false,
-  onToggleMinimize,
+  onSetPrimary,
+  isPrimary = false,
+  onPause,
+  onRemove,
+  onDownload,
 }: Props) {
   const [selected, setSelected] = useState("");
+  const [minimized, setMinimized] = useState(true);
 
   const goalsChip = useMemo(
     () => `${session.goals.length} goal${session.goals.length === 1 ? "" : "s"}`,
     [session.goals.length],
   );
+
+  const startedAt = session.startedAt;
+
+  const handleToggleMinimize = (next?: boolean) => {
+    setMinimized(next ?? !minimized);
+  };
 
   return (
     <motion.div
@@ -46,15 +60,14 @@ export default function SessionCard({
         width: "100%",
         ...(minimized ? { minHeight: "140px", opacity: 0.95 } : {}),
       }}
-      onClick={() => minimized && onToggleMinimize?.(false)}
-      role="button"
+      
       tabIndex={0}
-      onKeyDown={(e) => {
-        if (minimized && (e.key === "Enter" || e.key === " ")) {
-          e.preventDefault();
-          onToggleMinimize?.(false);
-        }
-      }}
+      // onKeyDown={(e) => {
+      //   if (minimized && (e.key === "Enter" || e.key === " ")) {
+      //     e.preventDefault();
+      //     handleToggleMinimize(false);
+      //   }
+      // }}
       aria-expanded={!minimized}
       aria-label={`Session card ${session.label}`}
       transition={{ type: "spring", stiffness: 260, damping: 30 }}
@@ -66,12 +79,21 @@ export default function SessionCard({
             <p className="text-xs text-slate-300 uppercase tracking-wide">
               {session.running ? "Running" : session.endedAt ? "Stopped" : "Paused"}
             </p>
+            {isPrimary && <span className="text-[10px] font-semibold px-2 py-1 rounded-full bg-[var(--pill)] border border-[var(--border)] text-[var(--text)]">Primary</span>}
           </div>
           <h3 className="text-lg font-semibold text-[var(--text)]">{session.label}</h3>
         </div>
         <div className="flex items-center gap-2">
+          {!isPrimary && onSetPrimary && (
+            <button
+              onClick={() => onSetPrimary(session.id)}
+              className="px-3 py-1.5 rounded-lg border border-[var(--border)] text-[var(--text)] bg-[var(--card-soft)] text-xs hover:border-[var(--text)]/30"
+            >
+             <IconPin size={14} className="inline-block" />
+            </button>
+          )}
           <button
-            onClick={() => onToggleMinimize?.(!minimized)}
+            onClick={() => handleToggleMinimize()}
             className="p-2 rounded-lg border border-[var(--border)] text-[var(--text)] bg-[var(--card-soft)]"
             aria-label={minimized ? "Expand session" : "Minimize session"}
           >
@@ -82,11 +104,19 @@ export default function SessionCard({
           </button>
           {session.running ? (
             <button
-              onClick={() => onStop(session.id)}
-              className="p-2 rounded-lg border border-[var(--border)] text-rose-500 bg-[var(--card-soft)] hover:bg-rose-50"
-              aria-label="Stop Session"
+              onClick={() => onPause?.(session.id)}
+              className="p-2 rounded-lg border border-[var(--border)] text-amber-500 bg-[var(--card-soft)] hover:bg-amber-50"
+              aria-label="Pause Session"
             >
-              <IconPlayerStopFilled size={16} />
+              <IconPlayerPauseFilled size={16} />
+            </button>
+          ) : session.endedAt ? (
+            <button
+              onClick={() => onRemove?.(session.id)}
+              className="p-2 rounded-lg border border-[var(--border)] text-rose-500 bg-[var(--card-soft)] hover:bg-rose-50"
+              aria-label="Remove Session"
+            >
+              <IconX size={16} />
             </button>
           ) : (
             <button
@@ -97,34 +127,60 @@ export default function SessionCard({
               <IconPlayerPlayFilled size={16} />
             </button>
           )}
-          <div
+          {!session.endedAt && (
+            <button
+              onClick={() => onStop(session.id)}
+              className="p-2 rounded-lg border border-[var(--border)] text-rose-500 bg-[var(--card-soft)] hover:bg-rose-50"
+              aria-label="Stop Session"
+            >
+              <IconPlayerStopFilled size={16} />
+            </button>
+          )}
+          {/* <div
             className="session-drag-handle cursor-grab p-2 rounded-lg border border-[var(--border)] bg-[var(--card-soft)]"
             aria-label="Drag session card"
             role="button"
             tabIndex={-1}
           >
             <IconGripVertical size={16} />
-          </div>
+          </div> */}
         </div>
       </div>
       <div className="flex items-baseline justify-between">
         <div>
-          <p className="text-xs text-slate-300 flex items-center gap-2 mb-2">
+         {!minimized && <p className="text-xs text-slate-300 flex items-center gap-2 mb-2">
             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[var(--pill)] text-[var(--text)] border border-[var(--border)]">
               {goalsChip}
             </span>
-          </p>
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[var(--pill)] text-[var(--text)] border border-[var(--border)]">
+              {startedAt ? `Started ${new Date(startedAt).toLocaleString()}` : "Not started yet"}
+            </span>
+          </p>}
           <div className="text-4xl font-mono text-[var(--text)]">{formatDuration(duration)}</div>
           {minimized && session.goals.length > 0 && (
-            <div className="mt-2 text-xs text-[var(--muted)] italic">
+            <motion.div role="button" onClick={() => minimized && handleToggleMinimize(false)} className="mt-2 text-xs text-[var(--muted)] italic text-blue-500">
               {session.goals.length} goal{session.goals.length === 1 ? "" : "s"} hidden — expand to view your session goals
+            </motion.div>
+          )}
+          {!session.running && !session.endedAt && (
+            <div className="mt-1 text-xs text-amber-500 space-y-0.5">
+              <p>Paused sessions auto-purge after 12 hours.</p>
+              {session.startedAt && (
+                <p className="text-[var(--muted)]">
+                  Paused {formatDistanceToNow(new Date(session.startedAt), { addSuffix: true })}
+                </p>
+              )}
             </div>
           )}
         </div>
         {!session.running && session.endedAt && (
-          <div className="flex items-center gap-2 text-xs text-emerald-200">
+          <button
+            type="button"
+            onClick={() => onDownload?.(session.id)}
+            className="flex items-center gap-2 text-xs text-emerald-200 hover:text-emerald-100 underline-offset-4"
+          >
             <IconDownload size={14} /> CSV ready
-          </div>
+          </button>
         )}
       </div>
       <AnimatePresence initial={false}>

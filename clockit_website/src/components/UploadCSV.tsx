@@ -66,7 +66,7 @@ export default function UploadCSV({ uid }: UploadCSVProps) {
   return (
     <div className="space-y-4">
       <div className="relative group cursor-pointer">
-        <div className="relative bg-white border-2 border-dashed border-gray-300 rounded-xl p-10 text-center transition-all hover:border-blue-400 hover:bg-blue-50/30">
+        <div className="relative bg-[var(--card)] border-2 border-dashed border-[var(--border)] rounded-xl p-10 text-center transition-all hover:border-blue-400 hover:bg-[var(--card-soft)]">
           <input
             type="file"
             accept=".csv"
@@ -86,8 +86,8 @@ export default function UploadCSV({ uid }: UploadCSVProps) {
               )}
             </div>
             <div>
-              <p className="text-lg font-semibold text-gray-900 mb-1">Click to upload CSV</p>
-              <p className="text-sm text-gray-500">or drag and drop file here</p>
+              <p className="text-lg font-semibold text-[var(--text)] mb-1">Click to upload CSV</p>
+              <p className="text-sm text-[var(--muted)]">or drag and drop file here</p>
             </div>
           </div>
         </div>

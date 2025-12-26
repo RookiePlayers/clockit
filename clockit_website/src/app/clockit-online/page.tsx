@@ -1,90 +1,135 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { IconChecks, IconClockPlay, IconLayoutSidebarLeftCollapse, IconLayoutSidebarLeftExpand, IconTargetArrow, IconTimelineEvent } from "@tabler/icons-react";
+import { useRouter, useSearchParams } from "next/navigation";
 import NavBar from "@/components/NavBar";
 import { auth } from "@/lib/firebase";
-import type { ClockitSession, Goal } from "@/types";
+import useFeatureFlags from "@/hooks/useFeatureFlags";
+import type { Goal } from "@/types";
 import type { GroupView } from "./types";
-import { toDateKey } from "./utils";
 import GoalsTab from "./components/GoalsTab";
 import SessionsTab from "./components/SessionsTab";
 
-const csvHeader =
-  "startedIso,endedIso,durationSeconds,idleSeconds,linesAdded,linesDeleted,perFileSeconds,perLanguageSeconds,authorName,authorEmail,machine,ideName,workspace,repoPath,branch,issueKey,comment,goals\n";
-
-const downloadSessionCsv = (session: ClockitSession, userName?: string, userEmail?: string) => {
-  if (!session.endedAt) {return;}
-  const startedIso = new Date(session.startedAt).toISOString();
-  const endedIso = new Date(session.endedAt).toISOString();
-  const durationMs = session.accumulatedMs ?? session.endedAt - session.startedAt;
-  const durationSeconds = Math.max(1, Math.round(durationMs / 1000));
-  const values = [
-    startedIso,
-    endedIso,
-    durationSeconds,
-    session.idleSeconds ?? 0,
-    session.linesAdded ?? 0,
-    session.linesDeleted ?? 0,
-    JSON.stringify(session.perFileSeconds ?? {}),
-    JSON.stringify(session.perLanguageSeconds ?? {}),
-    userName ?? "Clockit Online",
-    userEmail ?? "",
-    "Clockit Online",
-    "Clockit Online",
-    "Clockit Online",
-    "",
-    "",
-    session.groupName ?? "",
-    session.comment ?? "",
-    JSON.stringify(
-      session.goals.map((g) => ({
-        title: g.title,
-        completed: g.completed,
-        completedAt: g.completedAt,
-        groupId: g.groupId,
-        groupName: g.groupName,
-        estimatedGoalTime: g.estimatedGoalTime,
-      })),
-    ),
-  ];
-
-  const row =
-    values
-      .map((value) => {
-        const str = String(value ?? "");
-        return /[",\n]/.test(str) ? `"${str.replace(/"/g, '""')}"` : str;
-      })
-      .join(",") + "\n";
-
-  const blob = new Blob([csvHeader + row], { type: "text/csv" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = `clockit-session-${toDateKey(startedIso)}.csv`;
-  link.click();
-  URL.revokeObjectURL(url);
-};
 
 export default function ClockitOnlinePage() {
   const [user] = useAuthState(auth);
-  const [activeTab, setActiveTab] = useState<"goals" | "sessions">("goals");
+  const { isEnabled } = useFeatureFlags(user?.uid);
+  const goalsEnabled = !!user?.uid && isEnabled("clockit-goals", false);
+  const onlineEnabled = isEnabled("clockit-online", true);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [activeTab, setActiveTab] = useState<"goals" | "sessions">(goalsEnabled ? "goals" : "sessions");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [hideMobileTabs, setHideMobileTabs] = useState(false);
   const [goals, setGoals] = useState<Goal[]>([]);
   const sessionStarterRef = useRef<((group: GroupView) => void) | null>(null);
+  const lastScrollYRef = useRef(0);
 
   const handleRegisterStartFromGroup = useCallback((fn: (group: GroupView) => void) => {
     sessionStarterRef.current = fn;
   }, []);
 
+  const syncTabToUrl = useCallback(
+    (tab: "goals" | "sessions") => {
+      const params = new URLSearchParams(searchParams?.toString() || "");
+      params.set("tab", tab);
+      router.replace(`?${params.toString()}`, { scroll: false });
+    },
+    [router, searchParams],
+  );
+
+  const setTab = useCallback(
+    (tab: "goals" | "sessions") => {
+      if (tab === "goals" && !goalsEnabled) {
+        setActiveTab("sessions");
+        return;
+      }
+      setActiveTab(tab);
+      syncTabToUrl(tab);
+    },
+    [syncTabToUrl, goalsEnabled],
+  );
+
+  useEffect(() => {
+    const tabParam = searchParams?.get("tab");
+    if (tabParam === "goals" && !goalsEnabled) {
+      setActiveTab("sessions");
+      syncTabToUrl("sessions");
+      return;
+    }
+    if (tabParam === "goals" || tabParam === "sessions") {
+      const set = () => setActiveTab((prev) => (prev === tabParam ? prev : tabParam));
+      return set();
+    }
+  }, [searchParams, goalsEnabled, syncTabToUrl]);
+
+  useEffect(() => {
+    if (!onlineEnabled) {
+      router.replace("/dashboard");
+    }
+  }, [onlineEnabled, router]);
+
+  if (!onlineEnabled) {
+    return (
+      <div className="min-h-screen theme-bg">
+        <NavBar
+          userName={user?.displayName || user?.email || undefined}
+          onSignOut={user ? () => auth.signOut() : undefined}
+          links={[
+            { href: "/dashboard", label: "Dashboard" },
+            { href: "/advanced-stats", label: "Advanced Stats" },
+            { href: "/session-activity", label: "Session Activity" },
+            { href: "/docs", label: "Docs" },
+            { href: "/profile", label: "Profile" },
+          ]}
+        />
+        <main className="max-w-4xl mx-auto px-6 py-12">
+          <div className="border border-[var(--border)] bg-[var(--card)] rounded-2xl p-6 shadow-lg shadow-blue-900/10 text-center space-y-3">
+            <h1 className="text-2xl font-bold text-[var(--text)]">Clockit Online is not available for your account</h1>
+            <p className="text-[var(--muted)]">
+              This feature is currently disabled. If you believe this is an error, please contact support or your administrator.
+            </p>
+            <div className="flex justify-center gap-3">
+              <Link href="/dashboard" className="px-4 py-2 rounded-lg bg-[var(--primary)] text-[var(--primary-contrast)] font-semibold hover:opacity-90">
+                Go to dashboard
+              </Link>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   const handleStartClockit = useCallback(
     (group: GroupView) => {
       sessionStarterRef.current?.(group);
-      setActiveTab("sessions");
+      setTab("sessions");
     },
-    [],
+    [setTab],
   );
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentY = window.scrollY;
+      const lastY = lastScrollYRef.current;
+      const threshold = Math.max(0, window.innerHeight * 0.5);
+      const scrolledPastHalf = currentY > threshold;
+      const scrollingUp = currentY < lastY - 6;
+      const scrollingDown = currentY > lastY + 6;
+
+      if (scrolledPastHalf && scrollingDown) {
+        setHideMobileTabs(true);
+      } else if (scrollingUp || !scrolledPastHalf) {
+        setHideMobileTabs(false);
+      }
+
+      lastScrollYRef.current = currentY;
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   return (
     <div className="min-h-screen theme-bg">
@@ -93,15 +138,24 @@ export default function ClockitOnlinePage() {
         onSignOut={user ? () => auth.signOut() : undefined}
         links={[
           { href: "/dashboard", label: "Dashboard" },
-          { href: "/clockit-online", label: "Clockit Online", active: true },
+          ...(onlineEnabled ? [{ href: "/clockit-online", label: "Clockit Online", active: true }] : []),
           { href: "/advanced-stats", label: "Advanced Stats" },
-          { href: "/recent-activity", label: "Recent Activity" },
+          { href: "/session-activity", label: "Session Activity" },
           { href: "/docs", label: "Docs" },
           { href: "/profile", label: "Profile" },
         ]}
       />
 
       <main className="max-w-6xl mx-auto px-6 pb-32 pt-8 relative">
+        <div
+          className="pointer-events-none absolute inset-0 opacity-40"
+          style={{
+            backgroundImage:
+              "radial-gradient(circle at 1px 1px, rgba(148, 163, 184, 0.25) 1px, transparent 0), radial-gradient(circle at 50% 50%, rgba(59, 130, 246, 0.06), transparent 60%)",
+            backgroundSize: "24px 24px, 100% 100%",
+          }}
+          aria-hidden
+        />
         <div
           className="lg:grid lg:gap-6"
           style={{ gridTemplateColumns: sidebarCollapsed ? "64px 1fr" : "260px 1fr" }}
@@ -122,12 +176,12 @@ export default function ClockitOnlinePage() {
                 </div>
               <div className="flex flex-col gap-2">
                 {[
-                  { key: "goals", label: "Clockit Goals", Icon: IconTargetArrow },
+                  ...(goalsEnabled ? [{ key: "goals", label: "Clockit Goals", Icon: IconTargetArrow }] : []),
                   { key: "sessions", label: "Clockit Sessions", Icon: IconTimelineEvent },
                 ].map(({ key, label, Icon }) => (
                   <button
                     key={key}
-                    onClick={() => setActiveTab(key as "goals" | "sessions")}
+                    onClick={() => setTab(key as "goals" | "sessions")}
                     className={`flex items-center gap-3 px-3 py-2 rounded-xl font-semibold transition-colors ${
                       activeTab === key
                         ? "bg-[var(--primary)] text-[var(--primary-contrast)] shadow"
@@ -142,9 +196,44 @@ export default function ClockitOnlinePage() {
             </div>
           </aside>
 
+        <div
+          className={`lg:hidden sticky top-14 z-40 px-4 transition duration-200 ease-out ${
+            hideMobileTabs ? "opacity-0 pointer-events-none -translate-y-1" : "opacity-100"
+          }`}
+        >
+          <div className="bg-[var(--card)]/90 backdrop-blur-md rounded-2xl px-3 py-3 flex flex-row gap-2 border border-[var(--border)] shadow-lg shadow-blue-900/10">
+            {[
+              ...(goalsEnabled ? [{ key: "goals", label: "Goals", Icon: IconChecks, disabled: false }] : []),
+              { key: "sessions", label: "Sessions", Icon: IconClockPlay, disabled: false },
+            ].map(({ key, label, Icon, disabled }) => (
+              <button
+                key={key}
+                onClick={() => !disabled && setTab(key as "goals" | "sessions")}
+                disabled={disabled}
+                className={`w-fit inline-flex items-center gap-2 text-sm font-semibold rounded-xl px-3 py-2 text-left ${
+                  disabled
+                    ? "bg-[var(--card-soft)] text-[var(--muted)] opacity-60 cursor-not-allowed"
+                    : activeTab === key
+                        ? "bg-[var(--primary)] text-[var(--primary-contrast)] shadow"
+                        : "bg-[var(--card-soft)] text-[var(--muted)] hover:text-[var(--text)]"
+                }`}
+              >
+                <Icon size={18} />
+                <span>{label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
           <div className="space-y-6">
             <div className={activeTab === "goals" ? "block" : "hidden"}>
-              <GoalsTab user={user} goals={goals} setGoals={setGoals} onStartClockit={handleStartClockit} showQuickAdd={activeTab === "goals"} />
+              <GoalsTab
+                user={user}
+                goals={goals}
+                setGoals={setGoals}
+                onStartClockit={handleStartClockit}
+                showQuickAdd={activeTab === "goals" && goalsEnabled}
+                goalsEnabled={goalsEnabled}
+              />
             </div>
             <div className={activeTab === "sessions" ? "block" : "hidden"}>
               <SessionsTab
@@ -153,32 +242,13 @@ export default function ClockitOnlinePage() {
                 setGoals={setGoals}
                 setActiveTab={setActiveTab}
                 onRegisterStartFromGroup={handleRegisterStartFromGroup}
-                downloadSessionCsv={downloadSessionCsv}
-                showQuickAdd={activeTab === "sessions"}
+                showQuickAdd={activeTab === "sessions" && goalsEnabled}
+                goalsEnabled={goalsEnabled}
               />
             </div>
           </div>
         </div>
 
-        <div className="lg:hidden fixed top-3 left-1/2 -translate-x-1/2 w-[calc(100%-32px)] z-40">
-          <div className="bg-[var(--card)]/85 backdrop-blur-md border border-[var(--border)]/70 rounded-2xl shadow-xl shadow-blue-900/10 px-3 py-3 flex items-center justify-around">
-            {[
-              { key: "goals", label: "Goals", Icon: IconChecks },
-              { key: "sessions", label: "Sessions", Icon: IconClockPlay },
-            ].map(({ key, label, Icon }) => (
-              <button
-                key={key}
-                onClick={() => setActiveTab(key as "goals" | "sessions")}
-                className={`flex flex-col items-center gap-1 text-xs font-semibold ${
-                  activeTab === key ? "text-[var(--text)]" : "text-[var(--muted)]"
-                }`}
-              >
-                <Icon size={18} />
-                {label}
-              </button>
-            ))}
-          </div>
-        </div>
       </main>
     </div>
   );

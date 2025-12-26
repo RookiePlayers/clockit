@@ -38,7 +38,10 @@ const serializeSessions = (userId: string) => Array.from(orchestrator.getSession
 const initCache = async () => {
   try {
     const client = await getRedisClient();
-    if (!client) { return; }
+    if (!client) {
+      console.warn("[clockit-server] Redis not configured, running in memory-only mode");
+      return;
+    }
     redisController = RedisController.getInstance(client);
     const all = await Cachier.getInstance().getCache().getAllSessions();
     Object.entries(all).forEach(([userId, sessions]) => {
@@ -49,14 +52,17 @@ const initCache = async () => {
     });
     console.log("[clockit-server] Redis connected");
   } catch (err) {
-    console.error("[clockit-server] Failed to init cache", err);
+    console.error("[clockit-server] Failed to init cache, continuing without Redis", err);
   }
 };
 
 
 const handleConnection = (socket: WebSocket, req: http.IncomingMessage) => {
-  const token = extractBearer(req);
+  const url = req.url ? new URL(req.url, "http://localhost") : null;
+  const tokenFromQuery = url?.searchParams.get("token");
+  const token = extractBearer(req) || tokenFromQuery;
   if (!token) {
+    console.warn("[ws] missing token, closing connection");
     socket.close(4401, "Unauthorized");
     return;
   }
@@ -65,9 +71,11 @@ const handleConnection = (socket: WebSocket, req: http.IncomingMessage) => {
     .verifyIdToken(token)
     .then((decoded) => {
       userId = decoded.uid;
+      console.info("[ws] authenticated connection", { userId });
       WebsocketOrchestrator.getInstance().ensureUserMaps(userId);
       orchestrator.getSocketsByUser().get(userId)!.add(socket);
 
+      console.info("[ws] sending ready snapshot", { userId, sessions: serializeSessions(userId).length });
       socket.send(
         JSON.stringify({
           type: "ready",
@@ -76,7 +84,8 @@ const handleConnection = (socket: WebSocket, req: http.IncomingMessage) => {
       );
       startListenersForSocket(socket, [], userId);
     })
-    .catch(() => {
+    .catch((err) => {
+      console.warn("[ws] token verification failed", { reason: err instanceof Error ? err.message : "unknown" });
       socket.close(4401, "Unauthorized");
     });
 };

@@ -35,25 +35,25 @@ export default function FocusRadars({ initialRange = "week" }: Props) {
 
   if (isLoading) {
     return (
-      <section className="card-clean bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-6">
-        <div className="animate-pulse h-48 bg-gray-100 rounded-lg" />
+      <section className="card-clean p-6 rounded-2xl space-y-6">
+        <div className="animate-pulse h-48 bg-[var(--card-soft)] rounded-lg" />
       </section>
     );
   }
 
   if (statsError) {
     return (
-      <section className="card-clean bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-6">
-        <p className="text-sm text-red-600">Error loading focus radars: {statsError}</p>
+      <section className="card-clean p-6 rounded-2xl space-y-6">
+        <p className="text-sm text-red-500">Error loading focus radars: {statsError}</p>
       </section>
     );
   }
   return (
-    <section className="card-clean bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-6">
+    <section className="card-clean p-6 rounded-2xl space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-lg font-semibold text-gray-900">Focus radars</h2>
-          <p className="text-sm text-gray-600">Language and workspace focus across {rangeLabels[range].toLowerCase()} buckets.</p>
+          <h2 className="text-lg font-semibold text-[var(--text)]">Focus radars</h2>
+          <p className="text-sm text-[var(--muted)]">Language and workspace focus across {rangeLabels[range].toLowerCase()} buckets.</p>
         </div>
         <div className="flex flex-wrap gap-2">
           {(["week", "month", "year", "all"] as Range[]).map((key) => (
@@ -62,9 +62,8 @@ export default function FocusRadars({ initialRange = "week" }: Props) {
               onClick={() => setRange(key)}
               className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
                 range === key
-                  ? "bg-indigo-50 text-indigo-700 border-indigo-200"
-                  : "bg-white text-gray-700 border-gray-200 hover:border-indigo-200 hover:text-indigo-700"
-              }`}
+                  ? "bg-[var(--primary)] text-[var(--primary-contrast)] border-[var(--primary)]"
+                      : "bg-[var(--card)] text-[var(--text)] border-[var(--border)] hover:border-[var(--primary)] hover:text-[var(--primary)]"}`}
             >
               {rangeLabels[key]}
             </button>

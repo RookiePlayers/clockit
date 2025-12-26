@@ -106,8 +106,8 @@ export default function Stats({ uid }: StatsProps) {
 
   if (!snapshot || snapshot.empty) {
     return (
-      <div className="text-center py-12 border-2 border-dashed border-gray-200 rounded-xl bg-gray-50">
-        <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center mx-auto mb-3 shadow-sm border border-gray-100">
+      <div className="text-center py-12 border-2 border-dashed border-[var(--border)] rounded-xl bg-[var(--card)]">
+        <div className="w-12 h-12 bg-[var(--card)] rounded-full flex items-center justify-center mx-auto mb-3 shadow-sm border border-gray-100">
           <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
         </div>
         <p className="text-gray-500 font-medium">No data found</p>
@@ -229,7 +229,7 @@ export default function Stats({ uid }: StatsProps) {
           return (
             <motion.div
               key={doc.id}
-              className="group flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-white hover:bg-gray-50 transition-colors border border-gray-100 rounded-xl p-4 shadow-sm hover:shadow-md"
+              className="group flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-[var(--card)] hover:bg-[var(--card-soft)] transition-colors border border-[var(--border)] rounded-xl p-4 shadow-sm hover:shadow-md"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3 }}
