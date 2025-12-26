@@ -3,19 +3,68 @@
 @tailwind utilities;
 
 :root {
-  --bg-light: #f8f9fa;
-  --text-primary: #111827;
-  --text-secondary: #4b5563;
-  --accent-blue: #3b82f6;
+  --bg: #f7f9fc;
+  --text: #0f172a;
+  --muted: #475569;
+  --primary: #2563EB;
+  --primary-contrast: #ffffff;
+  --card: #ffffff;
+  --card-soft: #eef2f7;
+  --border: rgba(15, 23, 42, 0.08);
+  --accent: #4A55C5;
+  --accent-contrast: #ffffff;
+  --pill: #e2e8f0;
+  --shadow: 0 24px 70px rgba(15, 23, 42, 0.12);
+}
+
+.theme-dark {
+  --bg: #0b1021;
+  --text: #e5e7eb;
+  --muted: #9ca3af;
+  --primary: #2563EB;
+  --primary-contrast: #ffffff;
+  --card: rgba(255, 255, 255, 0.05);
+  --card-soft: rgba(255, 255, 255, 0.08);
+  --border: rgba(255, 255, 255, 0.12);
+  --accent: #4A55C5;
+  --accent-contrast: #ffffff;
+  --pill: rgba(255, 255, 255, 0.08);
+  --shadow: 0 28px 90px rgba(0, 0, 0, 0.35);
 }
 
 body {
-  background-color: var(--bg-light);
-  color: var(--text-primary);
-  background-image: radial-gradient(#e5e7eb 1px, transparent 1px);
+  background: var(--bg);
+  color: var(--text);
+  background-image: radial-gradient(var(--border) 1px, transparent 1px);
   background-size: 24px 24px;
   min-height: 100vh;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
+
+.theme-bg {
+  background: var(--bg);
+  color: var(--text);
+}
+
+.theme-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+}
+
+.theme-soft {
+  background: var(--card-soft);
+}
+
+.theme-muted {
+  color: var(--muted);
+}
+
+.theme-pill {
+  background: var(--pill);
+  color: var(--text);
+}
+
 
 @layer utilities {
   .card-clean {
