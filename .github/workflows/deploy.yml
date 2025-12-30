@@ -23,9 +23,13 @@ jobs:
   deploy_api:
     name: Deploy API
     uses: ./.github/workflows/deploy-api.yml
+    with:
+      target-env: ${{ inputs.target-env }}
     secrets: inherit
 
   deploy_socket:
     name: Deploy Socket Server
     uses: ./.github/workflows/deploy-socket.yml
+    with:
+      target-env: ${{ inputs.target-env }}
     secrets: inherit
