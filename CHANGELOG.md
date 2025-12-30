@@ -1,3 +1,11 @@
+# [1.10.0](https://github.com/RookiePlayers/clockit/compare/v1.9.0...v1.10.0) (2025-12-30)
+
+
+### Features
+
+* Add SessionCard and SessionsTab components for managing sessions and goals ([c0c29e1](https://github.com/RookiePlayers/clockit/commit/c0c29e1264691e443b9bbbf74fd7eb5f4d126e8c))
+* Add SessionCard and SessionsTab components for managing sessions and goals ([d26fff6](https://github.com/RookiePlayers/clockit/commit/d26fff685d9a1e61fe5dc5966d4a1cefbe968c24))
+
 # [1.9.0](https://github.com/RookiePlayers/clockit/compare/v1.8.0...v1.9.0) (2025-12-07)
 
 
