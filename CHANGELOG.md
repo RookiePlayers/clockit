@@ -1,3 +1,10 @@
+## [1.10.2](https://github.com/RookiePlayers/clockit/compare/v1.10.1...v1.10.2) (2025-12-30)
+
+
+### Bug Fixes
+
+* Update Dockerfile for multi-stage build ([c9e1eb2](https://github.com/RookiePlayers/clockit/commit/c9e1eb20025bc3d087961e9f6e2b682f3f02e282))
+
 ## [1.10.1](https://github.com/RookiePlayers/clockit/compare/v1.10.0...v1.10.1) (2025-12-30)
 
 
