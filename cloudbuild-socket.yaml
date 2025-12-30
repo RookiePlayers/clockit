@@ -40,38 +40,38 @@ steps:
         ENABLE_ADMIN_SETUP="${_ENABLE_ADMIN_SETUP}"
         ADMIN_SETUP_TOKEN="${_ADMIN_SETUP_TOKEN}"
         INITIAL_ADMIN_EMAILS="${_INITIAL_ADMIN_EMAILS}"
-        if [ -z "$LOG_LEVEL" ]; then LOG_LEVEL="info"; fi
-        if [ -z "$ENABLE_ADMIN_SETUP" ]; then ENABLE_ADMIN_SETUP="false"; fi
+        if [ -z "$$LOG_LEVEL" ]; then LOG_LEVEL="info"; fi
+        if [ -z "$$ENABLE_ADMIN_SETUP" ]; then ENABLE_ADMIN_SETUP="false"; fi
         ENV_VARS="NODE_ENV=production,PORT=8080"
-        if [ -n "$REDIS_URL" ]; then
-          ENV_VARS="$ENV_VARS,REDIS_URL=$REDIS_URL"
+        if [ -n "$$REDIS_URL" ]; then
+          ENV_VARS="$$ENV_VARS,REDIS_URL=$$REDIS_URL"
         fi
-        if [ -n "$FIREBASE_B64" ]; then
-          ENV_VARS="$ENV_VARS,FIREBASE_SERVICE_ACCOUNT_B64=$FIREBASE_B64"
+        if [ -n "$$FIREBASE_B64" ]; then
+          ENV_VARS="$$ENV_VARS,FIREBASE_SERVICE_ACCOUNT_B64=$$FIREBASE_B64"
         fi
-        if [ -n "$API_BASE_URL" ]; then
-          ENV_VARS="$ENV_VARS,API_BASE_URL=$API_BASE_URL"
+        if [ -n "$$API_BASE_URL" ]; then
+          ENV_VARS="$$ENV_VARS,API_BASE_URL=$$API_BASE_URL"
         fi
-        if [ -n "$ALLOWED_ORIGINS" ]; then
-          ENV_VARS="$ENV_VARS,ALLOWED_ORIGINS=$ALLOWED_ORIGINS"
+        if [ -n "$$ALLOWED_ORIGINS" ]; then
+          ENV_VARS="$$ENV_VARS,ALLOWED_ORIGINS=$$ALLOWED_ORIGINS"
         fi
-        if [ -n "$RATE_LIMIT_WINDOW_MS" ]; then
-          ENV_VARS="$ENV_VARS,RATE_LIMIT_WINDOW_MS=$RATE_LIMIT_WINDOW_MS"
+        if [ -n "$$RATE_LIMIT_WINDOW_MS" ]; then
+          ENV_VARS="$$ENV_VARS,RATE_LIMIT_WINDOW_MS=$$RATE_LIMIT_WINDOW_MS"
         fi
-        if [ -n "$RATE_LIMIT_MAX_REQUESTS" ]; then
-          ENV_VARS="$ENV_VARS,RATE_LIMIT_MAX_REQUESTS=$RATE_LIMIT_MAX_REQUESTS"
+        if [ -n "$$RATE_LIMIT_MAX_REQUESTS" ]; then
+          ENV_VARS="$$ENV_VARS,RATE_LIMIT_MAX_REQUESTS=$$RATE_LIMIT_MAX_REQUESTS"
         fi
-        if [ -n "$LOG_LEVEL" ]; then
-          ENV_VARS="$ENV_VARS,LOG_LEVEL=$LOG_LEVEL"
+        if [ -n "$$LOG_LEVEL" ]; then
+          ENV_VARS="$$ENV_VARS,LOG_LEVEL=$$LOG_LEVEL"
         fi
-        if [ -n "$ENABLE_ADMIN_SETUP" ]; then
-          ENV_VARS="$ENV_VARS,ENABLE_ADMIN_SETUP=$ENABLE_ADMIN_SETUP"
+        if [ -n "$$ENABLE_ADMIN_SETUP" ]; then
+          ENV_VARS="$$ENV_VARS,ENABLE_ADMIN_SETUP=$$ENABLE_ADMIN_SETUP"
         fi
-        if [ -n "$ADMIN_SETUP_TOKEN" ]; then
-          ENV_VARS="$ENV_VARS,ADMIN_SETUP_TOKEN=$ADMIN_SETUP_TOKEN"
+        if [ -n "$$ADMIN_SETUP_TOKEN" ]; then
+          ENV_VARS="$$ENV_VARS,ADMIN_SETUP_TOKEN=$$ADMIN_SETUP_TOKEN"
         fi
-        if [ -n "$INITIAL_ADMIN_EMAILS" ]; then
-          ENV_VARS="$ENV_VARS,INITIAL_ADMIN_EMAILS=$INITIAL_ADMIN_EMAILS"
+        if [ -n "$$INITIAL_ADMIN_EMAILS" ]; then
+          ENV_VARS="$$ENV_VARS,INITIAL_ADMIN_EMAILS=$$INITIAL_ADMIN_EMAILS"
         fi
 
         gcloud run deploy clockit-socket \
@@ -79,7 +79,7 @@ steps:
           --region "europe-west4" \
           --platform "managed" \
           --allow-unauthenticated \
-          --set-env-vars "$ENV_VARS" \
+          --set-env-vars "$$ENV_VARS" \
           --max-instances "10" \
           --min-instances "0" \
           --memory "512Mi" \
