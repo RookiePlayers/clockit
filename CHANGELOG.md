@@ -1,3 +1,10 @@
+## [1.10.5](https://github.com/RookiePlayers/clockit/compare/v1.10.4...v1.10.5) (2025-12-30)
+
+
+### Bug Fixes
+
+* Update deployment workflows to use correct Redis URL secret ([6e10f4d](https://github.com/RookiePlayers/clockit/commit/6e10f4ddddf5952ccd7fc6d6f844f2a3a883ffe9))
+
 ## [1.10.4](https://github.com/RookiePlayers/clockit/compare/v1.10.3...v1.10.4) (2025-12-30)
 
 
