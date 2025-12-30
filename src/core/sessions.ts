@@ -65,7 +65,7 @@ export function makeSession(args: {
 /** Remove idle time from the end of a session (e.g., last N ms of inactivity). */
 export function trimIdleTail(s: Session, idle: IdleTrim): Session {
   const cut = Math.max(0, Math.floor((idle.tailIdleMs ?? 0) / 1000));
-  if (!cut) {return s;}
+  if (!cut) { return s; }
   const dur = Math.max(0, s.durationSeconds - cut);
   const endedIso = addSecondsToIso(s.startedIso, dur);
   return { ...s, durationSeconds: dur, endedIso };

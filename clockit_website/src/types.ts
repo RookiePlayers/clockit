@@ -1,3 +1,5 @@
+import z from "zod";
+
 export type Range = "week" | "month" | "year" | "all";
 
 export type MetricStats = {
@@ -97,3 +99,57 @@ export type ClockitSessionUpload = Omit<ClockitSession, "groupId" | "groupName" 
   createdAt: string;
   lastUpdatedAt?: string;
 }
+
+export type UploadRow = {
+  id: string;
+  filename: string;
+  uploadedAt?: Date | null;
+  source: "manual" | "auto";
+  count: number;
+  ideName?: string;
+};
+
+export type SessionUpload = {
+  startedIso?: string;
+  endedIso?: string;
+  durationSeconds?: number;
+  title?: string;
+  idleSeconds?: number;
+  linesAdded?: number;
+  linesDeleted?: number;
+  perFileSeconds?: Record<string, number>;
+  perLanguageSeconds?: Record<string, number>;
+  authorName?: string;
+  authorEmail?: string;
+  machine?: string;
+  ideName?: string;
+  workspace?: string;
+  repoPath?: string;
+  branch?: string | null;
+  issueKey?: string | null;
+  comment?: string;
+  meta?: Record<string, unknown>;
+  goals?: Goal[];
+}
+export const sessionUploadSchema = z.object({
+  startedIso: z.string().optional(),
+  endedIso: z.string().optional(),
+  durationSeconds: z.coerce.number().optional(),
+  title: z.string().optional(),
+  idleSeconds: z.coerce.number().optional(),
+  linesAdded: z.coerce.number().optional(),
+  linesDeleted: z.coerce.number().optional(),
+  perFileSeconds: z.record(z.string(), z.coerce.number()).optional(),
+  perLanguageSeconds: z.record(z.string(), z.coerce.number()).optional(),
+  authorName: z.string().optional(),
+  authorEmail: z.string().optional(),
+  machine: z.string().optional(),
+  ideName: z.string().optional(),
+  workspace: z.string().optional(),
+  repoPath: z.string().optional(),
+  branch: z.string().nullable().optional(),
+  issueKey: z.string().nullable().optional(),
+  comment: z.string().optional(),
+  meta: z.record(z.string(), z.unknown()).optional(),
+  goals: z.array(z.any()).optional(),
+});

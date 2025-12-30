@@ -5,7 +5,7 @@ import * as path from 'path';
 import * as os from 'os';
 
 let vscode: typeof import('vscode') | undefined;
-try { vscode = require('vscode'); } catch {}
+try { vscode = require('vscode'); } catch { }
 
 export class CsvSink extends BaseSink {
   constructor(cfg: TimeSinkConfig) { super({ ...cfg, kind: 'csv' }); }
@@ -14,9 +14,9 @@ export class CsvSink extends BaseSink {
     return { ok: true };
   }
   private expand(p?: string) {
-    if (!p) {return p;}
-    if (p === '~') {return os.homedir();}
-    if (p.startsWith('~/')) {return path.join(os.homedir(), p.slice(2));}
+    if (!p) { return p; }
+    if (p === '~') { return os.homedir(); }
+    if (p.startsWith('~/')) { return path.join(os.homedir(), p.slice(2)); }
     return p;
   }
 
@@ -29,30 +29,30 @@ export class CsvSink extends BaseSink {
   }
 
   async export(s: Session): Promise<Result> {
-  const ensureDir = Boolean(this.options.ensureDirectory ?? true);
+    const ensureDir = Boolean(this.options.ensureDirectory ?? true);
 
-  const dir = this.expand(String(this.options.outputDirectory || '')) || this.resolveDefaultDir();
+    const dir = this.expand(String(this.options.outputDirectory || '')) || this.resolveDefaultDir();
 
-  const file = String(this.options.filename || 'time_log.csv');
-  const addHeader = Boolean(this.options.addHeaderIfMissing ?? true);
-  const p = path.join(dir, file);
+    const file = String(this.options.filename || 'time_log.csv');
+    const addHeader = Boolean(this.options.addHeaderIfMissing ?? true);
+    const p = path.join(dir, file);
 
-  const header = 'startedIso,endedIso,durationSeconds,idleSeconds,linesAdded,linesDeleted,perFileSeconds,perLanguageSeconds,authorName,authorEmail,machine,ideName,workspace,repoPath,branch,issueKey,comment,goals\n';
-  const row = [
-    s.startedIso, s.endedIso, s.durationSeconds,
-    s.idleSeconds ?? 0,
-    s.linesAdded ?? 0,
-    s.linesDeleted ?? 0,
-    JSON.stringify(s.perFileSeconds ?? {}),
-    JSON.stringify(s.perLanguageSeconds ?? {}),
-    s.authorName ?? '', s.authorEmail ?? '', s.machine ?? '',
-    s.ideName ?? '',
-    s.workspace ?? '', s.repoPath ?? '', s.branch ?? '', s.issueKey ?? '', s.comment ?? '',
-    JSON.stringify(s.goals ?? []),
-  ].map(v => {
-    const str = String(v ?? '');
-    return /[",\n]/.test(str) ? `"${str.replace(/"/g, '""')}"` : str;
-  }).join(',') + '\n';
+    const header = 'startedIso,endedIso,durationSeconds,idleSeconds,linesAdded,linesDeleted,perFileSeconds,perLanguageSeconds,authorName,authorEmail,machine,ideName,workspace,repoPath,branch,issueKey,comment,goals\n';
+    const row = [
+      s.startedIso, s.endedIso, s.durationSeconds,
+      s.idleSeconds ?? 0,
+      s.linesAdded ?? 0,
+      s.linesDeleted ?? 0,
+      JSON.stringify(s.perFileSeconds ?? {}),
+      JSON.stringify(s.perLanguageSeconds ?? {}),
+      s.authorName ?? '', s.authorEmail ?? '', s.machine ?? '',
+      s.ideName ?? '',
+      s.workspace ?? '', s.repoPath ?? '', s.branch ?? '', s.issueKey ?? '', s.comment ?? '',
+      JSON.stringify(s.goals ?? []),
+    ].map(v => {
+      const str = String(v ?? '');
+      return /[",\n]/.test(str) ? `"${str.replace(/"/g, '""')}"` : str;
+    }).join(',') + '\n';
 
     const homeFallbackDir = path.join(os.homedir(), 'clockit');
     const attempts = [
@@ -136,7 +136,7 @@ export class CsvSink extends BaseSink {
     const enabled = Boolean(this.options['cloud.enabled']);
     const apiUrl = String(this.options['cloud.apiUrl'] || '').trim();
     const apiToken = String(this.options['cloud.apiToken'] || '').trim();
-    if (!enabled || !apiUrl || !apiToken) {return undefined;}
+    if (!enabled || !apiUrl || !apiToken) { return undefined; }
     try {
       const fetcher = await getFetch();
       const attempt = async (url: string) => fetcher(url, {
@@ -174,7 +174,7 @@ export class CsvSink extends BaseSink {
 }
 
 async function getFetch(): Promise<typeof fetch> {
-  if (typeof fetch !== 'undefined') {return fetch;}
+  if (typeof fetch !== 'undefined') { return fetch; }
   try {
     // CommonJS require to avoid ESM import issues in VS Code extension runtime and Jest
     const mod = require('node-fetch');

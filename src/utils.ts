@@ -73,7 +73,7 @@ export class Utils {
   }
 
   endSession(): { startedIso: string; startedAt: number; durationSeconds: number } {
-    if (!this.running) {return { startedIso: this.startedIso, startedAt: this.startedAt, durationSeconds: 0 };}
+    if (!this.running) { return { startedIso: this.startedIso, startedAt: this.startedAt, durationSeconds: 0 }; }
 
     const now = Date.now();
     const rawDurationSeconds = Math.max(0, Math.floor((now - this.startedAt) / 1000));
@@ -95,7 +95,7 @@ export class Utils {
   }
 
   markActivity(ts = Date.now()) {
-    if (this.running) {this.lastActive = ts;}
+    if (this.running) { this.lastActive = ts; }
   }
 
   onEditorChanged(editor?: import('vscode').TextEditor | undefined, ts = Date.now()) {
@@ -107,7 +107,7 @@ export class Utils {
   recordTextChange(e: import('vscode').TextDocumentChangeEvent) {
     const now = Date.now();
     this.markActivity(now);
-    if (!this.running || this.paused) {return;}
+    if (!this.running || this.paused) { return; }
 
     // Approximate line deltas
     for (const change of e.contentChanges) {
@@ -134,14 +134,14 @@ export class Utils {
   isPaused() { return this.paused; }
 
   pauseSession() {
-    if (!this.running || this.paused) {return;}
+    if (!this.running || this.paused) { return; }
     this.accrueTime(Date.now());
     this.paused = true;
     this.updateStatusBar();
   }
 
   resumeSession() {
-    if (!this.running || !this.paused) {return;}
+    if (!this.running || !this.paused) { return; }
     const now = Date.now();
     this.paused = false;
     this.lastActive = now;
@@ -151,8 +151,8 @@ export class Utils {
 
   startFocusTimer(minutes: number) {
     const ms = Math.max(1, Math.floor(minutes * 60 * 1000));
-    if (this.focusTimerTimeout) {clearTimeout(this.focusTimerTimeout);}
-    if (this.focusTicker) {clearInterval(this.focusTicker);}
+    if (this.focusTimerTimeout) { clearTimeout(this.focusTimerTimeout); }
+    if (this.focusTicker) { clearInterval(this.focusTicker); }
     this.focusTimerEnd = Date.now() + ms;
     this.focusTimerTimeout = setTimeout(() => {
       this.focusTimerEnd = null;
@@ -164,7 +164,7 @@ export class Utils {
     }, ms);
     this.focusTicker = setInterval(() => {
       if (!this.focusTimerEnd) {
-        if (this.focusTicker) {clearInterval(this.focusTicker);}
+        if (this.focusTicker) { clearInterval(this.focusTicker); }
         this.focusTicker = null;
         return;
       }
@@ -179,7 +179,7 @@ export class Utils {
     const idleMinutes = this.vscode.workspace.getConfiguration().get<number>('clockit.idleTimeoutMinutes') ?? 5;
 
     this.tickTimer = setInterval(() => {
-      if (!this.running) {return;}
+      if (!this.running) { return; }
       const now = Date.now();
       this.accrueTime(now);
       const sec = Math.max(0, Math.floor((now - this.startedAt) / 1000));
@@ -191,7 +191,7 @@ export class Utils {
     }, 1000);
 
     this.idleChecker = setInterval(() => {
-      if (!this.running) {return;}
+      if (!this.running) { return; }
       const idleMs = Date.now() - this.lastActive;
       if (idleMs > idleMinutes * 60_000) {
         // shift start forward to discount idle time
@@ -202,12 +202,12 @@ export class Utils {
   }
 
   private clearTimers() {
-    if (this.tickTimer) {clearInterval(this.tickTimer);}
-    if (this.idleChecker) {clearInterval(this.idleChecker);}
+    if (this.tickTimer) { clearInterval(this.tickTimer); }
+    if (this.idleChecker) { clearInterval(this.idleChecker); }
     this.tickTimer = null;
     this.idleChecker = null;
-    if (this.focusTimerTimeout) {clearTimeout(this.focusTimerTimeout);}
-    if (this.focusTicker) {clearInterval(this.focusTicker);}
+    if (this.focusTimerTimeout) { clearTimeout(this.focusTimerTimeout); }
+    if (this.focusTicker) { clearInterval(this.focusTicker); }
     this.focusTimerTimeout = null;
     this.focusTicker = null;
   }
@@ -241,10 +241,10 @@ export class Utils {
   // ── notifications
   notify(msg: string, type: 'info' | 'warn' | 'error' = 'info') {
     const show = this.vscode.workspace.getConfiguration().get<boolean>('clockit.showNotifications') ?? true;
-    if (!show) {return;}
-    if (type === 'info') {this.vscode.window.showInformationMessage(msg);}
-    else if (type === 'warn') {this.vscode.window.showWarningMessage(msg);}
-    else {this.vscode.window.showErrorMessage(msg);}
+    if (!show) { return; }
+    if (type === 'info') { this.vscode.window.showInformationMessage(msg); }
+    else if (type === 'warn') { this.vscode.window.showWarningMessage(msg); }
+    else { this.vscode.window.showErrorMessage(msg); }
   }
 
   // ── CSV helpers
@@ -280,7 +280,7 @@ export class Utils {
       openLabel: 'Use this folder for Clockit CSV',
       defaultUri: this.vscode.workspace.workspaceFolders?.[0]?.uri,
     });
-    if (!selection || selection.length === 0) {return;}
+    if (!selection || selection.length === 0) { return; }
 
     const folderUri = selection[0];
     const cfg = this.vscode.workspace.getConfiguration();
@@ -289,7 +289,7 @@ export class Utils {
     const ensure = cfg.get<boolean>('clockit.csv.ensureDirectory') ?? true;
     if (ensure) {
       const fs = await import('fs/promises');
-      await fs.mkdir(folderUri.fsPath, { recursive: true }).catch(() => {});
+      await fs.mkdir(folderUri.fsPath, { recursive: true }).catch(() => { });
     }
     const choice = await this.vscode.window.showInformationMessage(
       `Clockit CSV folder set to: ${folderUri.fsPath}`,
@@ -303,7 +303,7 @@ export class Utils {
 
   private async promptCloudSetup() {
     const cfg = this.vscode.workspace.getConfiguration();
-    if (!this.ensureCloudConfigRegistered(cfg)) {return;}
+    if (!this.ensureCloudConfigRegistered(cfg)) { return; }
 
     const apiUrl = await this.vscode.window.showInputBox({
       title: 'Clockit Cloud Ingest URL',
@@ -311,7 +311,7 @@ export class Utils {
       ignoreFocusOut: true,
       value: (cfg.get<string>('clockit.cloud.apiUrl') || '').trim(),
     });
-    if (!apiUrl) {return;}
+    if (!apiUrl) { return; }
 
     const apiToken = await this.vscode.window.showInputBox({
       title: 'Clockit API Token',
@@ -320,7 +320,7 @@ export class Utils {
       ignoreFocusOut: true,
       value: (cfg.get<string>('clockit.cloud.apiToken') || '').trim(),
     });
-    if (!apiToken) {return;}
+    if (!apiToken) { return; }
 
     await cfg.update('clockit.cloud.apiUrl', apiUrl, this.vscode.ConfigurationTarget.Global);
     await cfg.update('clockit.cloud.apiToken', apiToken, this.vscode.ConfigurationTarget.Global);
@@ -355,13 +355,13 @@ export class Utils {
   }
 
   private async pushBackupSnapshot(now: number, force = false) {
-    if (!this.backupEnabled() || !this.startedIso) {return;}
+    if (!this.backupEnabled() || !this.startedIso) { return; }
 
     const intervalSetting = this.vscode.workspace.getConfiguration('clockit.backup').get<number>('intervalSeconds') ?? 60;
-    if (intervalSetting <= 0 && !force) {return;} // interval disabled; only allow forced snapshots
+    if (intervalSetting <= 0 && !force) { return; } // interval disabled; only allow forced snapshots
 
     const intervalMs = Math.max(1, intervalSetting) * 1000;
-    if (!force && now - this.lastBackupPush < intervalMs) {return;}
+    if (!force && now - this.lastBackupPush < intervalMs) { return; }
     this.lastBackupPush = now;
 
     const metrics = this.getMetricsSnapshot(now);
@@ -394,7 +394,7 @@ export class Utils {
   }
 
   private async clearBackupPending() {
-    if (!this.backupEnabled()) {return;}
+    if (!this.backupEnabled()) { return; }
     try {
       await this.vscode.commands.executeCommand('clockit._internal.updateBackup');
     } catch {
@@ -430,7 +430,7 @@ export class Utils {
     if (!this.running || this.paused) { this.lastTick = now; return; }
 
     const delta = Math.max(0, Math.floor((now - this.lastTick) / 1000));
-    if (!delta) {return;}
+    if (!delta) { return; }
 
     const idleMinutes = this.vscode.workspace.getConfiguration().get<number>('clockit.idleTimeoutMinutes') ?? 5;
     const idle = now - this.lastActive > idleMinutes * 60_000;

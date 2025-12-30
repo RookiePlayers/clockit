@@ -11,6 +11,9 @@
   --card: #ffffff;
   --card-soft: #eef2f7;
   --border: rgba(15, 23, 42, 0.08);
+  --gray-100-45: color-mix(in srgb, var(--gray-100) 45%, transparent);
+  --gray-100-60: color-mix(in srgb, var(--gray-100) 60%, transparent);
+  --gray-100-70: color-mix(in srgb, var(--gray-100) 70%, transparent);
   --accent: #4A55C5;
   --accent-contrast: #ffffff;
   --pill: #e2e8f0;
@@ -90,4 +93,98 @@ body {
   .btn-primary:hover {
     background-color: #2563eb;
   }
+
+  /* Transparent background utilities */
+  .bg-primary-10 {
+    background-color: color-mix(in srgb, var(--primary) 10%, transparent);
+  }
+
+  .bg-primary-20 {
+    background-color: color-mix(in srgb, var(--primary) 20%, transparent);
+  }
+
+  .bg-primary-30 {
+    background-color: color-mix(in srgb, var(--primary) 30%, transparent);
+  }
+
+  .bg-primary-40 {
+    background-color: color-mix(in srgb, var(--primary) 40%, transparent);
+  }
+
+  .bg-primary-50 {
+    background-color: color-mix(in srgb, var(--primary) 50%, transparent);
+  }
+
+  .bg-accent-10 {
+    background-color: color-mix(in srgb, var(--accent) 10%, transparent);
+  }
+
+  .bg-accent-20 {
+    background-color: color-mix(in srgb, var(--accent) 20%, transparent);
+  }
+
+  .bg-accent-30 {
+    background-color: color-mix(in srgb, var(--accent) 30%, transparent);
+  }
+
+  .text-accent-10 {
+    color: color-mix(in srgb, var(--accent) 10%, transparent);
+  }
+  .text-accent-20 {
+    color: color-mix(in srgb, var(--accent) 20%, transparent);
+  }
+  .text-accent-30 {
+    color: color-mix(in srgb, var(--accent) 30%, transparent);
+  }
+  .text-accent-40 {
+    color: color-mix(in srgb, var(--accent) 40%, transparent);
+  }
+  .text-accent-50 {
+    color: color-mix(in srgb, var(--accent) 50%, transparent);
+  }
+  .text-primary-10 {
+    color: color-mix(in srgb, var(--primary) 10%, transparent);
+  }
+  .text-primary-20 {
+    color: color-mix(in srgb, var(--primary) 20%, transparent);
+  }
+  .text-primary-30 {
+    color: color-mix(in srgb, var(--primary) 30%, transparent);
+  }
+  .text-primary-40 {
+    color: color-mix(in srgb, var(--primary) 40%, transparent);
+  }
+  .text-primary-50 {
+    color: color-mix(in srgb, var(--primary) 50%, transparent);
+  }
+  .text-10 {
+    color: color-mix(in srgb, var(--text) 10%, transparent);
+  }
+  .text-20 {
+    color: color-mix(in srgb, var(--text) 20%, transparent);
+  }
+  .text-30 {
+    color: color-mix(in srgb, var(--text) 30%, transparent);
+  }
+  .text-40 {
+    color: color-mix(in srgb, var(--text) 40%, transparent);
+  }
+  .text-50 {
+    color: color-mix(in srgb, var(--text) 50%, transparent);
+  }
+  .text-60 {
+    color: color-mix(in srgb, var(--text) 60%, transparent);
+  }
+  .text-70 {
+    color: color-mix(in srgb, var(--text) 70%, transparent);
+  }
+  .text-80 {
+    color: color-mix(in srgb, var(--text) 80%, transparent);
+  }
+  .text-90 {
+    color: color-mix(in srgb, var(--text) 90%, transparent);
+  }
+
+  
+
 }

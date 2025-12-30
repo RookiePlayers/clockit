@@ -56,7 +56,7 @@ export class NotionSink extends BaseSink implements TimeSink {
         },
         validate: (v) => {
           const s = String(v ?? '');
-          if (!/^((database|page):)?[0-9a-fA-F-]{32,36}$/.test(s)) {return 'Pick a Notion database or page';}
+          if (!/^((database|page):)?[0-9a-fA-F-]{32,36}$/.test(s)) { return 'Pick a Notion database or page'; }
           return undefined;
         },
       },
@@ -80,7 +80,7 @@ export class NotionSink extends BaseSink implements TimeSink {
 
   private parseDestination(): { type: 'database' | 'page'; id: string } | undefined {
     const raw = String(this.options['notion.destination'] || '').trim();
-    if (!raw) {return undefined;}
+    if (!raw) { return undefined; }
 
     const withType = raw.match(/^(database|page):(.+)$/i);
     if (withType) {
@@ -156,15 +156,15 @@ export class NotionSink extends BaseSink implements TimeSink {
       LinesDeleted: { number: s.linesDeleted ?? 0 },
       PerFileSeconds: { rich_text: s.perFileSeconds ? [{ type: 'text', text: { content: JSON.stringify(s.perFileSeconds) } }] : [] },
       PerLanguageSeconds: { rich_text: s.perLanguageSeconds ? [{ type: 'text', text: { content: JSON.stringify(s.perLanguageSeconds) } }] : [] },
-      Started:  { date: { start: s.startedIso } },
-      Ended:    s.endedIso ? { date: { start: s.endedIso } } : undefined,
-      Workspace:{ rich_text: s.workspace ? [{ type: 'text', text: { content: s.workspace } }] : [] },
-      Repo:     { rich_text: s.repoPath ? [{ type: 'text', text: { content: s.repoPath } }] : [] },
-      Branch:   { rich_text: s.branch ? [{ type: 'text', text: { content: s.branch } }] : [] },
+      Started: { date: { start: s.startedIso } },
+      Ended: s.endedIso ? { date: { start: s.endedIso } } : undefined,
+      Workspace: { rich_text: s.workspace ? [{ type: 'text', text: { content: s.workspace } }] : [] },
+      Repo: { rich_text: s.repoPath ? [{ type: 'text', text: { content: s.repoPath } }] : [] },
+      Branch: { rich_text: s.branch ? [{ type: 'text', text: { content: s.branch } }] : [] },
       IssueKey: { rich_text: s.issueKey ? [{ type: 'text', text: { content: String(s.issueKey) } }] : [] },
-      Author:   { rich_text: s.authorName ? [{ type: 'text', text: { content: s.authorName } }] : [] },
+      Author: { rich_text: s.authorName ? [{ type: 'text', text: { content: s.authorName } }] : [] },
       AuthorEmail: s.authorEmail ? { email: s.authorEmail } : undefined,
-      Machine:  { rich_text: s.machine ? [{ type: 'text', text: { content: s.machine } }] : [] },
+      Machine: { rich_text: s.machine ? [{ type: 'text', text: { content: s.machine } }] : [] },
     };
 
     // strip undefined properties (Ended)
@@ -175,10 +175,10 @@ export class NotionSink extends BaseSink implements TimeSink {
       properties: props,
       children: s.comment?.trim()
         ? [{
-            object: 'block',
-            type: 'paragraph',
-            paragraph: { rich_text: [{ type: 'text', text: { content: s.comment.trim() } }] },
-          }]
+          object: 'block',
+          type: 'paragraph',
+          paragraph: { rich_text: [{ type: 'text', text: { content: s.comment.trim() } }] },
+        }]
         : undefined,
     };
 
@@ -273,9 +273,9 @@ export class NotionSink extends BaseSink implements TimeSink {
         method: 'GET',
         headers: this.authHeaders(),
       });
-      if (res.status === 401 || res.status === 403) {return 'AUTH_ERROR';}
-      if (res.status === 404) {return 'MISSING';}
-      if (!res.ok) {return 'MISSING';}
+      if (res.status === 401 || res.status === 403) { return 'AUTH_ERROR'; }
+      if (res.status === 404) { return 'MISSING'; }
+      if (!res.ok) { return 'MISSING'; }
 
       const data = await res.json() as {
         properties?: Record<string, { type: string }>;
@@ -294,15 +294,15 @@ export class NotionSink extends BaseSink implements TimeSink {
   ): Promise<'OK' | 'AUTH_ERROR' | 'MISSING' | 'ERROR'> {
     const desired: Record<string, any> = {
       Duration: { number: {} },
-      Started:  { date: {} },
-      Ended:    { date: {} },
-      Workspace:{ rich_text: {} },
-      Repo:     { rich_text: {} },
-      Branch:   { rich_text: {} },
+      Started: { date: {} },
+      Ended: { date: {} },
+      Workspace: { rich_text: {} },
+      Repo: { rich_text: {} },
+      Branch: { rich_text: {} },
       IssueKey: { rich_text: {} },
-      Author:   { rich_text: {} },
+      Author: { rich_text: {} },
       AuthorEmail: { email: {} },
-      Machine:  { rich_text: {} },
+      Machine: { rich_text: {} },
       IdleSeconds: { number: {} },
       LinesAdded: { number: {} },
       LinesDeleted: { number: {} },
@@ -311,7 +311,7 @@ export class NotionSink extends BaseSink implements TimeSink {
     };
 
     const missingEntries = Object.entries(desired).filter(([name]) => !existing?.[name]);
-    if (missingEntries.length === 0) {return 'OK';}
+    if (missingEntries.length === 0) { return 'OK'; }
 
     const body = { properties: Object.fromEntries(missingEntries) };
     try {
@@ -320,9 +320,9 @@ export class NotionSink extends BaseSink implements TimeSink {
         headers: this.authHeaders(),
         body: JSON.stringify(body),
       });
-      if (res.status === 401 || res.status === 403) {return 'AUTH_ERROR';}
-      if (res.status === 404) {return 'MISSING';}
-      if (!res.ok) {return 'ERROR';}
+      if (res.status === 401 || res.status === 403) { return 'AUTH_ERROR'; }
+      if (res.status === 404) { return 'MISSING'; }
+      if (!res.ok) { return 'ERROR'; }
       return 'OK';
     } catch {
       return 'ERROR';

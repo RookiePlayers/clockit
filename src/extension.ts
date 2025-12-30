@@ -19,7 +19,7 @@ let backup: BackupManager | undefined;
 
 /** Call this from your session/timer module whenever the active session snapshot changes */
 export function updateBackupFromSession(s?: Session) {
-  if (!backup) {return;}
+  if (!backup) { return; }
   if (!s) { backup.setPending(undefined); return; }
   backup.setPending({
     startedIso: s.startedIso,
@@ -47,11 +47,11 @@ export async function activate(ctx: vscode.ExtensionContext) {
   const cfg = vscode.workspace.getConfiguration();
 
   // ---- Backup manager boot ----
-  const enabled         = cfg.get<boolean>('clockit.backup.enabled', true);
+  const enabled = cfg.get<boolean>('clockit.backup.enabled', true);
   const intervalSeconds = cfg.get<number>('clockit.backup.intervalSeconds', 60);
-  const directory       = cfg.get<string>('clockit.backup.directory', '');
-  const filenamePrefix  = cfg.get<string>('clockit.backup.filenamePrefix', 'backup_');
-  const csvDirFallback  = cfg.get<string>('clockit.csv.outputDirectory', '');
+  const directory = cfg.get<string>('clockit.backup.directory', '');
+  const filenamePrefix = cfg.get<string>('clockit.backup.filenamePrefix', 'backup_');
+  const csvDirFallback = cfg.get<string>('clockit.csv.outputDirectory', '');
 
   backup = new BackupManager({
     enabled,
@@ -65,15 +65,15 @@ export async function activate(ctx: vscode.ExtensionContext) {
   // Hot-reload backup config on change
   ctx.subscriptions.push(
     vscode.workspace.onDidChangeConfiguration(e => {
-      if (!e.affectsConfiguration('clockit.backup')) {return;}
+      if (!e.affectsConfiguration('clockit.backup')) { return; }
       const bcfg = vscode.workspace.getConfiguration('clockit.backup');
 
       // stop old + start fresh with new config
       backup?.stop();
       backup = new BackupManager({
-        enabled:        bcfg.get('enabled', true),
-        intervalSeconds:bcfg.get('intervalSeconds', 60),
-        directory:      bcfg.get('directory', ''),
+        enabled: bcfg.get('enabled', true),
+        intervalSeconds: bcfg.get('intervalSeconds', 60),
+        directory: bcfg.get('directory', ''),
         filenamePrefix: bcfg.get('filenamePrefix', 'clockit_backup_'),
         csvDirFallback: csvDirFallback || undefined,
       });
@@ -101,7 +101,7 @@ export async function activate(ctx: vscode.ExtensionContext) {
 
   // ---- UI wiring ----
   const TIMER_PRIORITY = 10_000;
-  const CSV_PRIORITY   = 9_999;  // just to the right of the timer
+  const CSV_PRIORITY = 9_999;  // just to the right of the timer
 
   channel = vscode.window.createOutputChannel('Clockit');
   channel.appendLine('[Clockit] activated');

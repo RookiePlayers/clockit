@@ -1,8 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { doc, getDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { statsApi } from "@/lib/api-client";
 import { Aggregates, MetricValue, Range } from "@/types";
 
 type HookState = {
@@ -29,13 +28,13 @@ export function useFetchAggregates(userId: string | null | undefined) {
         }
         setState((prev) => ({ ...prev, isLoading: true, error: null, message: null }));
         try {
-            const ref = doc(db, "MaterializedStats", userId);
-            const snap = await getDoc(ref);
-            if (!snap.exists()) {
+            const data = await statsApi.get() as { aggregates?: Aggregates; lastRefreshRequested?: number };
+
+            if (!data) {
                 setState({ aggregates: null, isLoading: false, error: null, message:  "No aggregated stats found yet.", lastRefresh: null });
                 return;
             }
-            const data = snap.data() as { aggregates?: Aggregates; lastRefreshRequested?: number };
+
             const ts = data.lastRefreshRequested;
             setState({
                 aggregates: data.aggregates || null,

@@ -8,8 +8,7 @@ import { formatDayLabel, toDateKey } from "../utils";
 import type { GroupView } from "../types";
 import GoalGroupCard from "./GoalGroupCard";
 import QuickAddGoal from "./QuickAddGoal";
-import { db } from "@/lib/firebase";
-import { collection, deleteDoc, doc, getDocs, setDoc } from "firebase/firestore";
+import { goalsApi } from "@/lib/api-client";
 import { useSnackbar } from "notistack";
 
 type Props = {
@@ -109,8 +108,8 @@ export default function GoalsTab({ user, goals, setGoals, onStartClockit, showQu
     const loadFromCloud = async () => {
       if (!user?.uid || hasLoadedCloud.current) {return;}
       try {
-        const snap = await getDocs(collection(db, "Uploads", user.uid, "Goals"));
-        const cloudGoals = snap.docs.map((d) => ({ ...(d.data() as Goal), id: d.id }));
+        const response = await goalsApi.list();
+        const cloudGoals = response.goals;
         setGoals(cloudGoals);
         setUsingSampleGoals(false);
         hasLoadedCloud.current = true;
@@ -125,11 +124,8 @@ export default function GoalsTab({ user, goals, setGoals, onStartClockit, showQu
     const loadGroupsFromCloud = async () => {
       if (!user?.uid || hasLoadedGroups.current) {return;}
       try {
-        const snap = await getDocs(collection(db, "Uploads", user.uid, "GoalGroups"));
-        const groups = snap.docs.map((d) => {
-          const { ...rest } = d.data() as GoalGroup;
-          return {  ...rest, id: d.id, };
-        });
+        const response = await goalsApi.listGroups();
+        const groups = response.groups;
         if (groups.length) {
           setCustomGroups(groups);
         }
@@ -144,9 +140,8 @@ export default function GoalsTab({ user, goals, setGoals, onStartClockit, showQu
   useEffect(() => {
     const pushToCloud = async () => {
       if (!user?.uid) {return;}
-      const colRef = collection(db, "Uploads", user.uid, "Goals");
       try {
-        await Promise.all(goals.map((goal) => setDoc(doc(colRef, goal.id), goal)));
+        await goalsApi.sync(goals);
       } catch {
         // ignore sync errors silently
       }
@@ -159,9 +154,8 @@ export default function GoalsTab({ user, goals, setGoals, onStartClockit, showQu
   useEffect(() => {
     const pushGroupsToCloud = async () => {
       if (!user?.uid) {return;}
-      const colRef = collection(db, "Uploads", user.uid, "GoalGroups");
       try {
-        await Promise.all(customGroups.map((group) => setDoc(doc(colRef, group.id), group)));
+        await goalsApi.syncGroups(customGroups);
       } catch {
         // ignore sync errors silently
       }
@@ -343,7 +337,7 @@ export default function GoalsTab({ user, goals, setGoals, onStartClockit, showQu
     setGoals((prev) => prev.filter((g) => g.id !== goalId));
     if (user?.uid) {
       try {
-        await deleteDoc(doc(db, "Uploads", user.uid, "Goals", goalId));
+        await goalsApi.delete(goalId);
       } catch {
         // ignore delete errors silently for now
       }

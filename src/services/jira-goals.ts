@@ -4,7 +4,7 @@ import { loadJiraCreds } from './jira-creds';
 import { searchForIssue } from './jira-search';
 
 async function getFetch(): Promise<typeof fetch> {
-  if (typeof fetch !== 'undefined') {return fetch;}
+  if (typeof fetch !== 'undefined') { return fetch; }
   const mod = await import('node-fetch');
   return (mod as any).default || (mod as any);
 }
@@ -45,17 +45,17 @@ export async function promptJiraIssueKey(): Promise<string | undefined> {
         fetchFn: fetcher,
         authHeader: () => authHeader(creds.email, creds.token),
       });
-      if (token !== currentToken) {return;}
+      if (token !== currentToken) { return; }
       qp.items = res.items.map((i) => ({
         label: i.title,
         description: i.description ?? '',
         key: i.id,
       }));
     } catch {
-      if (token !== currentToken) {return;}
+      if (token !== currentToken) { return; }
       qp.items = [];
     } finally {
-      if (token === currentToken) {qp.busy = false;}
+      if (token === currentToken) { qp.busy = false; }
     }
   };
 
@@ -80,10 +80,10 @@ export async function promptJiraIssueKey(): Promise<string | undefined> {
 export async function fetchSubtaskGoals(issueKey: string): Promise<Goal[]> {
   const cfg = vscode.workspace.getConfiguration();
   const enabled = cfg.get<boolean>('clockit.goals.importFromJiraSubtasks', true);
-  if (!enabled) {return [];}
+  if (!enabled) { return []; }
 
   const creds = await loadJiraCreds(cfg);
-  if (!creds) {return [];}
+  if (!creds) { return []; }
 
   try {
     const fetcher = await getFetch();

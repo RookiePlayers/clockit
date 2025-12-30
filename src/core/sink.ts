@@ -3,7 +3,7 @@ import { SuggestionItem } from './prompts';
 import { Result, Session } from './types';
 
 export type RequirementScope = 'setup' | 'runtime';
-export type RequirementType  = 'string' | 'number' | 'secret' | 'boolean';
+export type RequirementType = 'string' | 'number' | 'secret' | 'boolean';
 
 /**
  * Describes a value a sink needs. The orchestrator + PromptService
@@ -45,7 +45,7 @@ export interface FieldSpec {
   persist?: 'settings' | 'secret' | 'memory';
   remember?: boolean;        // default true. If false -> never persist.
   implicitSetting?: boolean; // default false. If true, allow using `spec.key` for settings when no `settingKey`
-   // NEW: selection UI
+  // NEW: selection UI
   ui?: 'input' | 'select'; // default 'input'
   select?: {
     // Optional static items (no search)

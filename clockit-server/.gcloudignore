@@ -1,0 +1,16 @@
+# Google Cloud Build ignore file
+node_modules/
+npm-debug.log
+.git/
+.gitignore
+.DS_Store
+*.log
+.env
+.env.local
+.env.*.local
+dist/
+coverage/
+.vscode/
+.idea/
+README.md
+*.md

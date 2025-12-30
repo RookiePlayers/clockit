@@ -9,9 +9,12 @@ export const fetchCache = "force-no-store";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useAuthState } from "react-firebase-hooks/auth";
-import { auth, db } from "@/lib/firebase";
-import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
+import { auth } from "@/lib/firebase";
+import { statsApi } from "@/lib/api-client";
 import NavBar from "@/components/NavBar";
+import useFeature from "@/hooks/useFeature";
+import { useRouter } from "next/navigation";
+import { buildNavLinks, isFeatureEnabledForNav } from "@/utils/navigation";
 import {
   Area,
   AreaChart,
@@ -40,6 +43,8 @@ export const chartViews: Array<{ key: ChartView; label: string }> = [
 
 export default function AdvancedStatsPage() {
   const [user, loadingUser, authError] = useAuthState(auth);
+  const router = useRouter();
+  const { isFeatureEnabled, loading: featureLoading } = useFeature();
   const [range, setRange] = useState<Range>("week");
   const [chartView, setChartView] = useState<ChartView>("stackedArea");
   const [aggregates, setAggregates] = useState<Aggregates | null>(null);
@@ -48,6 +53,21 @@ export default function AdvancedStatsPage() {
   const [lastRefresh, setLastRefresh] = useState<number | null>(null);
   const COOLDOWN_MS = 60 * 60 * 1000; // 1 hour
   const lastSavedBadgesRef = useRef<string | null>(null);
+
+  const advancedStatsEnabled = isFeatureEnabled("advanced-stats");
+  const baseStatsEnabled = isFeatureEnabled("base-stats");
+  const hasStatsAccess = advancedStatsEnabled || baseStatsEnabled;
+
+  // Feature flags for navigation
+  const featureFlags = isFeatureEnabledForNav(isFeatureEnabled);
+  const navLinks = buildNavLinks(featureFlags, 'advanced-stats');
+
+  // Redirect if no stats access
+  useEffect(() => {
+    if (!featureLoading && !loadingUser && !hasStatsAccess) {
+      router.push("/dashboard");
+    }
+  }, [featureLoading, loadingUser, hasStatsAccess, router]);
 
   useEffect(() => {
     if (!user) {
@@ -61,14 +81,7 @@ export default function AdvancedStatsPage() {
 
     const fetchAggregates = async () => {
       try {
-        const ref = doc(db, "MaterializedStats", user.uid);
-        const snap = await getDoc(ref);
-        if (!snap.exists()) {
-          setAggregates(null);
-          setStatsError("No aggregated stats found yet.");
-          return;
-        }
-        const data = snap.data() as { aggregates?: Aggregates; lastRefreshRequested?: number };
+        const data = await statsApi.get() as { aggregates?: Aggregates; lastRefreshRequested?: number };
         setAggregates(data.aggregates || null);
         const ts = data.lastRefreshRequested;
         if (typeof ts === "number" && Number.isFinite(ts)) {
@@ -113,17 +126,32 @@ export default function AdvancedStatsPage() {
     const serialized = JSON.stringify(summary);
     if (serialized === lastSavedBadgesRef.current) { return; }
     lastSavedBadgesRef.current = serialized;
-    void setDoc(
-      doc(db, "Achievements", user.uid),
-      { badges: summary, updatedAt: serverTimestamp(), userId: user.uid },
-      { merge: true }
-    ).catch((err) => {
-      // Surface silently to console to avoid interrupting UX with badge persistence issues.
-      console.error("Failed to save achievements", err);
-    });
+
+    // Save each badge as an achievement via the API
+    const saveAchievements = async () => {
+      try {
+        for (const badge of summary) {
+          if (badge.earned) {
+            await statsApi.saveAchievement({
+              id: badge.title.toLowerCase().replace(/\s+/g, '-'),
+              type: 'badge',
+              title: badge.title,
+              description: badge.description,
+              detail: badge.detail,
+              earnedAt: new Date().toISOString(),
+            });
+          }
+        }
+      } catch (err) {
+        // Surface silently to console to avoid interrupting UX with badge persistence issues.
+        console.error("Failed to save achievements", err);
+      }
+    };
+
+    void saveAchievements();
   }, [aggregates, badges, user]);
 
-  if (loadingUser || isLoading) {
+  if (loadingUser || isLoading || featureLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
@@ -156,21 +184,44 @@ export default function AdvancedStatsPage() {
     );
   }
 
+  if (!hasStatsAccess) {
+    return (
+      <div className="min-h-screen theme-bg">
+        <NavBar
+          userName={user?.displayName || user?.email || undefined}
+          userPhoto={user?.photoURL}
+          onSignOut={() => auth.signOut()}
+          links={navLinks}
+        />
+        <main className="max-w-4xl mx-auto px-6 py-12">
+          <div className="border border-[var(--border)] bg-[var(--card)] rounded-2xl p-6 shadow-lg text-center space-y-3">
+            <h1 className="text-2xl font-bold text-[var(--text)]">Advanced Stats not available</h1>
+            <p className="text-[var(--muted)]">
+              This feature is not included in your current plan. Upgrade to access advanced statistics and analytics.
+            </p>
+            <div className="flex justify-center gap-3">
+              <Link href="/dashboard" className="px-4 py-2 rounded-lg bg-[var(--primary)] text-[var(--primary-contrast)] font-semibold hover:opacity-90">
+                Go to Dashboard
+              </Link>
+              <Link href="/profile" className="px-4 py-2 rounded-lg border border-[var(--border)] text-[var(--text)] font-semibold hover:border-[var(--primary)] hover:text-[var(--primary)]">
+                View Plans
+              </Link>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   const title = user.displayName || user.email || "Developer";
 
   return (
     <div className="min-h-screen bg-[var(--bg)] text-[var(--text)]">
       <NavBar
         userName={title}
+        userPhoto={user?.photoURL}
         onSignOut={() => auth.signOut()}
-        links={[
-          { href: "/dashboard", label: "Dashboard" },
-          { href: "/clockit-online", label: "Clockit Online" },
-          { href: "/advanced-stats", label: "Advanced Stats", active: true },
-          { href: "/session-activity", label: "Session Activity" },
-          { href: "/docs", label: "Docs" },
-          { href: "/profile", label: "Profile" },
-        ]}
+        links={navLinks}
       />
 
       <main className="max-w-7xl mx-auto px-6 py-10 space-y-8">

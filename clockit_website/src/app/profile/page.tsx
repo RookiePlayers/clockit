@@ -1,28 +1,20 @@
 "use client";
 
 import { useAuthState } from "react-firebase-hooks/auth";
-import { auth, db, storage } from "@/lib/firebase";
+import { auth, storage } from "@/lib/firebase";
 import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { updateProfile } from "firebase/auth";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import {
-  addDoc,
-  collection,
-  doc,
-  deleteDoc,
-  getDocs,
-  orderBy,
-  query,
-  serverTimestamp,
-  Timestamp,
-  where,
-} from "firebase/firestore";
 import NavBar from "@/components/NavBar";
+import useFeature from "@/hooks/useFeature";
+import { getEntitlementLabel } from "@/services/featureFlags";
+import { tokensApi, type TokenListItem, ApiError } from "@/lib/api-client";
 
 export default function ProfilePage() {
   const [user, loading, error] = useAuthState(auth);
+  const { entitlement } = useFeature();
   const [, setSigningOut] = useState(false);
   const [displayName, setDisplayName] = useState<string>("");
   const [saving, setSaving] = useState(false);
@@ -30,18 +22,13 @@ export default function ProfilePage() {
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [photoMessage, setPhotoMessage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const [tokens, setTokens] = useState<Array<{
-    id: string;
-    name?: string;
-    lastFour?: string;
-    createdAt?: Timestamp;
-    expiresAt?: Timestamp | null;
-    lastUsedAt?: Timestamp | null;
-  }>>([]);
+  const [tokens, setTokens] = useState<TokenListItem[]>([]);
   const [tokenName, setTokenName] = useState("");
   const [tokenDays, setTokenDays] = useState<number | "">("");
   const [newToken, setNewToken] = useState<string | null>(null);
   const [tokenMessage, setTokenMessage] = useState<string | null>(null);
+  const [loadingTokens, setLoadingTokens] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (user?.displayName) {
@@ -51,16 +38,22 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (!user) {return;}
+
     const loadTokens = async () => {
-      const q = query(
-        collection(db, "ApiTokens"),
-        where("uid", "==", user.uid),
-        orderBy("createdAt", "desc")
-      );
-      const snap = await getDocs(q);
-      const rows = snap.docs.map(d => ({ id: d.id, ...(d.data()) }));
-      setTokens(rows);
+      setLoadingTokens(true);
+      try {
+        const tokensList = await tokensApi.list();
+        setTokens(tokensList);
+      } catch (err) {
+        console.error("Failed to load tokens:", err);
+        if (err instanceof ApiError) {
+          setTokenMessage(err.message);
+        }
+      } finally {
+        setLoadingTokens(false);
+      }
     };
+
     void loadTokens();
   }, [user]);
 
@@ -136,46 +129,39 @@ export default function ProfilePage() {
     }
   };
 
-  const hashToken = async (token: string) => {
-    const data = new TextEncoder().encode(token);
-    const digest = await crypto.subtle.digest("SHA-256", data);
-    return Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, "0")).join("");
-  };
-
   const handleCreateToken = async () => {
     if (!user) {return;}
     setTokenMessage(null);
     setNewToken(null);
-    const raw = `clockit_${crypto.randomUUID()}_${Math.random().toString(36).slice(2, 8)}`;
-    const tokenHash = await hashToken(raw);
-    const expiresAt = typeof tokenDays === "number" && tokenDays > 0
-      ? Timestamp.fromDate(new Date(Date.now() + tokenDays * 24 * 60 * 60 * 1000))
-      : null;
-    await addDoc(collection(db, "ApiTokens"), {
-      uid: user.uid,
-      name: tokenName || "API Token",
-      tokenHash,
-      lastFour: raw.slice(-4),
-      createdAt: serverTimestamp(),
-      expiresAt,
-      lastUsedAt: null,
-    });
-    setTokenMessage("Token created. Copy and store it securely.");
-    setNewToken(raw);
-    setTokenName("");
-    setTokenDays("");
-    const q = query(
-      collection(db, "ApiTokens"),
-      where("uid", "==", user.uid),
-      orderBy("createdAt", "desc")
-    );
-    const snap = await getDocs(q);
-    setTokens(snap.docs.map(d => ({ id: d.id, ...(d.data()) })));
+    setCopied(false);
+
+    try {
+      const response = await tokensApi.create({
+        name: tokenName || "API Token",
+        expiresInDays: typeof tokenDays === "number" && tokenDays > 0 ? tokenDays : undefined,
+      });
+
+      setTokenMessage("Token created. Copy and store it securely.");
+      setNewToken(response.token);
+      setTokenName("");
+      setTokenDays("");
+
+      const updatedTokens = await tokensApi.list();
+      setTokens(updatedTokens);
+    } catch (err) {
+      const msg = err instanceof ApiError ? err.message : "Failed to create token.";
+      setTokenMessage(msg);
+    }
   };
 
   const handleRevokeToken = async (id: string) => {
-    await deleteDoc(doc(db, "ApiTokens", id));
-    setTokens(tokens.filter(t => t.id !== id));
+    try {
+      await tokensApi.revoke(id);
+      setTokens(tokens.filter(t => t.id !== id));
+    } catch (err) {
+      const msg = err instanceof ApiError ? err.message : "Failed to revoke token.";
+      setTokenMessage(msg);
+    }
   };
 
   const handleSignOut = async () => {
@@ -185,11 +171,13 @@ export default function ProfilePage() {
   };
 
   const title = user.displayName || user.email || "Developer";
+  const entitlementLabel = getEntitlementLabel(entitlement);
 
   return (
     <div className="min-h-screen bg-[var(--bg)] text-[var(--text)]">
       <NavBar
         userName={title || undefined}
+        userPhoto={user?.photoURL}
         onSignOut={handleSignOut}
         links={[
           { href: "/dashboard", label: "Dashboard" },
@@ -198,7 +186,7 @@ export default function ProfilePage() {
           { href: "/recent-activity", label: "Recent Activity" },
           { href: "/session-activity", label: "Session Activity" },
           { href: "/docs", label: "Docs" },
-          { href: "/profile", label: "Profile", active: true },
+
         ]}
       />
 
@@ -231,6 +219,7 @@ export default function ProfilePage() {
             <p className="text-sm text-[var(--primary)] font-semibold">Profile</p>
             <h1 className="text-2xl font-bold text-[var(--text)]">{user.displayName || user.email}</h1>
             {user.email && <p className="text-sm text-[var(--muted)]">{user.email}</p>}
+            <p className="text-sm text-[var(--muted)]">Entitlement: {entitlementLabel}</p>
           </div>
         </header>
 
@@ -303,16 +292,20 @@ export default function ProfilePage() {
             {tokenMessage && <p className="text-sm text-[var(--muted)]">{tokenMessage}</p>}
           </div>
           {newToken && (
-            <div className="border border-[var(--primary)] bg-[var(--primary)] text-[var(--primary-contrast)] rounded-lg p-3 text-sm">
-              <p className="font-semibold mb-1">Copy your token now:</p>
+            <div className="border border-[var(--primary)] bg-primary-20 rounded-lg p-3 text-sm">
+              <p className="font-semibold mb-1 text-[var(--text)]">Copy your token now:</p>
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <code className="text-xs break-all w-full">{newToken}</code>
+                <code className="text-xs break-all w-full text-[var(--text)]">{newToken}</code>
                 <div className="flex justify-end">
                   <button
-                    onClick={() => navigator.clipboard.writeText(newToken)}
-                    className="px-3 py-1 text-xs font-semibold text-[var(--primary-contrast)] bg-[var(--primary)] rounded-md hover:bg-[var(--primary-dark)]"
+                    onClick={() => {
+                      void navigator.clipboard.writeText(newToken);
+                      setCopied(true);
+                      setTimeout(() => setCopied(false), 1000);
+                    }}
+                    className="px-3 py-1 text-xs font-semibold text-[var(--primary-contrast)] bg-[var(--primary)] rounded-md hover:opacity-90 min-w-[60px]"
                   >
-                    Copy
+                    {copied ? "✓" : "Copy"}
                   </button>
                 </div>
               </div>
@@ -320,7 +313,9 @@ export default function ProfilePage() {
           )}
 
           <div className="divide-y divide-[var(--muted)] border border-[var(--border)] rounded-xl overflow-hidden">
-            {tokens.length === 0 ? (
+            {loadingTokens ? (
+              <p className="text-sm text-[var(--muted)] px-4 py-3">Loading tokens...</p>
+            ) : tokens.length === 0 ? (
               <p className="text-sm text-[var(--muted)] px-4 py-3">No tokens yet.</p>
             ) : (
               tokens.map((t) => (
@@ -366,7 +361,7 @@ export default function ProfilePage() {
             </Link>
           </div>
           <p className="text-xs text-[var(--muted)]">
-            Need help? Email support@octech.dev from your account email and we’ll assist.
+            Need help? Email support@octech.dev from your account email and we&apos;ll assist.
           </p>
         </section>
       </main>
@@ -374,7 +369,7 @@ export default function ProfilePage() {
   );
 }
 
-function formatDate(ts?: Timestamp | null) {
-  if (!ts?.toDate) {return "—";}
-  return ts.toDate().toLocaleDateString();
+function formatDate(dateStr: string | null) {
+  if (!dateStr) {return "—";}
+  return new Date(dateStr).toLocaleDateString();
 }

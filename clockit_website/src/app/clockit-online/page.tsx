@@ -6,18 +6,24 @@ import { IconChecks, IconClockPlay, IconLayoutSidebarLeftCollapse, IconLayoutSid
 import { useRouter, useSearchParams } from "next/navigation";
 import NavBar from "@/components/NavBar";
 import { auth } from "@/lib/firebase";
-import useFeatureFlags from "@/hooks/useFeatureFlags";
+import useFeature from "@/hooks/useFeature";
 import type { Goal } from "@/types";
 import type { GroupView } from "./types";
 import GoalsTab from "./components/GoalsTab";
 import SessionsTab from "./components/SessionsTab";
+import { buildNavLinks, isFeatureEnabledForNav } from "@/utils/navigation";
 
 
 export default function ClockitOnlinePage() {
   const [user] = useAuthState(auth);
-  const { isEnabled } = useFeatureFlags(user?.uid);
-  const goalsEnabled = !!user?.uid && isEnabled("clockit-goals", false);
-  const onlineEnabled = isEnabled("clockit-online", true);
+  const { isFeatureEnabled, isGroupEnabled, loading } = useFeature();
+  const onlineEnabled = isFeatureEnabled("clockit-online");
+  const sessionsEnabled = isFeatureEnabled("create-sessions");
+  const goalsEnabled = !!user?.uid && isFeatureEnabled("create-goals-for-sessions");
+
+  // Feature flags for navigation
+  const featureFlags = isFeatureEnabledForNav(isFeatureEnabled);
+  const navLinks = buildNavLinks(featureFlags, 'clockit-online');
   const router = useRouter();
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<"goals" | "sessions">(goalsEnabled ? "goals" : "sessions");
@@ -76,14 +82,9 @@ export default function ClockitOnlinePage() {
       <div className="min-h-screen theme-bg">
         <NavBar
           userName={user?.displayName || user?.email || undefined}
+          userPhoto={user?.photoURL}
           onSignOut={user ? () => auth.signOut() : undefined}
-          links={[
-            { href: "/dashboard", label: "Dashboard" },
-            { href: "/advanced-stats", label: "Advanced Stats" },
-            { href: "/session-activity", label: "Session Activity" },
-            { href: "/docs", label: "Docs" },
-            { href: "/profile", label: "Profile" },
-          ]}
+          links={navLinks}
         />
         <main className="max-w-4xl mx-auto px-6 py-12">
           <div className="border border-[var(--border)] bg-[var(--card)] rounded-2xl p-6 shadow-lg shadow-blue-900/10 text-center space-y-3">
@@ -135,15 +136,9 @@ export default function ClockitOnlinePage() {
     <div className="min-h-screen theme-bg">
       <NavBar
         userName={user?.displayName || user?.email || undefined}
+        userPhoto={user?.photoURL}
         onSignOut={user ? () => auth.signOut() : undefined}
-        links={[
-          { href: "/dashboard", label: "Dashboard" },
-          ...(onlineEnabled ? [{ href: "/clockit-online", label: "Clockit Online", active: true }] : []),
-          { href: "/advanced-stats", label: "Advanced Stats" },
-          { href: "/session-activity", label: "Session Activity" },
-          { href: "/docs", label: "Docs" },
-          { href: "/profile", label: "Profile" },
-        ]}
+        links={navLinks}
       />
 
       <main className="max-w-6xl mx-auto px-6 pb-32 pt-8 relative">

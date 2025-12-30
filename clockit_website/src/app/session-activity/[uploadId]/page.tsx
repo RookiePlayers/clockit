@@ -5,8 +5,8 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useAuthState } from "react-firebase-hooks/auth";
-import { auth, db } from "@/lib/firebase";
-import { doc, getDoc } from "firebase/firestore";
+import { auth } from "@/lib/firebase";
+import { uploadsApi } from "@/lib/api-client";
 import { Goal } from "@/types";
 import NavBar from "@/components/NavBar";
 
@@ -44,18 +44,20 @@ export default function UploadDetailPage() {
       try {
         setLoadError(null);
         setLoadingUpload(true);
-        const ref = doc(db, "Uploads", user.uid, "CSV", uploadId);
-        const snap = await getDoc(ref);
-        if (!snap.exists()) {
+
+        const data = await uploadsApi.get(uploadId);
+
+        if (!data) {
           setLoadError("Upload not found.");
           setUpload(null);
           return;
         }
-        const data = snap.data() as Record<string, unknown>;
+
         const rows = Array.isArray(data.data) ? (data.data as UploadRows) : [];
-        const uploadedAt = (data.uploadedAt as { toDate?: () => Date } | undefined)?.toDate?.() ?? null;
+        const uploadedAt = data.uploadedAt ? new Date(data.uploadedAt) : null;
+
         setUpload({
-          filename: typeof data.filename === "string" && data.filename.length ? data.filename : uploadId,
+          filename: data.filename && data.filename.length ? data.filename : uploadId,
           uploadedAt,
           rows,
         });
@@ -141,6 +143,7 @@ export default function UploadDetailPage() {
     <div className="min-h-screen bg-[var(--bg)] text-[var(--text)]">
       <NavBar
         userName={title}
+        userPhoto={user?.photoURL}
         onSignOut={() => auth.signOut()}
         links={[
           { href: "/dashboard", label: "Dashboard" },
@@ -149,7 +152,7 @@ export default function UploadDetailPage() {
           { href: "/recent-activity", label: "Recent Activity" },
           { href: "/session-activity", label: "Session Activity", active: true },
           { href: "/docs", label: "Docs" },
-          { href: "/profile", label: "Profile" },
+          
         ]}
       />
 

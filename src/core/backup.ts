@@ -6,7 +6,7 @@ import * as path from 'path';
 // NOTE: Keep vscode import optional to avoid test env issues.
 // If you prefer the static import, you can keep it; this version guards usage.
 let vscode: typeof import('vscode') | undefined;
-try { vscode = require('vscode'); } catch {}
+try { vscode = require('vscode'); } catch { }
 
 export type BackupRow = {
   startedIso: string;
@@ -44,20 +44,20 @@ export class BackupManager {
   private pending?: BackupRow;
   private lastWrittenHash?: string;
 
-  constructor(private opts: Opts) {}
+  constructor(private opts: Opts) { }
 
   start() {
-    if (!this.opts.enabled || this.timer) {return;}
+    if (!this.opts.enabled || this.timer) { return; }
     const seconds = Math.max(0, this.opts.intervalSeconds);
     // Allow intervalSeconds <= 0 to disable the period timer while keeping manual flushes
-    if (seconds <= 0) {return;}
+    if (seconds <= 0) { return; }
 
     const ms = seconds * 1000; // no hidden 10s floor
     this.timer = setInterval(() => { void this.flushTick(); }, ms);
   }
 
   stop() {
-    if (this.timer) {clearInterval(this.timer);}
+    if (this.timer) { clearInterval(this.timer); }
     this.timer = null;
   }
 
@@ -68,7 +68,7 @@ export class BackupManager {
 
   /** Force write now (used on deactivate / fatal error). Returns the file path if written. */
   async flushNow(): Promise<string | undefined> {
-    if (!this.opts.enabled) {return;}
+    if (!this.opts.enabled) { return; }
     return this.writeIfAny();
   }
 
@@ -77,15 +77,15 @@ export class BackupManager {
   private async flushTick() {
     const now = Date.now();
     // (Light) spam guard to avoid back-to-back writes in the same tick storm
-    if (now - this.lastFlushedAt < 250) {return;}
+    if (now - this.lastFlushedAt < 250) { return; }
     await this.writeIfAny();
   }
 
   private async writeIfAny(): Promise<string | undefined> {
-    if (!this.pending) {return;}
+    if (!this.pending) { return; }
 
     const file = await this.resolveBackupFilePath(new Date());
-    const dir  = path.dirname(file);
+    const dir = path.dirname(file);
     await this.ensureDir(dir);
 
     const exists = fssync.existsSync(file);
@@ -163,7 +163,7 @@ export class BackupManager {
 
   private async ensureDir(dir: string) {
     // If dir collapses to root/current, mkdir would be a no-op; skip for safety.
-    if (!dir || dir === '.' || dir === '/') {return;}
+    if (!dir || dir === '.' || dir === '/') { return; }
     try {
       await fs.mkdir(dir, { recursive: true });
     } catch (err) {
@@ -175,18 +175,18 @@ export class BackupManager {
   private async ensureGitignoreEntry(filePath: string) {
     try {
       const ws = vscode?.workspace?.workspaceFolders?.[0]?.uri.fsPath;
-      if (!ws) {return;}
+      if (!ws) { return; }
       const gitignore = path.join(ws, '.gitignore');
-      if (!fssync.existsSync(gitignore)) {return;}
+      if (!fssync.existsSync(gitignore)) { return; }
 
       const rel = path.relative(ws, filePath);
-      if (rel.startsWith('..')) {return;} // outside workspace
+      if (rel.startsWith('..')) { return; } // outside workspace
       const dirRel = path.dirname(rel).replace(/\\/g, '/');
       const pattern = `/${dirRel === '.' ? '' : `${dirRel}/`}${this.opts.filenamePrefix}*.csv`;
 
       const content = await fs.readFile(gitignore, 'utf8');
       const lines = content.split(/\r?\n/);
-      if (lines.some((line) => line.trim() === pattern)) {return;}
+      if (lines.some((line) => line.trim() === pattern)) { return; }
       lines.push(pattern);
       await fs.writeFile(gitignore, lines.join('\n'), 'utf8');
     } catch (err) {

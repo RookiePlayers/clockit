@@ -3,15 +3,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { IconArrowRight, IconClockPlay, IconPlayerPlayFilled } from "@tabler/icons-react";
 import { useSnackbar } from "notistack";
-import { collection, doc, setDoc } from "firebase/firestore";
 import type { ClockitSession, ClockitSessionUpload, Goal } from "@/types";
 import type { GroupView } from "../types";
 import { CLOCKIT_SERVER_WS, STORAGE_KEY_SESSIONS } from "../constants";
-import { auth, db } from "@/lib/firebase";
+import { auth } from "@/lib/firebase";
 import { formatDayLabel, toDateKey } from "../utils";
 import QuickAddGoal from "./QuickAddGoal";
 import SessionCard from "./SessionCard";
 import { createCSVFromSessionUpload, downloadSessionCsv } from "../utils";
+import { sessionsApi } from "@/lib/api-client";
 
 type SessionWire = {
   sessionId: string;
@@ -301,17 +301,18 @@ export default function SessionsTab({
           pausedAt: finished.pausedAt ?? null
         }
         const csv = createCSVFromSessionUpload(data);
-        const colRef = collection(db, "Uploads", user.uid, "ClockitOnline");
         const docData: ClockitSessionUpload = {
           ...data,
           csv,
-
         };
+
+        // Save session via API
         const cleaned = Object.fromEntries(Object.entries(docData).filter(([, v]) => v !== undefined));
-        setDoc(doc(colRef, finished.id), cleaned)
+        sessionsApi.save([cleaned as unknown as ClockitSession])
           .then(() => {
             enqueueSnackbar("Session uploaded to cloud", { variant: "success" });
-          }).catch(() => {
+          }).catch((error) => {
+            console.error("Failed to upload session:", error);
             enqueueSnackbar("Failed to upload session to cloud", { variant: "error" });
           });
         setSessionsUpload({
@@ -456,7 +457,7 @@ export default function SessionsTab({
       setSessions((prev) => [session, ...prev]);
     }
     setActiveTab("sessions");
-  }, [connected, setActiveTab]);
+  }, [connected, goalsEnabled, setActiveTab]);
 
   useEffect(() => {
     onRegisterStartFromGroup(startSessionFromGroup);

@@ -2,8 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useAuthState } from "react-firebase-hooks/auth";
-import { auth, db } from "@/lib/firebase";
-import { doc, getDoc, Timestamp } from "firebase/firestore";
+import { auth } from "@/lib/firebase";
+import { statsApi } from "@/lib/api-client";
 import Link from "next/link";
 import UploadCSV from "@/components/UploadCSV";
 import Stats from "@/components/Stats";
@@ -11,6 +11,8 @@ import Image from "next/image";
 import { IconCode, IconHourglassEmpty, IconSum, IconTimeDuration0 } from "@tabler/icons-react";
 import { useRouter } from "next/navigation";
 import NavBar from "@/components/NavBar";
+import useFeature from "@/hooks/useFeature";
+import { buildNavLinks, isFeatureEnabledForNav } from "@/utils/navigation";
 import {
   Legend,
   PolarAngleAxis,
@@ -60,6 +62,7 @@ const rangeLabels: Record<Range, string> = {
 
 export default function DashboardPage() {
   const [user, loadingUser, authError] = useAuthState(auth);
+  const { isFeatureEnabled } = useFeature();
   const [range, setRange] = useState<Range>("week");
   const [focusRange, setFocusRange] = useState<Range>("week");
   const [aggregates, setAggregates] = useState<Aggregates | null>(null);
@@ -68,7 +71,12 @@ export default function DashboardPage() {
   const router = useRouter();
   const [lastRefresh, setLastRefresh] = useState<number | null>(null);
   const [lastUpdated, setLastUpdated] = useState<number | null>(null);
+  const [statsRefreshKey, setStatsRefreshKey] = useState(0);
   const COOLDOWN_MS = 60 * 60 * 1000; // 1 hour
+
+  // Feature flags for navigation
+  const featureFlags = isFeatureEnabledForNav(isFeatureEnabled);
+  const navLinks = buildNavLinks(featureFlags, 'dashboard');
 
   useEffect(() => {
     if (!user) {
@@ -82,21 +90,26 @@ export default function DashboardPage() {
 
     const fetchAggregates = async () => {
       try {
-        const ref = doc(db, "MaterializedStats", user.uid);
-        const snap = await getDoc(ref);
-        if (!snap.exists()) {
+        const data = await statsApi.get() as {
+          aggregates?: Aggregates;
+          lastRefreshRequested?: number;
+          lastAggregatedAt?: number;
+          updatedAt?: number;
+        };
+
+        if (!data) {
           setAggregates(null);
           setStatsError("No aggregated stats found yet.");
           return;
         }
-        const data = snap.data() as { aggregates?: Aggregates; lastRefreshRequested?: number; lastAggregatedAt?: Timestamp; updatedAt?: Timestamp };
+
         setAggregates(data.aggregates || null);
         const ts = data.lastRefreshRequested;
         if (typeof ts === "number" && Number.isFinite(ts)) {
           setLastRefresh(ts);
         }
-        const aggregateTs = data.lastAggregatedAt?.toMillis?.() ? data.lastAggregatedAt.toMillis() : null;
-        const updatedTs = data.updatedAt?.toMillis?.() ? data.updatedAt.toMillis() : null;
+        const aggregateTs = data.lastAggregatedAt;
+        const updatedTs = data.updatedAt;
         const chosen = aggregateTs || updatedTs || ts || null;
         setLastUpdated(chosen);
       } catch (err) {
@@ -196,15 +209,9 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-[var(--bg)] text-[var(--text)]">
       <NavBar
         userName={title}
+        userPhoto={user?.photoURL}
         onSignOut={() => auth.signOut()}
-        links={[
-          { href: "/dashboard", label: "Dashboard", active: true },
-          { href: "/clockit-online", label: "Clockit Online" },
-          { href: "/advanced-stats", label: "Advanced Stats" },
-          { href: "/session-activity", label: "Session Activity" },
-          { href: "/docs", label: "Docs" },
-          { href: "/profile", label: "Profile" },
-        ]}
+        links={navLinks}
       />
 
       <main className="max-w-7xl mx-auto px-6 py-10 space-y-8">
@@ -243,7 +250,8 @@ export default function DashboardPage() {
           </div>
         </header>
 
-        <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {isFeatureEnabled('dashboard-productivity-at-a-glance') && (
+          <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <div className="border border-[var(--border)] bg-[var(--card)] rounded-2xl shadow-lg shadow-blue-900/10 p-6 rounded-2xl">
             <h2 className="text-lg font-semibold text-[var(--text)] mb-4">Total time</h2>
             {active ? (
@@ -325,15 +333,19 @@ export default function DashboardPage() {
               </div>
             )}
           </div>
-        </section>
+          </section>
+        )}
 
-        <div className=" border border-[var(--border)] bg-[var(--card)] rounded-2xl card-clean shadow-lg shadow-blue-900/10 p-6 rounded-2xl">
-          <FocusRadars />
-        </div>
+        {isFeatureEnabled('dashboard-focus-radars') && (
+          <div className=" border border-[var(--border)] bg-[var(--card)] rounded-2xl card-clean shadow-lg shadow-blue-900/10 p-6 rounded-2xl">
+            <FocusRadars />
+          </div>
+        )}
 
         {user && (
           <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div
+            {isFeatureEnabled('recent-activity') && (
+              <div
               className="lg:col-span-2  border border-[var(--border)] bg-[var(--card)] rounded-2xl card-clean shadow-lg shadow-blue-900/10 p-6 rounded-2xl cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/30"
               role="button"
               tabIndex={0}
@@ -357,12 +369,20 @@ export default function DashboardPage() {
                   Open table
                 </button>
               </div>
-              <Stats uid={user.uid} />
-            </div>
-        <div className=" border border-[var(--border)] bg-[var(--card)] rounded-2xl card-clean shadow-lg shadow-blue-900/10 p-6 rounded-2xl">
-          <h2 className="text-lg font-semibold text-[var(--text)] mb-4">Upload CSV</h2>
-              <UploadCSV uid={user.uid} />
-            </div>
+              <Stats uid={user.uid} refreshKey={statsRefreshKey} />
+              </div>
+            )}
+            {isFeatureEnabled('upload-csv-data') && (
+              <div className=" border border-[var(--border)] bg-[var(--card)] rounded-2xl card-clean shadow-lg shadow-blue-900/10 p-6 rounded-2xl">
+                <h2 className="text-lg font-semibold text-[var(--text)] mb-4">Upload CSV</h2>
+                <UploadCSV
+                  onUploadComplete={() => {
+                    // Refresh the stats component by incrementing the refresh key
+                    setStatsRefreshKey(prev => prev + 1);
+                  }}
+                />
+              </div>
+            )}
           </section>
         )}
       </main>

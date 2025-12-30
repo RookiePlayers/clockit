@@ -1,40 +1,69 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import Image from "next/image";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuthState } from "react-firebase-hooks/auth";
-import { useCollection } from "react-firebase-hooks/firestore";
-import { auth, db } from "@/lib/firebase";
-import { collection, deleteDoc, doc, DocumentData, limit, orderBy, query } from "firebase/firestore";
+import { auth } from "@/lib/firebase";
 import { useSnackbar } from "notistack";
+import { useRouter } from "next/navigation";
 import NavBar from "@/components/NavBar";
+import { uploadsApi, type UploadListItem } from "@/lib/api-client";
+import { UploadRow } from "@/types";
+import useFeature from "@/hooks/useFeature";
+import { buildNavLinks, isFeatureEnabledForNav } from "@/utils/navigation";
 
-type UploadRow = {
-  id: string;
-  filename: string;
-  uploadedAt?: Date | null;
-  count: number;
-  source: "manual" | "auto";
-  ideName?: string;
-};
 
 export default function RecentActivityPage() {
   const [user, loadingUser, authError] = useAuthState(auth);
+  const router = useRouter();
+  const { isFeatureEnabled, loading: featureLoading } = useFeature();
   const [sourceFilter, setSourceFilter] = useState<"all" | "manual" | "auto">("all");
   const [page, setPage] = useState(1);
   const pageSize = 20;
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const { enqueueSnackbar } = useSnackbar();
+  const [uploads, setUploads] = useState<UploadListItem[]>([]);
+  const [loadingUploads, setLoadingUploads] = useState(false);
+  const [uploadsError, setUploadsError] = useState<Error | null>(null);
 
-  const uploadsQuery = useMemo(() => {
-    if (!user) {return null;}
-    return query(collection(db, "Uploads", user.uid, "CSV"), orderBy("uploadedAt", "desc"), limit(200));
+  const sessionActivityEnabled = isFeatureEnabled("session-activity");
+  const sessionExplorerEnabled = isFeatureEnabled("session-explorer");
+  const hasSessionAccess = sessionActivityEnabled || sessionExplorerEnabled;
+
+  // Feature flags for navigation
+  const featureFlags = isFeatureEnabledForNav(isFeatureEnabled);
+  const navLinks = buildNavLinks(featureFlags, 'session-activity');
+
+  // Redirect if no session activity access
+  useEffect(() => {
+    if (!featureLoading && !loadingUser && !hasSessionAccess) {
+      router.push("/dashboard");
+    }
+  }, [featureLoading, loadingUser, hasSessionAccess, router]);
+
+  useEffect(() => {
+    if (!user) {
+      setUploads([]);
+      return;
+    }
+
+    const loadUploads = async () => {
+      try {
+        setLoadingUploads(true);
+        setUploadsError(null);
+        const data = await uploadsApi.list(100, false);
+        setUploads(data as UploadListItem[]);
+      } catch (err) {
+        setUploadsError(err instanceof Error ? err : new Error('Failed to load uploads'));
+      } finally {
+        setLoadingUploads(false);
+      }
+    };
+
+    void loadUploads();
   }, [user]);
 
-  const [snapshot, loadingUploads, uploadsError] = useCollection(uploadsQuery);
-
-  if (loadingUser || loadingUploads) {
+  if (loadingUser || loadingUploads || featureLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="w-8 h-8 border-2 border-[var(--primary)] border-t-transparent rounded-full animate-spin" />
@@ -47,6 +76,35 @@ export default function RecentActivityPage() {
       <div className="flex flex-col items-center justify-center min-h-screen text-red-600 gap-3">
         <p>Auth error: {authError.message}</p>
         <Link href="/auth" className="text-blue-600 hover:underline">Go to sign in</Link>
+      </div>
+    );
+  }
+
+  if (!hasSessionAccess) {
+    return (
+      <div className="min-h-screen theme-bg">
+        <NavBar
+          userName={user?.displayName || user?.email || undefined}
+          userPhoto={user?.photoURL}
+          onSignOut={user ? () => auth.signOut() : undefined}
+          links={navLinks}
+        />
+        <main className="max-w-4xl mx-auto px-6 py-12">
+          <div className="border border-[var(--border)] bg-[var(--card)] rounded-2xl p-6 shadow-lg text-center space-y-3">
+            <h1 className="text-2xl font-bold text-[var(--text)]">Session Activity not available</h1>
+            <p className="text-[var(--muted)]">
+              This feature is not included in your current plan. Upgrade to access session activity tracking and history.
+            </p>
+            <div className="flex justify-center gap-3">
+              <Link href="/dashboard" className="px-4 py-2 rounded-lg bg-[var(--primary)] text-[var(--primary-contrast)] font-semibold hover:opacity-90">
+                Go to Dashboard
+              </Link>
+              <Link href="/profile" className="px-4 py-2 rounded-lg border border-[var(--border)] text-[var(--text)] font-semibold hover:border-[var(--primary)] hover:text-[var(--primary)]">
+                View Plans
+              </Link>
+            </div>
+          </div>
+        </main>
       </div>
     );
   }
@@ -67,19 +125,16 @@ export default function RecentActivityPage() {
     );
   }
 
-  const rows: UploadRow[] = (snapshot?.docs ?? []).map((doc) => {
-    const data = doc.data() as DocumentData;
-    const uploadedAt = data.uploadedAt?.toDate?.() ?? null;
-    const filename = data.filename || doc.id;
-    const count = Array.isArray(data.data) ? data.data.length : 0;
-    const source: UploadRow["source"] = data.filename ? "manual" : "auto";
-    const ideName =
-      typeof data.ideName === "string" && data.ideName.trim()
-        ? data.ideName.trim()
-        : typeof data.meta?.ideName === "string" && data.meta.ideName.trim()
-          ? data.meta.ideName.trim()
-          : undefined;
-    return { id: doc.id, filename, uploadedAt, count, source, ideName };
+  const rows: UploadRow[] = uploads.map((upload) => {
+    const uploadedAt = upload.uploadedAt ? new Date(upload.uploadedAt) : null;
+    const filename = upload.filename || upload.id;
+    const count = upload.rowCount || 0;
+    // If fileName exists and is different from the ID, it's a manual upload
+    // If fileName equals the ID or is missing, it's an auto upload
+    const source: UploadRow["source"] = upload.source
+    // IDE name is not available in the API response currently
+    const ideName = upload.ideName || undefined;
+    return { id: upload.id, filename, uploadedAt, count, source, ideName };
   });
 
   const filteredRows = rows.filter((row) => sourceFilter === "all" || row.source === sourceFilter);
@@ -93,15 +148,9 @@ export default function RecentActivityPage() {
     <div className="min-h-screen bg-[var(--background)] text-[var(--text)]">
       <NavBar
         userName={user.displayName || user.email || undefined}
+        userPhoto={user?.photoURL}
         onSignOut={() => auth.signOut()}
-        links={[
-          { href: "/dashboard", label: "Dashboard" },
-          { href: "/clockit-online", label: "Clockit Online" },
-          { href: "/advanced-stats", label: "Advanced Stats" },
-          { href: "/session-activity", label: "Session Activity", active: true },
-          { href: "/docs", label: "Docs" },
-          { href: "/profile", label: "Profile" },
-        ]}
+        links={navLinks}
       />
 
       <main className="max-w-7xl mx-auto px-6 py-10 space-y-6">
@@ -152,7 +201,7 @@ export default function RecentActivityPage() {
           )}
           <div className="overflow-x-auto">
             <table className="min-w-[860px] w-full text-sm text-[var(--text)]">
-              <thead className="bg-[var(--gray-50)] text-[var(--gray-600)] border-b border-[var(--gray-100)]">
+              <thead className="bg-[var(--gray-50)] text-[var(--gray-600)] border-b border-gray-100-50">
                 <tr>
                   <th className="text-left px-4 py-2 font-semibold">Filename</th>
                   <th className="text-left px-4 py-2 font-semibold whitespace-nowrap">Uploaded at</th>
@@ -173,7 +222,7 @@ export default function RecentActivityPage() {
                   </tr>
                 )}
                 {paginatedRows.map((row) => (
-                  <tr key={row.id} className="border-b border-[var(--gray-100)] hover:bg-[var(--gray-50)] transition-colors">
+                  <tr key={row.id} className="border-b border-gray-100 hover:bg-[var(--gray-50)] transition-colors">
                     <td className="px-4 py-3 font-medium text-[var(--text)] break-all">{row.filename}</td>
                     <td className="px-4 py-3 text-[var(--text-muted)] whitespace-nowrap">
                       {row.uploadedAt ? row.uploadedAt.toLocaleString() : "—"}
@@ -202,7 +251,9 @@ export default function RecentActivityPage() {
                           if (!confirmed) {return;}
                           setDeletingId(row.id);
                           try {
-                            await deleteDoc(doc(db, "Uploads", user.uid, "CSV", row.id));
+                            await uploadsApi.delete(row.id);
+                            // Remove from local state
+                            setUploads((prev) => prev.filter((u) => u.id !== row.id));
                             enqueueSnackbar("Upload deleted.", { variant: "success" });
                           } catch (err) {
                             const msg = err instanceof Error ? err.message : "Failed to delete upload.";
@@ -223,7 +274,7 @@ export default function RecentActivityPage() {
             </table>
           </div>
           {filteredRows.length > 0 && (
-            <div className="px-4 py-3 border-t border-[var(--gray-100)] flex items-center justify-between gap-3 text-xs text-[var(--muted)]">
+            <div className="px-4 py-3 border-t border-gray-100-50 flex items-center justify-between gap-3 text-xs text-[var(--muted)]">
               <span>
                 Page {currentPage} of {totalPages}
               </span>

@@ -34,9 +34,9 @@ async function exportViaOrchestrator(ctx: vscode.ExtensionContext, utils: Utils,
   }
 
   const registry = new SinkRegistry();
-  registry.register('csv',  (c) => new CsvSink(c));
+  registry.register('csv', (c) => new CsvSink(c));
   registry.register('jira', (c) => new JiraSink(c));
-  registry.register('notion',(c) => new NotionSink(c));
+  registry.register('notion', (c) => new NotionSink(c));
 
   const sinkConfigs = [
     {
@@ -67,14 +67,14 @@ async function exportViaOrchestrator(ctx: vscode.ExtensionContext, utils: Utils,
   ];
 
   const sinks = registry.create(sinkConfigs);
-    const cacheProvider = new ClockitCacheProvider(ctx); // memory + globalState
+  const cacheProvider = new ClockitCacheProvider(ctx); // memory + globalState
 
   const orchestrator = new ExportOrchestrator(sinks, new PromptService(globalSecretStore(ctx), cacheProvider.memoryOnly()));
   const results = await orchestrator.hydrateAndExport(session);
 
   results.forEach((r: any) => {
-    if (r.ok) {utils.notify(`✅ ${r.kind.toUpperCase()}: ${r.message ?? 'Success'}`);}
-    else {utils.notify(`❌ ${r.kind.toUpperCase()}: ${r.message ?? 'Failed'}`, 'error');}
+    if (r.ok) { utils.notify(`✅ ${r.kind.toUpperCase()}: ${r.message ?? 'Success'}`); }
+    else { utils.notify(`❌ ${r.kind.toUpperCase()}: ${r.message ?? 'Failed'}`, 'error'); }
   });
 
   const cloudEnabled = cfg.get<boolean>('clockit.cloud.enabled');
@@ -96,7 +96,7 @@ export async function chooseSinksCommand() {
   const picks = await promptForSinks(
     vscode.workspace.getConfiguration().get<string[]>('clockit.enabledSinks') ?? ['csv']
   );
-  if (!picks) {return;}
+  if (!picks) { return; }
   await vscode.workspace.getConfiguration().update('clockit.enabledSinks', picks, vscode.ConfigurationTarget.Workspace);
   vscode.window.showInformationMessage(`Clockit sinks set to: ${picks.join(', ')}`);
 }
@@ -115,7 +115,7 @@ async function promptForSinks(current?: string[]) {
     })),
     { canPickMany: true, title: 'Select export sinks for this session (CSV always on)' }
   );
-  if (!picks) {return undefined;}
+  if (!picks) { return undefined; }
   const values = new Set(picks.filter(p => p.value === 'csv' || !p.disabled).map(p => p.value));
   values.add('csv'); // enforce CSV
   return Array.from(values);
