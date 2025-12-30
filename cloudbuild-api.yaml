@@ -25,30 +25,40 @@ steps:
 
   # Deploy to Cloud Run
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    entrypoint: gcloud
+    entrypoint: bash
     args:
-      - 'run'
-      - 'deploy'
-      - 'clockit-api'
-      - '--image'
-      - 'gcr.io/$PROJECT_ID/clockit-api:$COMMIT_SHA'
-      - '--region'
-      - 'us-central1'
-      - '--platform'
-      - 'managed'
-      - '--allow-unauthenticated'
-      - '--set-env-vars'
-      - 'NODE_ENV=production'
-      - '--max-instances'
-      - '10'
-      - '--min-instances'
-      - '0'
-      - '--memory'
-      - '512Mi'
-      - '--cpu'
-      - '1'
-      - '--timeout'
-      - '300s'
+      - -c
+      - |
+        set -euo pipefail
+        REDIS_URL="${_REDIS_URL:-}"
+        FIREBASE_B64="${_FIREBASE_SERVICE_ACCOUNT_B64:-}"
+        API_BASE_URL="${_API_BASE_URL:-}"
+        ALLOWED_ORIGINS="${_ALLOWED_ORIGINS:-}"
+        RATE_LIMIT_WINDOW_MS="${_RATE_LIMIT_WINDOW_MS:-}"
+        RATE_LIMIT_MAX_REQUESTS="${_RATE_LIMIT_MAX_REQUESTS:-}"
+        LOG_LEVEL="${_LOG_LEVEL:-info}"
+        ENABLE_ADMIN_SETUP="${_ENABLE_ADMIN_SETUP:-false}"
+        ADMIN_SETUP_TOKEN="${_ADMIN_SETUP_TOKEN:-}"
+        INITIAL_ADMIN_EMAILS="${_INITIAL_ADMIN_EMAILS:-}"
+        ENV_VARS="NODE_ENV=production,PORT=8080"
+        if [ -n "$REDIS_URL" ]; then
+          ENV_VARS="$ENV_VARS,REDIS_URL=$REDIS_URL"
+        fi
+        if [ -n "$FIREBASE_B64" ]; then
+          ENV_VARS="$ENV_VARS,FIREBASE_SERVICE_ACCOUNT_B64=$FIREBASE_B64"
+        fi
+
+        gcloud run deploy clockit-api \
+          --image "gcr.io/$PROJECT_ID/clockit-api:$COMMIT_SHA" \
+          --region "europe-west4" \
+          --platform "managed" \
+          --allow-unauthenticated \
+          --set-env-vars "$ENV_VARS" \
+          --max-instances "10" \
+          --min-instances "0" \
+          --memory "512Mi" \
+          --cpu "1" \
+          --timeout "300s"
 
 images:
   - 'gcr.io/$PROJECT_ID/clockit-api:$COMMIT_SHA'

@@ -347,7 +347,7 @@ export const featuresApi = {
 export interface RolePermission {
   action: string;
   subject: string;
-  conditions?: Record<string, any>;
+  conditions?: Record<string, unknown>;
   fields?: string[];
   inverted?: boolean;
 }
