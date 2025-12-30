@@ -1,3 +1,10 @@
+## [1.10.1](https://github.com/RookiePlayers/clockit/compare/v1.10.0...v1.10.1) (2025-12-30)
+
+
+### Bug Fixes
+
+* Update Dockerfile to conditionally install production dependencies ([44b6a1e](https://github.com/RookiePlayers/clockit/commit/44b6a1e05b594fdb755066daf9fffa416d7658a7))
+
 # [1.10.0](https://github.com/RookiePlayers/clockit/compare/v1.9.0...v1.10.0) (2025-12-30)
 
 
