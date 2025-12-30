@@ -15,7 +15,6 @@ interface CacheOptions {
 }
 
 class ResponseCache {
-  private readonly DEFAULT_TTL = 5 * 60 * 1000; // 5 minutes
   private readonly CACHE_PREFIX = 'cache:';
   private fallbackCache = new Map<string, CacheEntry>(); // Fallback when Redis unavailable
 

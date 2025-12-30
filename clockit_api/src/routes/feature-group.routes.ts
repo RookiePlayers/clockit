@@ -41,6 +41,7 @@ router.post(
 // Get feature groups by IDs (batch)
 router.post(
   '/batch',
+  validateBody(batchGetSchema),
   asyncHandler(FeatureGroupController.getByIds)
 );
 
