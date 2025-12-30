@@ -1,3 +1,10 @@
+## [1.10.6](https://github.com/RookiePlayers/clockit/compare/v1.10.5...v1.10.6) (2025-12-30)
+
+
+### Bug Fixes
+
+* Update Cloud Build ([8b3c79e](https://github.com/RookiePlayers/clockit/commit/8b3c79e6bdf4ef0624627c303d55e2ebedd28aa5))
+
 ## [1.10.5](https://github.com/RookiePlayers/clockit/compare/v1.10.4...v1.10.5) (2025-12-30)
 
 
