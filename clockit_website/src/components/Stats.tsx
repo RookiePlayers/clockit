@@ -1,8 +1,7 @@
 "use client";
 
-import { useCollection } from "react-firebase-hooks/firestore";
-import { db } from "@/lib/firebase";
-import { collection, query, orderBy, limit, DocumentData } from "firebase/firestore";
+import { useEffect, useState, useMemo } from "react";
+import { uploadsApi, UploadListItem, ApiError } from "@/lib/api-client";
 import {
   LineChart,
   Line,
@@ -18,17 +17,76 @@ import {
   Cell,
 } from "recharts";
 import { motion } from "framer-motion";
-import { useMemo, useState } from "react";
 
 interface StatsProps {
   uid: string;
+  refreshKey?: number;
 }
 
-export default function Stats({ uid }: StatsProps) {
+interface UploadWithData extends UploadListItem {
+  data?: Array<{
+    endedIso?: string;
+    endedISO?: string;
+    durationSeconds?: number;
+  }>;
+  filename?: string;
+  ideName?: string;
+  meta?: {
+    ideName?: string;
+  };
+}
+
+export default function Stats({ uid, refreshKey }: StatsProps) {
   const [chartType, setChartType] = useState<"line" | "bar" | "pie">("line");
-  const [snapshot, loading, error] = useCollection(
-    query(collection(db, "Uploads", uid, "CSV"), orderBy("uploadedAt", "desc"), limit(50))
-  );
+  const [uploads, setUploads] = useState<UploadWithData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadUploads = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        // Fetch uploads with CSV data included in a single request
+        const uploadsList = await uploadsApi.list(50, true);
+
+        // Parse CSV data for each upload
+        const uploadsWithData = uploadsList.map((upload) => {
+          // Type guard to check if upload has csvData
+          if ('csvData' in upload) {
+            // Parse CSV data to extract rows
+            const csvLines = upload.csvData.split('\n').filter(line => line.trim());
+            const headers = csvLines[0]?.split(',') || [];
+            const rows = csvLines.slice(1).map(line => {
+              const values = line.split(',');
+              const row: Record<string, string> = {};
+              headers.forEach((header, i) => {
+                row[header.trim()] = values[i]?.trim() || '';
+              });
+              return row;
+            });
+
+            return {
+              ...upload,
+              data: rows,
+            } as UploadWithData;
+          }
+          return upload as UploadWithData;
+        });
+
+        setUploads(uploadsWithData);
+      } catch (err) {
+        const msg = err instanceof ApiError ? err.message : "Failed to load uploads";
+        setError(msg);
+        console.error("Failed to load uploads:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    void loadUploads();
+  }, [uid, refreshKey]);
 
   // Only consider uploads in the last 30 days
   const thirtyDaysAgo = useMemo(() => {
@@ -38,17 +96,12 @@ export default function Stats({ uid }: StatsProps) {
   }, []);
 
   const chartData = useMemo(() => {
-    const docs = snapshot?.docs ?? [];
-    return docs
-      .map((doc) => {
-        const data = {
-          id: doc.id,
-          ...doc.data(),
-        } as DocumentData & { id: string };
-        const uploadedAt = data.uploadedAt?.toDate?.() ? data.uploadedAt.toDate() : null;
-        if (!uploadedAt || uploadedAt < thirtyDaysAgo) {return null;}
+    return uploads
+      .map((upload) => {
+        const uploadedAt = new Date(upload.uploadedAt);
+        if (uploadedAt < thirtyDaysAgo) {return null;}
 
-        const rows = Array.isArray(data.data) ? data.data : [];
+        const rows = Array.isArray(upload.data) ? upload.data : [];
         const totalSeconds = rows.reduce((sum, row) => {
           const endedIso = row?.endedIso || row?.endedISO;
           const durationSeconds = Number(row?.durationSeconds ?? 0);
@@ -63,7 +116,7 @@ export default function Stats({ uid }: StatsProps) {
             const endedIso = row?.endedIso || row?.endedISO;
             return endedIso ? new Date(endedIso) : uploadedAt;
           })
-          .filter((d: Date | null): d is Date => !!d)
+          .filter((d): d is Date => !!d)
           .filter((d) => d >= thirtyDaysAgo);
 
         const dateForLabel = endedDates.length ? endedDates[0] : uploadedAt;
@@ -77,7 +130,7 @@ export default function Stats({ uid }: StatsProps) {
         if (existing) {
           existing.hours += (curr as {
             date: string;
-            hours: number; 
+            hours: number;
           }).hours;
         } else {
           acc.push(curr as {
@@ -88,7 +141,7 @@ export default function Stats({ uid }: StatsProps) {
         return acc;
       }, [] as Array<{ date: string; hours: number }>)
       .reverse();
-  }, [snapshot?.docs, thirtyDaysAgo]);
+  }, [uploads, thirtyDaysAgo]);
 
   if (loading) {
     return (
@@ -101,13 +154,13 @@ export default function Stats({ uid }: StatsProps) {
   }
 
   if (error) {
-    return <div className="text-red-500 text-sm p-4 bg-red-50 rounded-xl border border-red-100">Error loading stats</div>;
+    return <div className="text-red-500 text-sm p-4 bg-red-50 rounded-xl border border-red-100">Error loading stats: {error}</div>;
   }
 
-  if (!snapshot || snapshot.empty) {
+  if (uploads.length === 0) {
     return (
-      <div className="text-center py-12 border-2 border-dashed border-gray-200 rounded-xl bg-gray-50">
-        <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center mx-auto mb-3 shadow-sm border border-gray-100">
+      <div className="text-center py-12 border-2 border-dashed border-[var(--border)] rounded-xl bg-[var(--card)]">
+        <div className="w-12 h-12 bg-[var(--card)] rounded-full flex items-center justify-center mx-auto mb-3 shadow-sm border border-gray-100">
           <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
         </div>
         <p className="text-gray-500 font-medium">No data found</p>
@@ -154,7 +207,7 @@ export default function Stats({ uid }: StatsProps) {
             <PieChart>
               <Tooltip />
               <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={90} label>
-                {pieData.map((entry, index) => (
+                {pieData.map((_, index) => (
                   <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
                 ))}
               </Pie>
@@ -186,11 +239,10 @@ export default function Stats({ uid }: StatsProps) {
     }
   };
 
-  const recentDocs = snapshot.docs
-    .map((doc) => ({ doc, data: doc.data() as DocumentData }))
-    .filter(({ data }) => {
-      const uploadedAt = data.uploadedAt?.toDate?.() ? data.uploadedAt.toDate() : null;
-      return uploadedAt && uploadedAt >= thirtyDaysAgo;
+  const recentUploads = uploads
+    .filter((upload) => {
+      const uploadedAt = new Date(upload.uploadedAt);
+      return uploadedAt >= thirtyDaysAgo;
     })
     .slice(0, 5);
 
@@ -212,24 +264,22 @@ export default function Stats({ uid }: StatsProps) {
 
       {/* List of recent uploads (last 30 days) */}
       <div className="space-y-3">
-        {recentDocs.length === 0 && (
+        {recentUploads.length === 0 && (
           <p className="text-sm text-gray-500">No uploads in the last 30 days.</p>
         )}
-        {recentDocs.map(({ doc, data }) => {
-          const rowCount = data.data?.length || 0;
-          const uploadedAtDate = data.uploadedAt?.toDate?.() ? data.uploadedAt.toDate() : null;
-          const uploadedAtLabel = uploadedAtDate
-            ? uploadedAtDate.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })
-            : "—";
-          const ideName = typeof data.ideName === "string" && data.ideName.trim()
-            ? data.ideName.trim()
-            : typeof data.meta?.ideName === "string" && data.meta.ideName.trim()
-              ? data.meta.ideName.trim()
+        {recentUploads.map((upload) => {
+          const rowCount = upload.data?.length || 0;
+          const uploadedAt = new Date(upload.uploadedAt);
+          const uploadedAtLabel = uploadedAt.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
+          const ideName = typeof upload.ideName === "string" && upload.ideName.trim()
+            ? upload.ideName.trim()
+            : typeof upload.meta?.ideName === "string" && upload.meta.ideName.trim()
+              ? upload.meta.ideName.trim()
               : "Secret IDE";
           return (
             <motion.div
-              key={doc.id}
-              className="group flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-white hover:bg-gray-50 transition-colors border border-gray-100 rounded-xl p-4 shadow-sm hover:shadow-md"
+              key={upload.id}
+              className="group flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-[var(--card)] hover:bg-[var(--card-soft)] transition-colors border border-[var(--border)] rounded-xl p-4 shadow-sm hover:shadow-md"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3 }}
@@ -240,15 +290,15 @@ export default function Stats({ uid }: StatsProps) {
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <h4 className="text-sm font-semibold text-gray-900 group-hover:text-blue-600 transition-colors truncate">
-                      {data.filename ?? doc.id}
+                    <h4 className="text-sm font-semibold text-[var(--text)] group-hover:text-blue-600 transition-colors truncate">
+                      {upload.filename ?? upload.fileName}
                     </h4>
                     <span
                       className={`px-2 py-0.5 rounded-full text-xs font-medium shrink-0 ${
-                        data.filename ? "bg-green-100 text-green-700" : "bg-blue-100 text-blue-600"
+                        upload.filename ? "bg-green-100 text-green-700" : "bg-blue-100 text-blue-600"
                       }`}
                     >
-                      {!data.filename ? "auto" : "manual"}
+                      {!upload.filename ? "auto" : "manual"}
                     </span>
                     <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-indigo-50 text-indigo-700 border border-indigo-100">
                       {ideName}
@@ -258,7 +308,7 @@ export default function Stats({ uid }: StatsProps) {
                 </div>
               </div>
               <div className="text-left sm:text-right w-full sm:w-auto">
-                <span className="block text-lg font-bold text-gray-900">{rowCount.toLocaleString()}</span>
+                <span className="block text-lg font-bold text-[var(--text)]">{rowCount.toLocaleString()}</span>
                 <span className="text-[10px] uppercase tracking-wider text-gray-400 font-medium">Entries</span>
               </div>
             </motion.div>

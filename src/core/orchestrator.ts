@@ -11,7 +11,7 @@ export class ExportOrchestrator {
     private readonly sinks: TimeSink[],
     private readonly prompts: PromptService,
     private readonly oauth?: OAuthManager
-  ) {}
+  ) { }
 
   async hydrateAndExport(session: Session): Promise<Array<{ kind: string } & Result>> {
     const results: Array<{ kind: string } & Result> = [];
@@ -71,11 +71,11 @@ export class ExportOrchestrator {
     specs: FieldSpec[],
     session: Session
   ): Promise<void> {
-    if (!specs?.length) {return;}
+    if (!specs?.length) { return; }
 
     const opts = ((sink as any).options = (sink as any).options ?? {});
 
-// src/core/orchestrator.ts  (inside resolveAndInjectRequirements loop)
+    // src/core/orchestrator.ts  (inside resolveAndInjectRequirements loop)
 
     for (const spec of specs) {
       const currentFromSession = this.valueFromSession(session, spec.key);
@@ -134,7 +134,7 @@ export class ExportOrchestrator {
     ) {
       const fieldKey = String((res as any).field);
       const spec = reqs.find(s => s.key === fieldKey);
-      if (!spec) {break;}
+      if (!spec) { break; }
 
       // Force re-prompt with the sink/session’s current value as "current"
       const currentVal = this._readCurrent(spec, sink, session);
@@ -157,8 +157,8 @@ export class ExportOrchestrator {
 
   private _readCurrent(spec: FieldSpec, sink: TimeSink, session: Session): unknown {
     const opts = (sink as any).options as Record<string, unknown> | undefined;
-    if (opts && spec.key in opts) {return opts[spec.key];}
-    if (spec.scope === 'runtime' && (spec.key in (session as any))) {return (session as any)[spec.key];}
+    if (opts && spec.key in opts) { return opts[spec.key]; }
+    if (spec.scope === 'runtime' && (spec.key in (session as any))) { return (session as any)[spec.key]; }
     if ((session.meta as any)?.fields && spec.key in (session.meta as any).fields) {
       return (session.meta as any).fields[spec.key];
     }
@@ -166,11 +166,11 @@ export class ExportOrchestrator {
   }
 
   private _inject(spec: FieldSpec, val: unknown, sink: TimeSink, session: Session) {
-    if (val === undefined) {return;}
+    if (val === undefined) { return; }
     const opts = (sink as any).options as Record<string, unknown> | undefined;
 
     if (spec.scope === 'setup') {
-      if (opts) {opts[spec.key] = val;}
+      if (opts) { opts[spec.key] = val; }
       return;
     }
     // runtime field
@@ -188,13 +188,13 @@ export class ExportOrchestrator {
     const opts = (sink as any).options as Record<string, unknown> | undefined;
     const missing: string[] = [];
     for (const s of specs) {
-      if (!s.required) {continue;}
+      if (!s.required) { continue; }
 
       const fromOpts = opts ? opts[s.key] : undefined;
       const fromSession = this.valueFromSession(session, s.key);
       const val = this.pickExistingValue(fromOpts, fromSession);
 
-      if (this.isEmpty(val)) {missing.push(s.key);}
+      if (this.isEmpty(val)) { missing.push(s.key); }
     }
     return missing;
   }
@@ -205,12 +205,12 @@ export class ExportOrchestrator {
 
   private valueFromSession(session: Session, key: string): unknown {
     switch (key) {
-      case 'issueKey':  return session.issueKey ?? undefined;
-      case 'comment':   return session.comment ?? undefined;
-      case 'branch':    return session.branch ?? undefined;
-      case 'repoPath':  return session.repoPath ?? undefined;
+      case 'issueKey': return session.issueKey ?? undefined;
+      case 'comment': return session.comment ?? undefined;
+      case 'branch': return session.branch ?? undefined;
+      case 'repoPath': return session.repoPath ?? undefined;
       case 'workspace': return session.workspace ?? undefined;
-      default:          return undefined;
+      default: return undefined;
     }
   }
 

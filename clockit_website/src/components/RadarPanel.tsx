@@ -24,18 +24,18 @@ export function RadarPanel({
         {data.map((row, idx) => (
           <div
             key={row.label}
-            className="flex items-center justify-between px-3 py-2 rounded-lg border border-gray-100 bg-gray-50 shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
+            className="flex items-center justify-between px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--card)] shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
           >
             <div className="flex items-center gap-2">
               <span
-                className="w-7 h-7 rounded-full bg-white border border-gray-200 flex items-center justify-center text-xs font-semibold"
+                className="w-7 h-7 rounded-full bg-[var(--card)] border border-[var(--border)] flex items-center justify-center text-xs font-semibold"
                 style={{ color }}
               >
                 {idx + 1}
               </span>
               <div>
-                <p className="text-sm font-semibold text-gray-900 truncate max-w-[140px]">{row.label}</p>
-                <p className="text-xs text-gray-500">{row.hours.toFixed(2)} hours</p>
+                <p className="text-sm font-semibold text-[var(--text)] truncate max-w-[140px]">{row.label}</p>
+                <p className="text-xs text-[var(--muted)]">{row.hours.toFixed(2)} hours</p>
               </div>
             </div>
           </div>
@@ -46,16 +46,16 @@ export function RadarPanel({
   );
 
   return (
-    <div className="card-clean bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
+    <div className="card-clean bg-[var(--card)] p-4 rounded-2xl border border-[var(--border)] shadow-sm">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-base font-semibold text-gray-900">{title}</h3>
+        <h3 className="text-base font-semibold text-[var(--text)]">{title}</h3>
         <div className="flex items-center gap-2">
-          {hasData && <span className="text-xs text-gray-500">{data.length} entries</span>}
+          {hasData && <span className="text-xs text-[var(--muted)]">{data.length} entries</span>}
           {hasData && (
             <button
               type="button"
               onClick={() => setShowModal(true)}
-              className="text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-700 hover:border-indigo-200 hover:text-indigo-700 transition-colors"
+              className="text-xs px-3 py-1.5 rounded-lg border border-[var(--border)] text-[var(--text)] hover:border-[var(--primary)] hover:text-[var(--primary)] transition-colors"
             >
               Expand
             </button>
@@ -64,7 +64,7 @@ export function RadarPanel({
       </div>
       <div className="h-[280px]">
         {!hasData ? (
-          <div className="h-full flex items-center justify-center text-sm text-gray-500">{emptyLabel}</div>
+          <div className="h-full flex items-center justify-center text-sm text-[var(--muted)]">{emptyLabel}</div>
         ) : (
           <ResponsiveContainer width="100%" height="100%">
             <RadarChart data={data}>
@@ -87,12 +87,12 @@ export function RadarPanel({
             onClick={() => setShowModal(false)}
           >
             <div
-              className="bg-white rounded-2xl shadow-2xl max-w-5xl w-full max-w-[1200px] max-h-[90vh] overflow-auto p-6 border border-gray-100 relative"
+              className="bg-[var(--card)] rounded-2xl shadow-2xl max-w-5xl w-full max-w-[1200px] max-h-[90vh] overflow-auto p-6 border border-[var(--border)] relative"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-start justify-between mb-4">
                 <div>
-                  <h4 className="text-lg font-semibold text-gray-900">{title}</h4>
+                  <h4 className="text-lg font-semibold text-[var(--text)]">{title}</h4>
                   {hasData && <p className="text-xs text-gray-500">{data.length} entries</p>}
                 </div>
                 <button
@@ -105,7 +105,7 @@ export function RadarPanel({
               </div>
               <div className="h-[360px] mb-4">
                 {!hasData ? (
-                  <div className="h-full flex items-center justify-center text-sm text-gray-500">{emptyLabel}</div>
+                  <div className="h-full flex items-center justify-center text-sm text-[var(--muted)]">{emptyLabel}</div>
                 ) : (
                   <ResponsiveContainer width="100%" height="100%">
                     <RadarChart data={data}>
@@ -119,7 +119,7 @@ export function RadarPanel({
                   </ResponsiveContainer>
                 )}
               </div>
-              {hasData ? breakdown : <p className="text-sm text-gray-500">{emptyLabel}</p>}
+              {hasData ? breakdown : <p className="text-sm text-[var(--muted)]">{emptyLabel}</p>}
             </div>
           </div>,
           document.body

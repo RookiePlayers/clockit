@@ -113,14 +113,14 @@ export default function RangeTotals({
   const pagedWorkspaceItems = workspaceItems.slice(workspaceStart, workspaceStart + pageSize);
 
   return (
-    <section className="card-clean bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-4 transition-all duration-300">
+    <section className="card-clean bg-[var(--card)] p-6 rounded-2xl border border-[var(--border)] shadow-sm space-y-4 transition-all duration-300">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-lg font-semibold text-gray-900">Range totals</h2>
-          <p className="text-sm text-gray-600">Sums across all aggregated entries for this view.</p>
+          <h2 className="text-lg font-semibold text-[var(--text)]">Range totals</h2>
+          <p className="text-sm text-[var(--muted)]">Sums across all aggregated entries for this view.</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-700">{rangeLabel}</span>
+          <span className="px-3 py-1 rounded-full text-xs font-semibold bg-[var(--card)] text-[var(--muted)]">{rangeLabel}</span>
           <div className="flex items-center gap-1">
             {(["sum", "avg", "min", "max"] as Mode[]).map((m) => (
               <button
@@ -128,8 +128,8 @@ export default function RangeTotals({
                 onClick={() => setMode(m)}
                 className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
                   mode === m
-                    ? "bg-blue-50 text-blue-700 border-blue-200"
-                    : "bg-white text-gray-700 border-gray-200 hover:border-blue-200 hover:text-blue-700"
+                    ? "bg-[var(--primary)] text-[var(--primary-contrast)] border-[var(--primary)]"
+                    : "bg-[var(--card)] text-[var(--text)] border-[var(--border)] hover:border-[var(--primary)] hover:text-[var(--primary)]"
                 }`}
               >
                 {modeLabel[m]}

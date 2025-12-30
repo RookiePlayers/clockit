@@ -1,0 +1,79 @@
+{
+  "name": "clockit-api",
+  "version": "1.0.0",
+  "description": "Backend API server for Clockit application",
+  "main": "dist/server.js",
+  "scripts": {
+    "check-env": "node check-env.js",
+    "dev": "nodemon --exec ts-node -r tsconfig-paths/register --project tsconfig.dev.json src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "lint": "eslint src --ext .ts",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "admin": "ts-node -r tsconfig-paths/register src/scripts/admin-manager.ts",
+    "create-admin": "ts-node -r tsconfig-paths/register src/scripts/create-admin.ts",
+    "list-admins": "ts-node -r tsconfig-paths/register src/scripts/list-admins.ts",
+    "remove-admin": "ts-node -r tsconfig-paths/register src/scripts/remove-admin.ts",
+    "seed-feature-groups": "ts-node -r tsconfig-paths/register src/scripts/seed-feature-groups.ts",
+    "seed-feature-entitlements": "ts-node -r tsconfig-paths/register src/scripts/seed-feature-entitlements.ts"
+  },
+  "keywords": [
+    "clockit",
+    "api",
+    "express",
+    "typescript",
+    "firebase"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@casl/ability": "^6.7.5",
+    "@types/redis": "^4.0.10",
+    "chalk": "^5.6.2",
+    "compression": "^1.7.4",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "enquirer": "^2.4.1",
+    "express": "^4.18.2",
+    "express-rate-limit": "^7.1.5",
+    "firebase-admin": "^12.7.0",
+    "helmet": "^7.1.0",
+    "morgan": "^1.10.0",
+    "multer": "^1.4.5-lts.1",
+    "papaparse": "^5.5.3",
+    "redis": "^5.10.0",
+    "ruki-logger": "^1.8.1",
+    "winston": "^3.11.0",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@types/compression": "^1.7.5",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/jest": "^29.5.11",
+    "@types/morgan": "^1.9.9",
+    "@types/multer": "^1.4.11",
+    "@types/node": "^20.10.6",
+    "@types/papaparse": "^5.5.0",
+    "@typescript-eslint/eslint-plugin": "^6.17.0",
+    "@typescript-eslint/parser": "^6.17.0",
+    "eslint": "^8.56.0",
+    "jest": "^29.7.0",
+    "nodemon": "^3.0.2",
+    "prettier": "^3.1.1",
+    "ts-jest": "^29.1.1",
+    "ts-node": "^10.9.2",
+    "tsconfig-paths": "^4.2.0",
+    "typescript": "^5.3.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "ts-node": {
+    "compilerOptions": {
+      "noUnusedParameters": false
+    }
+  }
+}

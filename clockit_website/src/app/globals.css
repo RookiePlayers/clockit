@@ -3,31 +3,81 @@
 @tailwind utilities;
 
 :root {
-  --bg-light: #f8f9fa;
-  --text-primary: #111827;
-  --text-secondary: #4b5563;
-  --accent-blue: #3b82f6;
+  --bg: #f7f9fc;
+  --text: #0f172a;
+  --muted: #475569;
+  --primary: #2563EB;
+  --primary-contrast: #ffffff;
+  --card: #ffffff;
+  --card-soft: #eef2f7;
+  --border: rgba(15, 23, 42, 0.08);
+  --gray-100-45: color-mix(in srgb, var(--gray-100) 45%, transparent);
+  --gray-100-60: color-mix(in srgb, var(--gray-100) 60%, transparent);
+  --gray-100-70: color-mix(in srgb, var(--gray-100) 70%, transparent);
+  --accent: #4A55C5;
+  --accent-contrast: #ffffff;
+  --pill: #e2e8f0;
+  --shadow: 0 24px 70px rgba(15, 23, 42, 0.12);
+}
+
+.theme-dark {
+  --bg: #0b1021;
+  --text: #e5e7eb;
+  --muted: #9ca3af;
+  --primary: #2563EB;
+  --primary-contrast: #ffffff;
+  --card: rgba(255, 255, 255, 0.05);
+  --card-soft: rgba(255, 255, 255, 0.08);
+  --border: rgba(255, 255, 255, 0.12);
+  --accent: #4A55C5;
+  --accent-contrast: #ffffff;
+  --pill: rgba(255, 255, 255, 0.08);
+  --shadow: 0 28px 90px rgba(0, 0, 0, 0.35);
 }
 
 body {
-  background-color: var(--bg-light);
-  color: var(--text-primary);
-  background-image: radial-gradient(#e5e7eb 1px, transparent 1px);
+  background: var(--bg);
+  color: var(--text);
+  background-image: radial-gradient(var(--border) 1px, transparent 1px);
   background-size: 24px 24px;
   min-height: 100vh;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
+
+.theme-bg {
+  background: var(--bg);
+  color: var(--text);
+}
+
+.theme-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+}
+
+.theme-soft {
+  background: var(--card-soft);
+}
+
+.theme-muted {
+  color: var(--muted);
+}
+
+.theme-pill {
+  background: var(--pill);
+  color: var(--text);
+}
+
 
 @layer utilities {
   .card-clean {
-    background-color: white;
-    border: 1px solid #e5e7eb;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+    background-color: var(--card);
+    border: 1px solid var(--border);
     border-radius: 1rem;
     transition: all 0.2s ease;
   }
 
   .card-clean:hover {
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025);
     transform: translateY(-2px);
   }
 
@@ -43,4 +93,98 @@ body {
   .btn-primary:hover {
     background-color: #2563eb;
   }
+
+  /* Transparent background utilities */
+  .bg-primary-10 {
+    background-color: color-mix(in srgb, var(--primary) 10%, transparent);
+  }
+
+  .bg-primary-20 {
+    background-color: color-mix(in srgb, var(--primary) 20%, transparent);
+  }
+
+  .bg-primary-30 {
+    background-color: color-mix(in srgb, var(--primary) 30%, transparent);
+  }
+
+  .bg-primary-40 {
+    background-color: color-mix(in srgb, var(--primary) 40%, transparent);
+  }
+
+  .bg-primary-50 {
+    background-color: color-mix(in srgb, var(--primary) 50%, transparent);
+  }
+
+  .bg-accent-10 {
+    background-color: color-mix(in srgb, var(--accent) 10%, transparent);
+  }
+
+  .bg-accent-20 {
+    background-color: color-mix(in srgb, var(--accent) 20%, transparent);
+  }
+
+  .bg-accent-30 {
+    background-color: color-mix(in srgb, var(--accent) 30%, transparent);
+  }
+
+  .text-accent-10 {
+    color: color-mix(in srgb, var(--accent) 10%, transparent);
+  }
+  .text-accent-20 {
+    color: color-mix(in srgb, var(--accent) 20%, transparent);
+  }
+  .text-accent-30 {
+    color: color-mix(in srgb, var(--accent) 30%, transparent);
+  }
+  .text-accent-40 {
+    color: color-mix(in srgb, var(--accent) 40%, transparent);
+  }
+  .text-accent-50 {
+    color: color-mix(in srgb, var(--accent) 50%, transparent);
+  }
+  .text-primary-10 {
+    color: color-mix(in srgb, var(--primary) 10%, transparent);
+  }
+  .text-primary-20 {
+    color: color-mix(in srgb, var(--primary) 20%, transparent);
+  }
+  .text-primary-30 {
+    color: color-mix(in srgb, var(--primary) 30%, transparent);
+  }
+  .text-primary-40 {
+    color: color-mix(in srgb, var(--primary) 40%, transparent);
+  }
+  .text-primary-50 {
+    color: color-mix(in srgb, var(--primary) 50%, transparent);
+  }
+  .text-10 {
+    color: color-mix(in srgb, var(--text) 10%, transparent);
+  }
+  .text-20 {
+    color: color-mix(in srgb, var(--text) 20%, transparent);
+  }
+  .text-30 {
+    color: color-mix(in srgb, var(--text) 30%, transparent);
+  }
+  .text-40 {
+    color: color-mix(in srgb, var(--text) 40%, transparent);
+  }
+  .text-50 {
+    color: color-mix(in srgb, var(--text) 50%, transparent);
+  }
+  .text-60 {
+    color: color-mix(in srgb, var(--text) 60%, transparent);
+  }
+  .text-70 {
+    color: color-mix(in srgb, var(--text) 70%, transparent);
+  }
+  .text-80 {
+    color: color-mix(in srgb, var(--text) 80%, transparent);
+  }
+  .text-90 {
+    color: color-mix(in srgb, var(--text) 90%, transparent);
+  }
+
+  
+
 }

@@ -1,0 +1,60 @@
+# Google Cloud Build configuration for clockit-server (WebSocket)
+steps:
+  # Build the container image
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/clockit-socket:$COMMIT_SHA'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/clockit-socket:latest'
+      - '-f'
+      - 'clockit-server/Dockerfile'
+      - 'clockit-server'
+
+  # Push the container image
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - 'gcr.io/$PROJECT_ID/clockit-socket:$COMMIT_SHA'
+
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - 'gcr.io/$PROJECT_ID/clockit-socket:latest'
+
+  # Deploy to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - 'clockit-socket'
+      - '--image'
+      - 'gcr.io/$PROJECT_ID/clockit-socket:$COMMIT_SHA'
+      - '--region'
+      - 'us-central1'
+      - '--platform'
+      - 'managed'
+      - '--allow-unauthenticated'
+      - '--set-env-vars'
+      - 'NODE_ENV=production'
+      - '--max-instances'
+      - '10'
+      - '--min-instances'
+      - '0'
+      - '--memory'
+      - '512Mi'
+      - '--cpu'
+      - '1'
+      - '--timeout'
+      - '3600s'
+      - '--session-affinity'
+
+images:
+  - 'gcr.io/$PROJECT_ID/clockit-socket:$COMMIT_SHA'
+  - 'gcr.io/$PROJECT_ID/clockit-socket:latest'
+
+options:
+  machineType: 'N1_HIGHCPU_8'
+  logging: CLOUD_LOGGING_ONLY

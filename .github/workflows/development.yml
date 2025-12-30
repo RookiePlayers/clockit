@@ -30,3 +30,11 @@ jobs:
     with:
       target-env: development
     secrets: inherit
+
+  deploy:
+    needs: create-release
+    name: Deploy Services
+    uses: ./.github/workflows/deploy.yml
+    with:
+      target-env: development
+    secrets: inherit

@@ -2,15 +2,14 @@
 
 import { useState, ChangeEvent } from "react";
 import Papa from "papaparse";
-import { db } from "@/lib/firebase";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { uploadsApi, statsApi, CreateUploadRequestSchema, CreateUploadResponse } from "@/lib/api-client";
 import { useSnackbar } from "notistack";
 
 interface UploadCSVProps {
-  uid: string;
+  onUploadComplete?: (response: CreateUploadResponse) => void;
 }
 
-export default function UploadCSV({ uid }: UploadCSVProps) {
+export default function UploadCSV({ onUploadComplete }: UploadCSVProps = {}) {
   const [uploading, setUploading] = useState<boolean>(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
   const { enqueueSnackbar } = useSnackbar();
@@ -26,26 +25,70 @@ export default function UploadCSV({ uid }: UploadCSVProps) {
       header: true,
       complete: async (results) => {
         try {
-          await addDoc(collection(db, "Uploads", uid, "CSV"), {
+          // Parse CSV data and convert stringified JSON fields back to objects
+          const parsedData = (results.data as Array<Record<string, unknown>>).map((row: Record<string, unknown>) => {
+            const parsed = { ...row };
+
+            // Parse JSON fields if they're strings
+            if (typeof parsed.perFileSeconds === 'string') {
+              try {
+                parsed.perFileSeconds = JSON.parse(parsed.perFileSeconds);
+              } catch {
+                parsed.perFileSeconds = {};
+              }
+            }
+
+            if (typeof parsed.perLanguageSeconds === 'string') {
+              try {
+                parsed.perLanguageSeconds = JSON.parse(parsed.perLanguageSeconds);
+              } catch {
+                parsed.perLanguageSeconds = {};
+              }
+            }
+
+            if (typeof parsed.goals === 'string') {
+              try {
+                parsed.goals = JSON.parse(parsed.goals);
+              } catch {
+                parsed.goals = [];
+              }
+            }
+
+            return parsed;
+          });
+
+          // Validate and upload
+          const schema = CreateUploadRequestSchema.safeParse({
             filename: file.name,
-            uploadedAt: serverTimestamp(),
-            data: results.data,
+            data: parsedData,
             meta: results.meta,
           });
+
+
+          if(schema.success === false) {
+            const errorMessages = schema.error.message;
+            console.error("Validation errors: ", schema.error);
+            throw new Error(`Validation failed: ${errorMessages}`);
+          }
+
+          // Upload via API
+          const response = await uploadsApi.create(schema.data);
+
           setMessage({ type: 'success', text: `Successfully processed ${file.name}` });
+
+          // Call the callback if provided
+          onUploadComplete?.(response);
+
+          // Trigger stats refresh via API
           try {
-            await fetch("https://clockit-stats-refresh.travpal.workers.dev/api/refresh-aggregation", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ userId: uid, forceMigration: false }),
-            });
+            await statsApi.refresh();
             enqueueSnackbar("Refresh triggered. Aggregates will update shortly.", { variant: "success" });
           } catch (refreshErr) {
             const msg = refreshErr instanceof Error ? refreshErr.message : "Failed to trigger refresh.";
             enqueueSnackbar(msg, { variant: "error" });
           }
         } catch (err: unknown) {
-          console.error("Error adding document: ", err);
+          console.error("Error uploading CSV: ", err);
           if (err instanceof Error) {
              setMessage({ type: 'error', text: err.message });
           } else {
@@ -66,7 +109,7 @@ export default function UploadCSV({ uid }: UploadCSVProps) {
   return (
     <div className="space-y-4">
       <div className="relative group cursor-pointer">
-        <div className="relative bg-white border-2 border-dashed border-gray-300 rounded-xl p-10 text-center transition-all hover:border-blue-400 hover:bg-blue-50/30">
+        <div className="relative bg-[var(--card)] border-2 border-dashed border-[var(--border)] rounded-xl p-10 text-center transition-all hover:border-blue-400 hover:bg-[var(--card-soft)]">
           <input
             type="file"
             accept=".csv"
@@ -86,8 +129,8 @@ export default function UploadCSV({ uid }: UploadCSVProps) {
               )}
             </div>
             <div>
-              <p className="text-lg font-semibold text-gray-900 mb-1">Click to upload CSV</p>
-              <p className="text-sm text-gray-500">or drag and drop file here</p>
+              <p className="text-lg font-semibold text-[var(--text)] mb-1">Click to upload CSV</p>
+              <p className="text-sm text-[var(--muted)]">or drag and drop file here</p>
             </div>
           </div>
         </div>

@@ -1,14 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { doc, getDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { statsApi } from "@/lib/api-client";
 import { Aggregates, MetricValue, Range } from "@/types";
 
 type HookState = {
     aggregates: Aggregates | null;
     isLoading: boolean;
     error: string | null;
+    message: string | null;
     lastRefresh: number | null;
 };
 
@@ -17,33 +17,35 @@ export function useFetchAggregates(userId: string | null | undefined) {
         aggregates: null,
         isLoading: true,
         error: null,
+        message: null,
         lastRefresh: null,
     });
 
     const loadAggregates = useCallback(async () => {
         if (!userId) {
-            setState({ aggregates: null, isLoading: false, error: null, lastRefresh: null });
+            setState({ aggregates: null, isLoading: false, error: null, message: null, lastRefresh: null });
             return;
         }
-        setState((prev) => ({ ...prev, isLoading: true, error: null }));
+        setState((prev) => ({ ...prev, isLoading: true, error: null, message: null }));
         try {
-            const ref = doc(db, "MaterializedStats", userId);
-            const snap = await getDoc(ref);
-            if (!snap.exists()) {
-                setState({ aggregates: null, isLoading: false, error: "No aggregated stats found yet.", lastRefresh: null });
+            const data = await statsApi.get() as { aggregates?: Aggregates; lastRefreshRequested?: number };
+
+            if (!data) {
+                setState({ aggregates: null, isLoading: false, error: null, message:  "No aggregated stats found yet.", lastRefresh: null });
                 return;
             }
-            const data = snap.data() as { aggregates?: Aggregates; lastRefreshRequested?: number };
+
             const ts = data.lastRefreshRequested;
             setState({
                 aggregates: data.aggregates || null,
                 isLoading: false,
                 error: null,
+                message: null,
                 lastRefresh: typeof ts === "number" && Number.isFinite(ts) ? ts : null,
             });
         } catch (err) {
             const msg = err instanceof Error ? err.message : "Failed to load stats";
-            setState((prev) => ({ ...prev, isLoading: false, error: msg }));
+            setState((prev) => ({ ...prev, isLoading: false, error: msg, message: null }));
         }
     }, [userId]);
 

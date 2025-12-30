@@ -1,8 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { doc, setDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { statsApi } from "@/lib/api-client";
 import Cooldown from "@/components/Cooldown";
 import { useSnackbar } from "notistack";
 
@@ -45,16 +44,8 @@ export default function RefreshAggregates({
     enqueueSnackbar("Starting refresh…", { variant: "info" });
     try {
       const now = Date.now();
-      const resp = await fetch("https://clockit-stats-refresh.travpal.workers.dev/api/refresh-aggregation", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId, forceMigration: false }),
-      });
-      if (!resp.ok) {
-        throw new Error(`Refresh failed with status ${resp.status}`);
-      }
+      await statsApi.refresh();
       onRefreshed?.(now);
-      await setDoc(doc(db, "MaterializedStats", userId), { lastRefreshRequested: now }, { merge: true });
       enqueueSnackbar("Refresh triggered. Aggregates will update shortly.", { variant: "success" });
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Failed to trigger refresh.";

@@ -9,13 +9,13 @@ type MockResponse = {
   json?: () => Promise<any>;
 };
 
-function okJson(obj: any = {}) : MockResponse {
+function okJson(obj: any = {}): MockResponse {
   return { ok: true, status: 200, text: async () => JSON.stringify(obj), json: async () => obj };
 }
-function createdJson(obj: any = {}) : MockResponse {
+function createdJson(obj: any = {}): MockResponse {
   return { ok: true, status: 200, text: async () => JSON.stringify(obj), json: async () => obj };
 }
-function fail(status = 401, body = 'Unauthorized') : MockResponse {
+function fail(status = 401, body = 'Unauthorized'): MockResponse {
   return { ok: false, status, text: async () => body };
 }
 

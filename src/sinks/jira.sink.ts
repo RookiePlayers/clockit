@@ -7,7 +7,7 @@ import type { Session, Result } from '../core/types';
 import { buildJqlFromQuery, searchForIssue } from '../services/jira-search';
 
 function extractIssueKeyFrom(text?: string | null): string | null {
-  if (!text) {return null;}
+  if (!text) { return null; }
   const m = String(text).match(/[A-Z][A-Z0-9]+-\d+/i);
   return m ? m[0].toUpperCase() : null;
 }
@@ -121,12 +121,12 @@ export class JiraSink extends BaseSink implements TimeSink {
 
   private firstMissing(): { field?: string; message?: string } {
     const domain = (this.options['jira.domain'] || '').toString().trim();
-    const email  = (this.options['jira.email']  || '').toString().trim();
-    const token  = (this.options['jira.apiToken'] || '').toString().trim();
+    const email = (this.options['jira.email'] || '').toString().trim();
+    const token = (this.options['jira.apiToken'] || '').toString().trim();
 
-    if (!domain) {return { field: 'jira.domain', message: 'Missing Jira domain' };}
-    if (!email)  {return { field: 'jira.email',  message: 'Missing Jira email' };}
-    if (!token)  {return { field: 'jira.apiToken', message: 'Missing Jira API token' };}
+    if (!domain) { return { field: 'jira.domain', message: 'Missing Jira domain' }; }
+    if (!email) { return { field: 'jira.email', message: 'Missing Jira email' }; }
+    if (!token) { return { field: 'jira.apiToken', message: 'Missing Jira API token' }; }
     return {};
   }
 
@@ -140,12 +140,12 @@ export class JiraSink extends BaseSink implements TimeSink {
         const jql = query ? `text ~ "${query.replace(/"/g, '\\"')}" order by updated DESC` : 'order by updated DESC';
         url.searchParams.set('jql', jql);
         url.searchParams.set('maxResults', '25');
-        if (cursor) {url.searchParams.set('startAt', cursor);}
+        if (cursor) { url.searchParams.set('startAt', cursor); }
 
         const res = await this.fetchFn(url.toString(), {
           headers: { 'Authorization': this.authHeader(), 'Accept': 'application/json' },
         });
-        if (!res.ok) {return { items: [], nextCursor: undefined };}
+        if (!res.ok) { return { items: [], nextCursor: undefined }; }
         const data = await res.json() as {
           startAt: number; maxResults: number; total: number;
           issues: Array<{ id: string; key: string; fields: { summary: string } }>;

@@ -11,15 +11,15 @@ import { fetchSubtaskGoals } from '../services/jira-goals';
 export function registerSessionCommands(ctx: vscode.ExtensionContext, utils: Utils) {
   ctx.subscriptions.push(
     vscode.commands.registerCommand('clockit.startTimeTracking', () => startSession(utils)),
-    vscode.commands.registerCommand('clockit.stopTimeTracking',  () => stopSession(utils)),
-    vscode.commands.registerCommand('clockit.toggle',            () => toggleSession(utils)),
+    vscode.commands.registerCommand('clockit.stopTimeTracking', () => stopSession(utils)),
+    vscode.commands.registerCommand('clockit.toggle', () => toggleSession(utils)),
     vscode.commands.registerCommand('clockit.pauseTimeTracking', () => pauseSession(utils)),
-    vscode.commands.registerCommand('clockit.resumeTimeTracking',() => resumeSession(utils)),
-    vscode.commands.registerCommand('clockit.setFocusTimer',     (preset?: number | string) => setFocusTimer(utils, preset)),
+    vscode.commands.registerCommand('clockit.resumeTimeTracking', () => resumeSession(utils)),
+    vscode.commands.registerCommand('clockit.setFocusTimer', (preset?: number | string) => setFocusTimer(utils, preset)),
 
     // Back-compat
-    vscode.commands.registerCommand('clockit.start',             () => startSession(utils)),
-    vscode.commands.registerCommand('clockit.stop',              () => stopSession(utils)),
+    vscode.commands.registerCommand('clockit.start', () => startSession(utils)),
+    vscode.commands.registerCommand('clockit.stop', () => stopSession(utils)),
 
     // Mark activity
     vscode.workspace.onDidChangeTextDocument(e => {
@@ -32,13 +32,13 @@ export function registerSessionCommands(ctx: vscode.ExtensionContext, utils: Uti
 }
 
 async function startSession(utils: Utils) {
-  if (utils.isRunning()) {return;}
+  if (utils.isRunning()) { return; }
   utils.beginSession();
   utils.notify('Clockit started.');
 }
 
 async function stopSession(utils: Utils) {
-  if (!utils.isRunning()) {return;}
+  if (!utils.isRunning()) { return; }
 
   const ended = utils.endSession();
 
@@ -166,18 +166,18 @@ async function setFocusTimer(utils: Utils, preset?: number | string) {
       ignoreFocusOut: true,
       validateInput: (val) => (parseInput(val) ? null : 'Use mm:ss (e.g., 25:00) or minutes (e.g., 25)'),
     });
-    if (!input) {return;}
+    if (!input) { return; }
     minutes = parseInput(input);
   }
 
-  if (!minutes || !Number.isFinite(minutes) || minutes <= 0) {return;}
+  if (!minutes || !Number.isFinite(minutes) || minutes <= 0) { return; }
   utils.startFocusTimer(minutes);
 }
 
 async function getGitContext() {
   try {
     const gitExt = vscode.extensions.getExtension('vscode.git');
-    if (!gitExt) {return { branch: null, repoPath: undefined, workspaceName: vscode.workspace.name };}
+    if (!gitExt) { return { branch: null, repoPath: undefined, workspaceName: vscode.workspace.name }; }
     const api = gitExt.isActive ? gitExt.exports : await gitExt.activate();
     const repo = api.getAPI(1).repositories[0];
     return {

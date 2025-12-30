@@ -9,6 +9,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { auth } from "@/lib/firebase";
+import ThemeToggle from "@/components/ThemeToggle";
 
 export default function Home() {
   const [user, loading] = useAuthState(auth);
@@ -23,32 +24,34 @@ export default function Home() {
   }, [user, loading, router]);
 
   return (
-    <div className="min-h-screen bg-[#0b1021] text-white">
-      <header className="sticky top-0 z-30 backdrop-blur bg-[#0b1021]/80 border-b border-white/5">
+    <div className="min-h-screen theme-bg">
+      <header className="sticky top-0 z-30 backdrop-blur bg-[var(--card)]/80 border-b border-[var(--border)]">
         <div className="max-w-6xl mx-auto px-6 py-4 flex flex-col gap-3">
           <div className="flex items-center justify-between gap-3">
             <Link href="/" className="flex items-center gap-3">
               <Image src="/icon.png" alt="Clockit Icon" width={32} height={32} className="rounded-full" />
-              <span className="text-lg font-semibold tracking-tight">Clockit</span>
+              <span className="text-lg font-semibold tracking-tight text-[var(--text)]">Clockit</span>
             </Link>
-            <nav className="hidden sm:flex items-center gap-4 text-sm text-white/80">
-              <a href="#features" className="hover:text-white">Features</a>
-              <a href="#workflow" className="hover:text-white">How it works</a>
-              <Link href="/docs" className="hover:text-white">Docs</Link>
+            <nav className="hidden sm:flex items-center gap-4 text-sm text-[var(--muted)]">
+              <a href="#features" className="hover:text-[var(--text)]">Features</a>
+              <a href="#workflow" className="hover:text-[var(--text)]">How it works</a>
+              <Link href="/clockit-online" className="hover:text-[var(--text)]">Clockit Online</Link>
+              <Link href="/docs" className="hover:text-[var(--text)]">Docs</Link>
             </nav>
             <div className="hidden sm:flex items-center gap-3">
               <ReadDocsButton variant="nav" />
               <InstallButton variant="nav" />
               <Link
                 href="/auth"
-                className="px-4 py-2 rounded-lg bg-white text-[#0b1021] text-sm font-semibold hover:bg-white/90 transition-colors shadow-sm"
+                className="px-4 py-2 rounded-lg bg-[var(--primary)] text-[var(--primary-contrast)] text-sm font-semibold hover:opacity-90 transition-colors shadow-sm"
               >
                 Sign in
               </Link>
+              <ThemeToggle />
             </div>
             <button
               aria-label="Toggle navigation"
-              className="sm:hidden inline-flex items-center justify-center w-10 h-10 rounded-lg border border-white/10 text-white/80 hover:text-white hover:border-white/25 transition-colors"
+              className="sm:hidden inline-flex items-center justify-center w-10 h-10 rounded-lg border border-[var(--border)] text-[var(--muted)] hover:text-[var(--text)] hover:border-[var(--text)]/30 transition-colors"
               onClick={() => setMobileNavOpen((open) => !open)}
             >
               <span className="sr-only">Toggle navigation</span>
@@ -63,42 +66,44 @@ export default function Home() {
           </div>
 
           {mobileNavOpen && (
-            <div className="sm:hidden border border-white/10 rounded-xl bg-white/5 px-4 py-3 space-y-3">
-              <nav className="flex flex-col gap-2 text-sm text-white/80">
-                <a href="#features" className="hover:text-white">Features</a>
-                <a href="#workflow" className="hover:text-white">How it works</a>
-                <Link href="/docs" className="hover:text-white">Docs</Link>
+            <div className="sm:hidden border border-[var(--border)] rounded-xl bg-[var(--card)] px-4 py-3 space-y-3">
+              <nav className="flex flex-col gap-2 text-sm text-[var(--muted)]">
+                <a href="#features" className="hover:text-[var(--text)]">Features</a>
+                <a href="#workflow" className="hover:text-[var(--text)]">How it works</a>
+                <Link href="/clockit-online" className="hover:text-[var(--text)]">Clockit Online</Link>
+                <Link href="/docs" className="hover:text-[var(--text)]">Docs</Link>
               </nav>
               <div className="grid grid-cols-1 gap-2">
                 <InstallButton variant="nav" />
                 <ReadDocsButton variant="nav" />
                 <Link
                   href="/auth"
-                  className="px-4 py-2 rounded-lg bg-white text-[#0b1021] text-sm font-semibold hover:bg-white/90 transition-colors shadow-sm text-center"
+                  className="px-4 py-2 rounded-lg bg-[var(--primary)] text-[var(--primary-contrast)] text-sm font-semibold hover:opacity-90 transition-colors shadow-sm text-center"
                 >
                   Sign in
                 </Link>
+                <ThemeToggle className="w-full justify-center" />
               </div>
             </div>
           )}
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-6 py-12 space-y-16">
+      <main className="max-w-6xl mx-auto px-6 py-12 space-y-16 text-[var(--text)]">
         <section className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
           <div className="space-y-6">
-            <p className="text-sm uppercase tracking-[0.2em] text-blue-200/70">Developer time tracking</p>
+            <p className="text-sm uppercase tracking-[0.2em] text-[var(--muted)]">Developer time tracking</p>
             <h1 className="text-4xl sm:text-5xl font-bold leading-tight">
               Know where your coding hours go.
             </h1>
-            <p className="text-lg text-white/80">
+            <p className="text-lg text-[var(--muted)]">
               Clockit captures your editor focus time, trims idle minutes, and exports to CSV, Jira, and Notion—no manual timers, no friction. Grab the extension, read the docs, and ship smarter.
             </p>
             <div className="flex flex-wrap gap-3">
               <InstallButton />
               <ReadDocsButton />
             </div>
-            <div className="flex items-center gap-4 text-sm text-white/60">
+            <div className="flex items-center gap-4 text-sm text-[var(--muted)]">
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-emerald-400" />
                 <span>Auto idle detection</span>
@@ -113,7 +118,7 @@ export default function Home() {
               </div>
             </div>
           </div>
-          <div className="rounded-2xl border border-white/5 bg-white/5 p-4 shadow-2xl">
+          <div className="rounded-2xl border border-[var(--border)] bg-[var(--card-soft)] p-4 shadow-2xl">
             <HeroAnimation />
           </div>
         </section>
