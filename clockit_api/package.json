@@ -10,7 +10,7 @@
     "start": "node dist/server.js",
     "test": "jest",
     "test:watch": "jest --watch",
-    "lint": "eslint src --ext .ts",
+    "lint": "eslint src",
     "format": "prettier --write \"src/**/*.ts\"",
     "admin": "ts-node -r tsconfig-paths/register src/scripts/admin-manager.ts",
     "create-admin": "ts-node -r tsconfig-paths/register src/scripts/create-admin.ts",

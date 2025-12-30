@@ -1,4 +1,22 @@
-# Use Node 24 LTS
+# Build stage
+FROM node:24-alpine AS build
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install dependencies (include dev for build)
+RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi
+
+# Copy source code
+COPY . .
+
+# Build TypeScript
+RUN npm run build
+
+# Runtime stage
 FROM node:24-alpine
 
 # Set working directory
@@ -7,14 +25,11 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
+# Install production dependencies
 RUN if [ -f package-lock.json ]; then npm ci --omit=dev; else npm install --omit=dev; fi
 
-# Copy source code
-COPY . .
-
-# Build TypeScript
-RUN npm run build
+# Copy build output
+COPY --from=build /app/dist ./dist
 
 # Expose port 
 EXPOSE 3001
