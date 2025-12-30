@@ -1,3 +1,10 @@
+## [1.10.4](https://github.com/RookiePlayers/clockit/compare/v1.10.3...v1.10.4) (2025-12-30)
+
+
+### Bug Fixes
+
+* Enhance deployment workflows and add environment variable configurations for Cloud Run ([3ee8ab3](https://github.com/RookiePlayers/clockit/commit/3ee8ab3e2d5df7514f5371ea8f71521a93e85b1b))
+
 ## [1.10.3](https://github.com/RookiePlayers/clockit/compare/v1.10.2...v1.10.3) (2025-12-30)
 
 
