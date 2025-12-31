@@ -1,3 +1,16 @@
+# [1.11.0](https://github.com/RookiePlayers/clockit/compare/v1.10.12...v1.11.0) (2025-12-31)
+
+
+### Bug Fixes
+
+* Update API and socket URLs in apphosting configuration ([59593c2](https://github.com/RookiePlayers/clockit/commit/59593c24c04e1443f92d71f6fc728acd7e1d158a))
+* Update deployment workflow ([7f1b190](https://github.com/RookiePlayers/clockit/commit/7f1b190b995b2dcb1c8d444b168a5637a4c506e7))
+
+
+### Features
+
+* Add support for guest WebSocket connections alongside authenticated users ([a077304](https://github.com/RookiePlayers/clockit/commit/a07730483f4fcd6abf7f4ad9be813ea6ab9dc3c1))
+
 ## [1.10.12](https://github.com/RookiePlayers/clockit/compare/v1.10.11...v1.10.12) (2025-12-31)
 
 
