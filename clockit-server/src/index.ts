@@ -21,7 +21,13 @@ import { Cachier } from "../caching";
 
 
 const app = express();
-app.use(cors());
+
+// Configure CORS to allow WebSocket connections
+app.use(cors({
+  origin: true, // Allow all origins in development, configure for production
+  credentials: true,
+}));
+
 app.use(express.json());
 
 const server = http.createServer(app);
