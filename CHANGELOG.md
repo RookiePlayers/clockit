@@ -1,3 +1,10 @@
+## [1.11.3](https://github.com/RookiePlayers/clockit/compare/v1.11.2...v1.11.3) (2025-12-31)
+
+
+### Bug Fixes
+
+* Wrap ClockitOnlinePageContent in Suspense for improved loading state ([027d5fe](https://github.com/RookiePlayers/clockit/commit/027d5fe8130bf24d6a9c7996f66259335ea62859))
+
 ## [1.11.2](https://github.com/RookiePlayers/clockit/compare/v1.11.1...v1.11.2) (2025-12-31)
 
 
