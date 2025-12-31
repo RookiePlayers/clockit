@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { IconChecks, IconClockPlay, IconLayoutSidebarLeftCollapse, IconLayoutSidebarLeftExpand, IconTargetArrow, IconTimelineEvent } from "@tabler/icons-react";
 import Link from "next/link";
@@ -15,7 +15,7 @@ import SessionsTab from "./components/SessionsTab";
 import { buildNavLinks, isFeatureEnabledForNav } from "@/utils/navigation";
 
 
-export default function ClockitOnlinePage() {
+function ClockitOnlinePageContent() {
   const [user] = useAuthState(auth);
   const { isFeatureEnabled } = useFeature();
   const onlineEnabled = isFeatureEnabled("clockit-online");
@@ -255,5 +255,13 @@ export default function ClockitOnlinePage() {
 
       </main>
     </div>
+  );
+}
+
+export default function ClockitOnlinePage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <ClockitOnlinePageContent />
+    </Suspense>
   );
 }
