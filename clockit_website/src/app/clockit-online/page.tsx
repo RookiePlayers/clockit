@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { IconChecks, IconClockPlay, IconLayoutSidebarLeftCollapse, IconLayoutSidebarLeftExpand, IconTargetArrow, IconTimelineEvent } from "@tabler/icons-react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import NavBar from "@/components/NavBar";
 import { auth } from "@/lib/firebase";
@@ -58,7 +59,7 @@ export default function ClockitOnlinePage() {
     [syncTabToUrl, goalsEnabled],
   );
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const tabParam = searchParams?.get("tab");
     if (tabParam === "goals" && !goalsEnabled) {
       setActiveTab("sessions");
@@ -66,8 +67,7 @@ export default function ClockitOnlinePage() {
       return;
     }
     if (tabParam === "goals" || tabParam === "sessions") {
-      const set = () => setActiveTab((prev) => (prev === tabParam ? prev : tabParam));
-      return set();
+      setActiveTab((prev) => (prev === tabParam ? prev : tabParam));
     }
   }, [searchParams, goalsEnabled, syncTabToUrl]);
 
@@ -76,6 +76,39 @@ export default function ClockitOnlinePage() {
       router.replace("/dashboard");
     }
   }, [onlineEnabled, router]);
+
+  const handleStartClockit = useCallback(
+    (group: GroupView) => {
+      sessionStarterRef.current?.(group);
+      setTab("sessions");
+    },
+    [setTab],
+  );
+
+  useEffect(() => {
+    if (!onlineEnabled) {
+      return;
+    }
+
+    const handleScroll = () => {
+      const currentY = window.scrollY;
+      const lastY = lastScrollYRef.current;
+      const threshold = Math.max(0, window.innerHeight * 0.5);
+      const scrolledPastHalf = currentY > threshold;
+      const scrollingUp = currentY < lastY - 6;
+      const scrollingDown = currentY > lastY + 6;
+
+      if (scrolledPastHalf && scrollingDown) {
+        setHideMobileTabs(true);
+      } else if (scrollingUp || !scrolledPastHalf) {
+        setHideMobileTabs(false);
+      }
+
+      lastScrollYRef.current = currentY;
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [onlineEnabled]);
 
   if (!onlineEnabled) {
     return (
@@ -102,35 +135,6 @@ export default function ClockitOnlinePage() {
       </div>
     );
   }
-
-  const handleStartClockit = useCallback(
-    (group: GroupView) => {
-      sessionStarterRef.current?.(group);
-      setTab("sessions");
-    },
-    [setTab],
-  );
-
-  useEffect(() => {
-    const handleScroll = () => {
-      const currentY = window.scrollY;
-      const lastY = lastScrollYRef.current;
-      const threshold = Math.max(0, window.innerHeight * 0.5);
-      const scrolledPastHalf = currentY > threshold;
-      const scrollingUp = currentY < lastY - 6;
-      const scrollingDown = currentY > lastY + 6;
-
-      if (scrolledPastHalf && scrollingDown) {
-        setHideMobileTabs(true);
-      } else if (scrollingUp || !scrolledPastHalf) {
-        setHideMobileTabs(false);
-      }
-
-      lastScrollYRef.current = currentY;
-    };
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
 
   return (
     <div className="min-h-screen theme-bg">

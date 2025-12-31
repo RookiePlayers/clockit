@@ -7,18 +7,6 @@ on:
         required: true
         type: string
   workflow_dispatch:
-  push:
-    branches:
-      - main
-    paths:
-      - 'clockit_api/**'
-      - 'clockit-server/**'
-      - 'cloudbuild-api.yaml'
-      - 'cloudbuild-socket.yaml'
-      - '.github/workflows/deploy.yml'
-      - '.github/workflows/deploy-api.yml'
-      - '.github/workflows/deploy-socket.yml'
-
 jobs:
   deploy_api:
     name: Deploy API
