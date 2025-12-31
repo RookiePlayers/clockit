@@ -1,3 +1,10 @@
+## [1.10.12](https://github.com/RookiePlayers/clockit/compare/v1.10.11...v1.10.12) (2025-12-31)
+
+
+### Bug Fixes
+
+* Implement multi-stage Docker build to compile TypeScript for faster Cloud Run startup ([b05f8b1](https://github.com/RookiePlayers/clockit/commit/b05f8b1485be072f2a27091100b2ccfe4d9d63e8))
+
 ## [1.10.11](https://github.com/RookiePlayers/clockit/compare/v1.10.10...v1.10.11) (2025-12-31)
 
 
