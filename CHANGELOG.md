@@ -1,3 +1,10 @@
+## [1.10.9](https://github.com/RookiePlayers/clockit/compare/v1.10.8...v1.10.9) (2025-12-31)
+
+
+### Bug Fixes
+
+* Update Dockerfile to expose PORT 8080 for Cloud Run compatibility ([7544d29](https://github.com/RookiePlayers/clockit/commit/7544d29eadb7584d246155116c0fb24522f6d0cd))
+
 ## [1.10.8](https://github.com/RookiePlayers/clockit/compare/v1.10.7...v1.10.8) (2025-12-31)
 
 
