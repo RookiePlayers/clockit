@@ -63,28 +63,36 @@ const handleConnection = (socket: WebSocket, req: http.IncomingMessage) => {
   const url = req.url ? new URL(req.url, "http://localhost") : null;
   const tokenFromQuery = url?.searchParams.get("token");
   const token = extractBearer(req) || tokenFromQuery;
+
+  // Helper function to set up connection after authentication
+  const setupConnection = (userId: string, isGuest: boolean = false) => {
+    console.info("[ws] connection established", { userId, isGuest });
+    WebsocketOrchestrator.getInstance().ensureUserMaps(userId);
+    orchestrator.getSocketsByUser().get(userId)!.add(socket);
+
+    console.info("[ws] sending ready snapshot", { userId, sessions: serializeSessions(userId).length });
+    socket.send(
+      JSON.stringify({
+        type: "ready",
+        payload: serializeSessions(userId),
+      }),
+    );
+    startListenersForSocket(socket, [], userId);
+  };
+
+  // If no token provided, allow as guest
   if (!token) {
-    console.warn("[ws] missing token, closing connection");
-    socket.close(4401, "Unauthorized");
+    const guestId = "guest_" + Date.now() + "_" + Math.random().toString(36).substring(2, 9);
+    console.info("[ws] guest connection", { guestId });
+    setupConnection(guestId, true);
     return;
   }
-  let userId = "anonymous" + Date.now();
+
+  // If token provided, verify it
   adminAuth()
     .verifyIdToken(token)
     .then((decoded) => {
-      userId = decoded.uid;
-      console.info("[ws] authenticated connection", { userId });
-      WebsocketOrchestrator.getInstance().ensureUserMaps(userId);
-      orchestrator.getSocketsByUser().get(userId)!.add(socket);
-
-      console.info("[ws] sending ready snapshot", { userId, sessions: serializeSessions(userId).length });
-      socket.send(
-        JSON.stringify({
-          type: "ready",
-          payload: serializeSessions(userId),
-        }),
-      );
-      startListenersForSocket(socket, [], userId);
+      setupConnection(decoded.uid, false);
     })
     .catch((err) => {
       console.warn("[ws] token verification failed", { reason: err instanceof Error ? err.message : "unknown" });
