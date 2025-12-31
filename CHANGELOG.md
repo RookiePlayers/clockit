@@ -1,3 +1,10 @@
+## [1.11.2](https://github.com/RookiePlayers/clockit/compare/v1.11.1...v1.11.2) (2025-12-31)
+
+
+### Bug Fixes
+
+* Update useFeature call in ProfilePage to remove user dependency ([fe44153](https://github.com/RookiePlayers/clockit/commit/fe44153512a50eb1b5fcdc03c06038d6e47ae889))
+
 ## [1.11.1](https://github.com/RookiePlayers/clockit/compare/v1.11.0...v1.11.1) (2025-12-31)
 
 
