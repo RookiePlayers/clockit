@@ -7,25 +7,14 @@ import { statsApi } from "@/lib/api-client";
 import Link from "next/link";
 import UploadCSV from "@/components/UploadCSV";
 import Stats from "@/components/Stats";
-import Image from "next/image";
 import { IconCode, IconHourglassEmpty, IconSum, IconTimeDuration0 } from "@tabler/icons-react";
 import { useRouter } from "next/navigation";
 import NavBar from "@/components/NavBar";
 import useFeature from "@/hooks/useFeature";
 import { buildNavLinks, isFeatureEnabledForNav } from "@/utils/navigation";
-import {
-  Legend,
-  PolarAngleAxis,
-  PolarGrid,
-  PolarRadiusAxis,
-  Radar,
-  RadarChart,
-  ResponsiveContainer,
-  Tooltip,
-} from "recharts";
 import FocusRadars from "@/components/FocusRadars";
 import RefreshAggregates from "@/components/RefreshAggregates";
-import { metricAverage, metricSum } from "@/hooks/useFetchAggregates";
+import { metricSum } from "@/hooks/useFetchAggregates";
 
 type Range = "week" | "month" | "year" | "all";
 
@@ -64,7 +53,7 @@ export default function DashboardPage() {
   const [user, loadingUser, authError] = useAuthState(auth);
   const { isFeatureEnabled } = useFeature();
   const [range, setRange] = useState<Range>("week");
-  const [focusRange, setFocusRange] = useState<Range>("week");
+  const [, setFocusRange] = useState<Range>("week");
   const [aggregates, setAggregates] = useState<Aggregates | null>(null);
   const [isLoadingStats, setIsLoadingStats] = useState(true);
   const [statsError, setStatsError] = useState<string | null>(null);
@@ -252,7 +241,7 @@ export default function DashboardPage() {
 
         {isFeatureEnabled('dashboard-productivity-at-a-glance') && (
           <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="border border-[var(--border)] bg-[var(--card)] rounded-2xl shadow-lg shadow-blue-900/10 p-6 rounded-2xl">
+          <div className="border border-[var(--border)] bg-[var(--card)] shadow-lg shadow-blue-900/10 p-6 rounded-2xl">
             <h2 className="text-lg font-semibold text-[var(--text)] mb-4">Total time</h2>
             {active ? (
               <div className="space-y-3">
@@ -283,7 +272,7 @@ export default function DashboardPage() {
             )}
           </div>
 
-          <div className=" border border-[var(--border)] bg-[var(--card)] rounded-2xl card-clean shadow-lg shadow-blue-900/10 p-6 rounded-2xl">
+          <div className=" border border-[var(--border)] bg-[var(--card)] card-clean shadow-lg shadow-blue-900/10 p-6 rounded-2xl">
             <h2 className="text-lg font-semibold text-[var(--text)] mb-1">Productivity score</h2>
             <div className="relative group inline-block mb-2">
               <span className="text-sm text-[var(--muted)] cursor-pointer underline decoration-dotted">
@@ -337,7 +326,7 @@ export default function DashboardPage() {
         )}
 
         {isFeatureEnabled('dashboard-focus-radars') && (
-          <div className=" border border-[var(--border)] bg-[var(--card)] rounded-2xl card-clean shadow-lg shadow-blue-900/10 p-6 rounded-2xl">
+          <div className=" border border-[var(--border)] bg-[var(--card)]  card-clean shadow-lg shadow-blue-900/10 p-6 rounded-2xl">
             <FocusRadars />
           </div>
         )}
@@ -346,7 +335,7 @@ export default function DashboardPage() {
           <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {isFeatureEnabled('recent-activity') && (
               <div
-              className="lg:col-span-2  border border-[var(--border)] bg-[var(--card)] rounded-2xl card-clean shadow-lg shadow-blue-900/10 p-6 rounded-2xl cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/30"
+              className="lg:col-span-2  border border-[var(--border)] bg-[var(--card)] rounded-2xl card-clean shadow-lg shadow-blue-900/10 p-6 cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/30"
               role="button"
               tabIndex={0}
               onClick={handleRecentCardClick}
@@ -373,7 +362,7 @@ export default function DashboardPage() {
               </div>
             )}
             {isFeatureEnabled('upload-csv-data') && (
-              <div className=" border border-[var(--border)] bg-[var(--card)] rounded-2xl card-clean shadow-lg shadow-blue-900/10 p-6 rounded-2xl">
+              <div className=" border border-[var(--border)] bg-[var(--card)] card-clean shadow-lg shadow-blue-900/10 p-6 rounded-2xl">
                 <h2 className="text-lg font-semibold text-[var(--text)] mb-4">Upload CSV</h2>
                 <UploadCSV
                   onUploadComplete={() => {
@@ -406,70 +395,6 @@ function MetricRow({
         <p className="text-sm text-[var(--muted)]">{label}</p>
       </div>
       <p className="text-base font-semibold text-[var(--text)]">{value}</p>
-    </div>
-  );
-}
-
-function RadarPanel({
-  title,
-  emptyLabel,
-  data,
-  color,
-  chartKey,
-}: {
-  title: string;
-  emptyLabel: string;
-  data: Array<{ label: string; hours: number }>;
-  color: string;
-  chartKey?: string;
-}) {
-  const hasData = data.length > 0;
-  return (
-    <div className=" border border-[var(--border)] bg-[var(--card)] rounded-2xl card-clean shadow-lg shadow-blue-900/10 p-4 rounded-2xl">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-base font-semibold text-[var(--text)]">{title}</h3>
-        {hasData && <span className="text-xs text-[var(--muted)]">{data.length} entries</span>}
-      </div>
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-center">
-        <div className="lg:col-span-2 h-[260px]">
-          {!hasData ? (
-            <div className="h-full flex items-center justify-center text-sm text-[var(--muted)]">{emptyLabel}</div>
-          ) : (
-            <ResponsiveContainer width="100%" height="100%">
-              <RadarChart data={data} key={chartKey}>
-                <PolarGrid />
-                <PolarAngleAxis dataKey="label" />
-                <PolarRadiusAxis angle={45} />
-                <Radar name="Hours" dataKey="hours" stroke={color} fill={color} fillOpacity={0.4} />
-                <Legend verticalAlign="middle" align="left" layout="vertical" />
-                <Tooltip />
-              </RadarChart>
-            </ResponsiveContainer>
-          )}
-        </div>
-        <div className="space-y-2">
-          {!hasData ? (
-            <p className="text-sm text-[var(--muted)]">{emptyLabel}</p>
-          ) : (
-            data.slice(0, 6).map((row, idx) => (
-              <div
-                key={row.label}
-                className="flex items-center justify-between px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--card-soft)]"
-              >
-                <div className="flex items-center gap-2">
-                  <span className="w-7 h-7 rounded-full bg-[var(--card)] border border-[var(--border)] flex items-center justify-center text-xs font-semibold" style={{ color }}>
-                    {idx + 1}
-                  </span>
-                  <div>
-                    <p className="text-sm font-semibold text-[var(--text)]">{row.label}</p>
-                    <p className="text-xs text-[var(--muted)]">{row.hours.toFixed(2)} hours</p>
-                  </div>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      </div>
     </div>
   );
 }

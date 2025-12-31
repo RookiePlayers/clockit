@@ -17,9 +17,8 @@ import { buildNavLinks, isFeatureEnabledForNav } from "@/utils/navigation";
 
 export default function ClockitOnlinePage() {
   const [user] = useAuthState(auth);
-  const { isFeatureEnabled, isGroupEnabled, loading } = useFeature();
+  const { isFeatureEnabled } = useFeature();
   const onlineEnabled = isFeatureEnabled("clockit-online");
-  const sessionsEnabled = isFeatureEnabled("create-sessions");
   const goalsEnabled = !!user?.uid && isFeatureEnabled("create-goals-for-sessions");
 
   // Feature flags for navigation
@@ -62,12 +61,18 @@ export default function ClockitOnlinePage() {
   useLayoutEffect(() => {
     const tabParam = searchParams?.get("tab");
     if (tabParam === "goals" && !goalsEnabled) {
-      setActiveTab("sessions");
-      syncTabToUrl("sessions");
-      return;
+      // Defer state updates to avoid cascading renders
+      const timer = setTimeout(() => {
+        setActiveTab("sessions");
+        syncTabToUrl("sessions");
+      }, 0);
+      return () => clearTimeout(timer);
     }
     if (tabParam === "goals" || tabParam === "sessions") {
-      setActiveTab((prev) => (prev === tabParam ? prev : tabParam));
+      const timer = setTimeout(() => {
+        setActiveTab((prev) => (prev === tabParam ? prev : tabParam));
+      }, 0);
+      return () => clearTimeout(timer);
     }
   }, [searchParams, goalsEnabled, syncTabToUrl]);
 

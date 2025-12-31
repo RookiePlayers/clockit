@@ -1,4 +1,4 @@
-import { SessionUpload, sessionUploadSchema } from '@/types';
+import { sessionUploadSchema } from '@/types';
 import { auth } from './firebase';
 import z from 'zod';
 import type { FeatureGroup, CreateFeatureGroupRequest, UpdateFeatureGroupRequest } from '@/types/feature-group.types';
@@ -156,25 +156,30 @@ export const tokensApi = {
   revoke: (tokenId: string) => apiClient.delete(`/tokens/${tokenId}`),
 };
 
-export interface UploadListItem {
-  id: string;
-  filename: string;
-  source: "manual" | "auto";
-  uploadedAt: string;
-  rowCount: number;
-  ideName?: string;
-  meta?: Record<string, unknown>;
-}
+export type UploadListItem = z.infer<typeof UploadListItemSchema>;
+export const UploadListItemSchema = z.object({
+  id: z.string(),
+  filename: z.string(),
+  source: z.enum(["manual", "auto"]),
+  uploadedAt: z.string(),
+  rowCount: z.number(),
+  ideName: z.string().optional(),
+  meta: z.record(z.string(), z.unknown()).optional(),
+});
 
-export interface UploadResponse {
-  id: string;
-  filename: string;
-  uploadedAt: string;
-  rowCount: number;
-  ideName?: string;
-  meta?: Record<string, unknown>;
-  data: SessionUpload[];
-}
+
+export type UploadResponse = z.infer<typeof UploadResponseSchema>;
+
+export const UploadResponseSchema = z.object({
+  id: z.string(),
+  filename: z.string(),
+  uploadedAt: z.string(),
+  rowCount: z.number(),
+  ideName: z.string().optional(),
+  source: z.enum(["manual", "auto"]).optional().default('manual'),
+  meta: z.record(z.string(), z.unknown()).optional(),
+  data: z.array(sessionUploadSchema),
+});
 
 export type CreateUploadRequest = z.infer<typeof CreateUploadRequestSchema>;
 
@@ -198,7 +203,7 @@ export const uploadsApi = {
     if (limit) params.append('limit', limit.toString());
     if (includeData) params.append('includeData', 'true');
     const queryString = params.toString();
-    return apiClient.get<UploadListItem[] | UploadResponse[]>(
+    return apiClient.get<UploadResponse[]>(
       `/uploads${queryString ? `?${queryString}` : ''}`
     );
   },
