@@ -1,3 +1,10 @@
+## [1.10.10](https://github.com/RookiePlayers/clockit/compare/v1.10.9...v1.10.10) (2025-12-31)
+
+
+### Bug Fixes
+
+* Add tsc-alias to resolve TypeScript path aliases during build process ([8386971](https://github.com/RookiePlayers/clockit/commit/838697129dcb29306af62205ea5262d445dc6689))
+
 ## [1.10.9](https://github.com/RookiePlayers/clockit/compare/v1.10.8...v1.10.9) (2025-12-31)
 
 
