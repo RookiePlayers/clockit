@@ -1,4 +1,6 @@
 import dotenv from "dotenv";
+// Load .env file if it exists (for local development)
+// In production (Cloud Run), environment variables are provided by the runtime
 dotenv.config({
   path: ".env"
 });
@@ -153,6 +155,26 @@ app.get("/", (_req, res) => {
 });
 
 const port = Number(process.env.PORT || 4000);
-server.listen(port, () => {
-  console.log(`[clockit-server] listening on http://localhost:${port}`);
+console.log(`[clockit-server] Starting server on port ${port}...`);
+console.log(`[clockit-server] Environment: NODE_ENV=${process.env.NODE_ENV}`);
+server.listen(port, '0.0.0.0', () => {
+  console.log(`[clockit-server] Successfully listening on http://0.0.0.0:${port}`);
+});
+
+server.on('error', (error: NodeJS.ErrnoException) => {
+  console.error('[clockit-server] Server error:', error);
+  if (error.code === 'EADDRINUSE') {
+    console.error(`[clockit-server] Port ${port} is already in use`);
+  }
+  process.exit(1);
+});
+
+process.on('uncaughtException', (error: Error) => {
+  console.error('[clockit-server] Uncaught exception:', error);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason: unknown) => {
+  console.error('[clockit-server] Unhandled rejection:', reason);
+  process.exit(1);
 });
