@@ -10,10 +10,10 @@ COPY package*.json ./
 # Install dependencies (include dev for build)
 RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi
 
-# Copy source code
+# Copy source code and tsconfig
 COPY . .
 
-# Build TypeScript
+# Build TypeScript (this will also run tsc-alias via the build script)
 RUN npm run build
 
 # Runtime stage
