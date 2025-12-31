@@ -1,3 +1,10 @@
+## [1.10.11](https://github.com/RookiePlayers/clockit/compare/v1.10.10...v1.10.11) (2025-12-31)
+
+
+### Bug Fixes
+
+* Update server binding to 0.0.0.0 and enhance logging for Cloud Run compatibility ([d2d0cbd](https://github.com/RookiePlayers/clockit/commit/d2d0cbd462c491b87adbc474a5208674df4257b0))
+
 ## [1.10.10](https://github.com/RookiePlayers/clockit/compare/v1.10.9...v1.10.10) (2025-12-31)
 
 
