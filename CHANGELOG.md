@@ -1,3 +1,10 @@
+## [1.10.8](https://github.com/RookiePlayers/clockit/compare/v1.10.7...v1.10.8) (2025-12-31)
+
+
+### Bug Fixes
+
+* Remove PORT variable from environment configuration in Cloud Build files ([b71bac1](https://github.com/RookiePlayers/clockit/commit/b71bac130a47863935b16cd12715a4c2442c0b1b))
+
 ## [1.10.7](https://github.com/RookiePlayers/clockit/compare/v1.10.6...v1.10.7) (2025-12-31)
 
 
