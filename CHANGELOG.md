@@ -1,3 +1,10 @@
+## [1.11.1](https://github.com/RookiePlayers/clockit/compare/v1.11.0...v1.11.1) (2025-12-31)
+
+
+### Bug Fixes
+
+* Improve CORS configuration to support WebSocket connections ([3ee4a80](https://github.com/RookiePlayers/clockit/commit/3ee4a80db5d9e222aa2c1f3438d45c4649bb36b1))
+
 # [1.11.0](https://github.com/RookiePlayers/clockit/compare/v1.10.12...v1.11.0) (2025-12-31)
 
 
