@@ -42,7 +42,7 @@ steps:
         INITIAL_ADMIN_EMAILS="${_INITIAL_ADMIN_EMAILS}"
         if [ -z "$$LOG_LEVEL" ]; then LOG_LEVEL="info"; fi
         if [ -z "$$ENABLE_ADMIN_SETUP" ]; then ENABLE_ADMIN_SETUP="false"; fi
-        ENV_VARS="NODE_ENV=production,PORT=8080"
+        ENV_VARS="NODE_ENV=production"
         if [ -n "$$REDIS_URL" ]; then
           ENV_VARS="$$ENV_VARS,REDIS_URL=$$REDIS_URL"
         fi
