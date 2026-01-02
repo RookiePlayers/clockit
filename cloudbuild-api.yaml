@@ -50,7 +50,7 @@ steps:
           --format 'value(status.url)' 2>/dev/null || echo "")
 
         # Use provided API_BASE_URL if available, otherwise use the existing service URL
-        if [ -n "${_API_BASE_URL}" ]; then
+        if [ -n "${_API_BASE_URL:-}" ]; then
           API_BASE_URL="${_API_BASE_URL}"
           echo "Using provided API_BASE_URL: $$API_BASE_URL"
         elif [ -n "$$EXISTING_URL" ]; then
@@ -108,6 +108,10 @@ steps:
 images:
   - 'gcr.io/$PROJECT_ID/clockit-api:$COMMIT_SHA'
   - 'gcr.io/$PROJECT_ID/clockit-api:latest'
+
+# Define default substitutions for optional variables
+substitutions:
+  _API_BASE_URL: ''
 
 options:
   machineType: 'N1_HIGHCPU_8'
