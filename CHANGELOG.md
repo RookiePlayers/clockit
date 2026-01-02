@@ -1,3 +1,10 @@
+## [1.11.6](https://github.com/RookiePlayers/clockit/compare/v1.11.5...v1.11.6) (2026-01-02)
+
+
+### Bug Fixes
+
+* Add default substitution for _API_BASE_URL in cloudbuild ([39f5367](https://github.com/RookiePlayers/clockit/commit/39f5367d4947a2831627418f46995d44d0ff0e85))
+
 ## [1.11.5](https://github.com/RookiePlayers/clockit/compare/v1.11.4...v1.11.5) (2026-01-02)
 
 
