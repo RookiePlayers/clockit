@@ -1,3 +1,30 @@
+## [1.11.7](https://github.com/RookiePlayers/clockit/compare/v1.11.6...v1.11.7) (2026-01-02)
+
+
+### Bug Fixes
+
+* Update allowed origins substitution in deployment workflows ([d24d4d9](https://github.com/RookiePlayers/clockit/commit/d24d4d9566bf2fceb85614f74c5ed2ccc427951c))
+
+
+### Performance Improvements
+
+* Add caching to high-traffic routes and optimize Cloud Run configuration ([fd93ea3](https://github.com/RookiePlayers/clockit/commit/fd93ea357a83bf15d157635e4dfdf2af9babd9fa)), closes [hi#traffic](https://github.com/hi/issues/traffic)
+
+## [1.11.6](https://github.com/RookiePlayers/clockit/compare/v1.11.5...v1.11.6) (2026-01-02)
+
+
+### Bug Fixes
+
+* Add default substitution for _API_BASE_URL in cloudbuild ([39f5367](https://github.com/RookiePlayers/clockit/commit/39f5367d4947a2831627418f46995d44d0ff0e85))
+
+## [1.11.5](https://github.com/RookiePlayers/clockit/compare/v1.11.4...v1.11.5) (2026-01-02)
+
+
+### Bug Fixes
+
+* Enhance deployment process by auto-detecting API_BASE_URL and improving CORS handling ([3afbb87](https://github.com/RookiePlayers/clockit/commit/3afbb87ca68151d23a7a30cd5d1116e12453e667))
+* Update CORS handling to support requests without origin and normalize origins ([3a97498](https://github.com/RookiePlayers/clockit/commit/3a97498c962d15acf3807392a4b6c1b4cf5a006a))
+
 ## [1.11.4](https://github.com/RookiePlayers/clockit/compare/v1.11.3...v1.11.4) (2026-01-02)
 
 
