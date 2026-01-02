@@ -1,3 +1,10 @@
+## [1.11.13](https://github.com/RookiePlayers/clockit/compare/v1.11.12...v1.11.13) (2026-01-02)
+
+
+### Bug Fixes
+
+* Simplify substitutions in Cloud Build configurations for API and Socket deployments ([302881a](https://github.com/RookiePlayers/clockit/commit/302881a72d3f77c8f2b1ac0f3a5175d7f7056391))
+
 ## [1.11.12](https://github.com/RookiePlayers/clockit/compare/v1.11.11...v1.11.12) (2026-01-02)
 
 
