@@ -49,8 +49,8 @@ jobs:
         run: |
           gcloud builds submit \
             --config cloudbuild-socket.yaml \
-            --substitutions=COMMIT_SHA=${{ github.sha }},_REDIS_URL=${{ secrets.REDIS_URL }},_FIREBASE_SERVICE_ACCOUNT_B64=${{ secrets.FIREBASE_SERVICE_ACCOUNT_B64 }},_ALLOWED_ORIGINS=${{ secrets.ALLOWED_ORIGINS }},_RATE_LIMIT_WINDOW_MS=${{ secrets.RATE_LIMIT_WINDOW_MS }},_RATE_LIMIT_MAX_REQUESTS=${{ secrets.RATE_LIMIT_MAX_REQUESTS }},_LOG_LEVEL=${{ secrets.LOG_LEVEL }},_ENABLE_ADMIN_SETUP=${{ secrets.ENABLE_ADMIN_SETUP }},_ADMIN_SETUP_TOKEN=${{ secrets.ADMIN_SETUP_TOKEN }},_INITIAL_ADMIN_EMAILS=${{ secrets.INITIAL_ADMIN_EMAILS }}
-        # Note: API_BASE_URL removed - socket server doesn't need it, and it was causing parsing errors
+            --substitutions=COMMIT_SHA=${{ github.sha }},_REDIS_URL=${{ secrets.REDIS_URL }},_FIREBASE_SERVICE_ACCOUNT_B64=${{ secrets.FIREBASE_SERVICE_ACCOUNT_B64 }},_ALLOWED_ORIGINS=${{ secrets.ALLOWED_ORIGINS }}
+        # Note: Optional vars (API_BASE_URL, rate limits, etc.) use defaults from cloudbuild-socket.yaml
 
       - name: Get Service URL
         id: get-url
