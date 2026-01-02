@@ -1,3 +1,10 @@
+## [1.11.4](https://github.com/RookiePlayers/clockit/compare/v1.11.3...v1.11.4) (2026-01-02)
+
+
+### Bug Fixes
+
+* Update CORS handling to support requests without origin and normalize origins ([27c9091](https://github.com/RookiePlayers/clockit/commit/27c90916f3d831bbbac49d67bcb288e4490ea2d6))
+
 ## [1.11.3](https://github.com/RookiePlayers/clockit/compare/v1.11.2...v1.11.3) (2025-12-31)
 
 
