@@ -103,6 +103,8 @@ steps:
           --min-instances "0" \
           --memory "512Mi" \
           --cpu "1" \
+          --concurrency "80" \
+          --cpu-boost \
           --timeout "300s"
 
 images:
