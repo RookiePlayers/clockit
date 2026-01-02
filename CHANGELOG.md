@@ -1,3 +1,137 @@
+## [1.11.4](https://github.com/RookiePlayers/clockit/compare/v1.11.3...v1.11.4) (2026-01-02)
+
+
+### Bug Fixes
+
+* Update CORS handling to support requests without origin and normalize origins ([27c9091](https://github.com/RookiePlayers/clockit/commit/27c90916f3d831bbbac49d67bcb288e4490ea2d6))
+
+## [1.11.3](https://github.com/RookiePlayers/clockit/compare/v1.11.2...v1.11.3) (2025-12-31)
+
+
+### Bug Fixes
+
+* Wrap ClockitOnlinePageContent in Suspense for improved loading state ([027d5fe](https://github.com/RookiePlayers/clockit/commit/027d5fe8130bf24d6a9c7996f66259335ea62859))
+
+## [1.11.2](https://github.com/RookiePlayers/clockit/compare/v1.11.1...v1.11.2) (2025-12-31)
+
+
+### Bug Fixes
+
+* Update useFeature call in ProfilePage to remove user dependency ([fe44153](https://github.com/RookiePlayers/clockit/commit/fe44153512a50eb1b5fcdc03c06038d6e47ae889))
+
+## [1.11.1](https://github.com/RookiePlayers/clockit/compare/v1.11.0...v1.11.1) (2025-12-31)
+
+
+### Bug Fixes
+
+* Improve CORS configuration to support WebSocket connections ([3ee4a80](https://github.com/RookiePlayers/clockit/commit/3ee4a80db5d9e222aa2c1f3438d45c4649bb36b1))
+
+# [1.11.0](https://github.com/RookiePlayers/clockit/compare/v1.10.12...v1.11.0) (2025-12-31)
+
+
+### Bug Fixes
+
+* Update API and socket URLs in apphosting configuration ([59593c2](https://github.com/RookiePlayers/clockit/commit/59593c24c04e1443f92d71f6fc728acd7e1d158a))
+* Update deployment workflow ([7f1b190](https://github.com/RookiePlayers/clockit/commit/7f1b190b995b2dcb1c8d444b168a5637a4c506e7))
+
+
+### Features
+
+* Add support for guest WebSocket connections alongside authenticated users ([a077304](https://github.com/RookiePlayers/clockit/commit/a07730483f4fcd6abf7f4ad9be813ea6ab9dc3c1))
+
+## [1.10.12](https://github.com/RookiePlayers/clockit/compare/v1.10.11...v1.10.12) (2025-12-31)
+
+
+### Bug Fixes
+
+* Implement multi-stage Docker build to compile TypeScript for faster Cloud Run startup ([b05f8b1](https://github.com/RookiePlayers/clockit/commit/b05f8b1485be072f2a27091100b2ccfe4d9d63e8))
+
+## [1.10.11](https://github.com/RookiePlayers/clockit/compare/v1.10.10...v1.10.11) (2025-12-31)
+
+
+### Bug Fixes
+
+* Update server binding to 0.0.0.0 and enhance logging for Cloud Run compatibility ([d2d0cbd](https://github.com/RookiePlayers/clockit/commit/d2d0cbd462c491b87adbc474a5208674df4257b0))
+
+## [1.10.10](https://github.com/RookiePlayers/clockit/compare/v1.10.9...v1.10.10) (2025-12-31)
+
+
+### Bug Fixes
+
+* Add tsc-alias to resolve TypeScript path aliases during build process ([8386971](https://github.com/RookiePlayers/clockit/commit/838697129dcb29306af62205ea5262d445dc6689))
+
+## [1.10.9](https://github.com/RookiePlayers/clockit/compare/v1.10.8...v1.10.9) (2025-12-31)
+
+
+### Bug Fixes
+
+* Update Dockerfile to expose PORT 8080 for Cloud Run compatibility ([7544d29](https://github.com/RookiePlayers/clockit/commit/7544d29eadb7584d246155116c0fb24522f6d0cd))
+
+## [1.10.8](https://github.com/RookiePlayers/clockit/compare/v1.10.7...v1.10.8) (2025-12-31)
+
+
+### Bug Fixes
+
+* Remove PORT variable from environment configuration in Cloud Build files ([b71bac1](https://github.com/RookiePlayers/clockit/commit/b71bac130a47863935b16cd12715a4c2442c0b1b))
+
+## [1.10.7](https://github.com/RookiePlayers/clockit/compare/v1.10.6...v1.10.7) (2025-12-31)
+
+
+### Bug Fixes
+
+* Update Cloud Build ([4c32cb6](https://github.com/RookiePlayers/clockit/commit/4c32cb692f4b7e74e28fdae29523f06b5b2df21c))
+
+## [1.10.6](https://github.com/RookiePlayers/clockit/compare/v1.10.5...v1.10.6) (2025-12-30)
+
+
+### Bug Fixes
+
+* Update Cloud Build ([8b3c79e](https://github.com/RookiePlayers/clockit/commit/8b3c79e6bdf4ef0624627c303d55e2ebedd28aa5))
+
+## [1.10.5](https://github.com/RookiePlayers/clockit/compare/v1.10.4...v1.10.5) (2025-12-30)
+
+
+### Bug Fixes
+
+* Update deployment workflows to use correct Redis URL secret ([6e10f4d](https://github.com/RookiePlayers/clockit/commit/6e10f4ddddf5952ccd7fc6d6f844f2a3a883ffe9))
+
+## [1.10.4](https://github.com/RookiePlayers/clockit/compare/v1.10.3...v1.10.4) (2025-12-30)
+
+
+### Bug Fixes
+
+* Enhance deployment workflows and add environment variable configurations for Cloud Run ([3ee8ab3](https://github.com/RookiePlayers/clockit/commit/3ee8ab3e2d5df7514f5371ea8f71521a93e85b1b))
+
+## [1.10.3](https://github.com/RookiePlayers/clockit/compare/v1.10.2...v1.10.3) (2025-12-30)
+
+
+### Bug Fixes
+
+* Enhance deployment workflows and add environment variable configurations for Cloud Run ([4a6a534](https://github.com/RookiePlayers/clockit/commit/4a6a5346c193aecf042e599aa5778017bf8fb5d4))
+* Enhance deployment workflows and add environment variable configurations for Cloud Run ([0eb07ee](https://github.com/RookiePlayers/clockit/commit/0eb07eeaa3e5093391295b0d64d4f50d59687428))
+
+## [1.10.2](https://github.com/RookiePlayers/clockit/compare/v1.10.1...v1.10.2) (2025-12-30)
+
+
+### Bug Fixes
+
+* Update Dockerfile for multi-stage build ([c9e1eb2](https://github.com/RookiePlayers/clockit/commit/c9e1eb20025bc3d087961e9f6e2b682f3f02e282))
+
+## [1.10.1](https://github.com/RookiePlayers/clockit/compare/v1.10.0...v1.10.1) (2025-12-30)
+
+
+### Bug Fixes
+
+* Update Dockerfile to conditionally install production dependencies ([44b6a1e](https://github.com/RookiePlayers/clockit/commit/44b6a1e05b594fdb755066daf9fffa416d7658a7))
+
+# [1.10.0](https://github.com/RookiePlayers/clockit/compare/v1.9.0...v1.10.0) (2025-12-30)
+
+
+### Features
+
+* Add SessionCard and SessionsTab components for managing sessions and goals ([c0c29e1](https://github.com/RookiePlayers/clockit/commit/c0c29e1264691e443b9bbbf74fd7eb5f4d126e8c))
+* Add SessionCard and SessionsTab components for managing sessions and goals ([d26fff6](https://github.com/RookiePlayers/clockit/commit/d26fff685d9a1e61fe5dc5966d4a1cefbe968c24))
+
 # [1.9.0](https://github.com/RookiePlayers/clockit/compare/v1.8.0...v1.9.0) (2025-12-07)
 
 

@@ -99,15 +99,16 @@ gcloud run services describe clockit-socket \
 
 #### For clockit-api:
 
-**CRITICAL**: You must include your production domain in `ALLOWED_ORIGINS`.
-
-**Note**: `API_BASE_URL` is now auto-detected from your Cloud Run service URL during deployment, so you don't need to manually set it!
+**CRITICAL**: You must set the `API_BASE_URL` to your actual Cloud Run URL (not localhost) and include your production domain in `ALLOWED_ORIGINS`.
 
 ```bash
-# Update environment variables
+# First, get your Cloud Run URL
+API_URL=$(gcloud run services describe clockit-api --region us-central1 --format 'value(status.url)')
+
+# Then update environment variables
 gcloud run services update clockit-api \
   --region us-central1 \
-  --set-env-vars="NODE_ENV=production,ALLOWED_ORIGINS=https://clockit.octech.dev,https://your-firebase-app.web.app,FIREBASE_SERVICE_ACCOUNT_B64=your-base64-encoded-service-account"
+  --set-env-vars="NODE_ENV=production,API_BASE_URL=${API_URL},ALLOWED_ORIGINS=https://clockit.octech.dev,https://your-firebase-app.web.app,FIREBASE_SERVICE_ACCOUNT_B64=your-base64-encoded-service-account"
 ```
 
 Or use Secret Manager for sensitive data:
@@ -429,9 +430,7 @@ If you see 500 errors in Cloud Run logs, check these common issues:
 
 **Symptom**: API_BASE_URL is set to `http://localhost:8080` in production
 
-**Solution**: The build script now auto-detects this! See [cloudbuild-api.yaml:45-63](cloudbuild-api.yaml#L45-L63)
-
-If you need to manually set it:
+**Solution**: Update to your actual Cloud Run URL:
 
 ```bash
 # Get your Cloud Run URL
@@ -443,68 +442,12 @@ gcloud run services update clockit-api \
   --update-env-vars="API_BASE_URL=${API_URL}"
 ```
 
-### Resource Contention (High CPU/Memory Usage)
-
-**Symptom**: Cloud Run logs show high CPU utilization, high memory usage, and increased request latency
-
-**Common Causes**:
-
-1. **No caching on frequently accessed endpoints** - Endpoints like `/api/v1/stats` and `/api/v1/features/user` may be hitting Firestore on every request
-
-2. **Missing concurrency limits** - Too many concurrent requests can overwhelm the instance
-
-**Solutions**:
-
-#### 1. Add caching to frequently accessed routes
-
-Update your route files to include cache middleware:
-
-```typescript
-// In stats.routes.ts
-import { cache } from '@/middleware/cache';
-
-router.get(
-  '/',
-  authenticate,
-  cache({ ttl: 60000 }), // Cache for 1 minute
-  defaultRateLimiter,
-  asyncHandler(StatsController.getStats)
-);
-```
-
-#### 2. Optimize Cloud Run configuration
+**Example**:
 
 ```bash
 gcloud run services update clockit-api \
   --region europe-west4 \
-  --concurrency 80 \
-  --cpu-boost \
-  --memory 512Mi \
-  --cpu 1
-```
-
-**Configuration explained**:
-
-- `--concurrency 80`: Limit concurrent requests per instance (default is 80, reduce if needed)
-- `--cpu-boost`: Allocate CPU during request processing only (saves costs)
-- `--memory 512Mi`: Ensure adequate memory
-- `--cpu 1`: One vCPU per instance
-
-#### 3. Monitor performance
-
-View real-time metrics:
-
-```bash
-# Watch logs with latency info
-gcloud run services logs read clockit-api \
-  --region europe-west4 \
-  --follow \
-  --format="table(timestamp,severity,textPayload)"
-
-# Check instance metrics
-gcloud run services describe clockit-api \
-  --region europe-west4 \
-  --format="get(status.latestReadyRevision)"
+  --update-env-vars="API_BASE_URL=https://clockit-api-ie4o3wu3ta-ez.a.run.app"
 ```
 
 ---
