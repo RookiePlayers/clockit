@@ -94,6 +94,12 @@ images:
 # Define default substitutions for optional variables
 substitutions:
   _API_BASE_URL: ''
+  _RATE_LIMIT_WINDOW_MS: ''
+  _RATE_LIMIT_MAX_REQUESTS: ''
+  _LOG_LEVEL: ''
+  _ENABLE_ADMIN_SETUP: ''
+  _ADMIN_SETUP_TOKEN: ''
+  _INITIAL_ADMIN_EMAILS: ''
 
 options:
   machineType: 'N1_HIGHCPU_8'
