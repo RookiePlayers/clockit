@@ -1,3 +1,11 @@
+## [1.11.5](https://github.com/RookiePlayers/clockit/compare/v1.11.4...v1.11.5) (2026-01-02)
+
+
+### Bug Fixes
+
+* Enhance deployment process by auto-detecting API_BASE_URL and improving CORS handling ([3afbb87](https://github.com/RookiePlayers/clockit/commit/3afbb87ca68151d23a7a30cd5d1116e12453e667))
+* Update CORS handling to support requests without origin and normalize origins ([3a97498](https://github.com/RookiePlayers/clockit/commit/3a97498c962d15acf3807392a4b6c1b4cf5a006a))
+
 ## [1.11.4](https://github.com/RookiePlayers/clockit/compare/v1.11.3...v1.11.4) (2026-01-02)
 
 
