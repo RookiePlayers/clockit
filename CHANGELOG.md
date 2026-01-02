@@ -1,3 +1,10 @@
+## [1.11.14](https://github.com/RookiePlayers/clockit/compare/v1.11.13...v1.11.14) (2026-01-02)
+
+
+### Bug Fixes
+
+* Enhance Cloud Build substitutions for API and Socket deployments to include optional secrets ([59b5594](https://github.com/RookiePlayers/clockit/commit/59b55947b50cd8b4e3d203fc69d2d406095c80f2))
+
 ## [1.11.13](https://github.com/RookiePlayers/clockit/compare/v1.11.12...v1.11.13) (2026-01-02)
 
 
