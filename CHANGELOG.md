@@ -1,3 +1,10 @@
+## [1.11.12](https://github.com/RookiePlayers/clockit/compare/v1.11.11...v1.11.12) (2026-01-02)
+
+
+### Bug Fixes
+
+* Add default substitutions for rate limiting and logging in Cloud Build configurations ([cf8a02f](https://github.com/RookiePlayers/clockit/commit/cf8a02f2ee923662911d388c493a6ab76c23207b))
+
 ## [1.11.11](https://github.com/RookiePlayers/clockit/compare/v1.11.10...v1.11.11) (2026-01-02)
 
 
