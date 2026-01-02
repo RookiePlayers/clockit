@@ -1,3 +1,15 @@
+## [1.11.7](https://github.com/RookiePlayers/clockit/compare/v1.11.6...v1.11.7) (2026-01-02)
+
+
+### Bug Fixes
+
+* Update allowed origins substitution in deployment workflows ([d24d4d9](https://github.com/RookiePlayers/clockit/commit/d24d4d9566bf2fceb85614f74c5ed2ccc427951c))
+
+
+### Performance Improvements
+
+* Add caching to high-traffic routes and optimize Cloud Run configuration ([fd93ea3](https://github.com/RookiePlayers/clockit/commit/fd93ea357a83bf15d157635e4dfdf2af9babd9fa)), closes [hi#traffic](https://github.com/hi/issues/traffic)
+
 ## [1.11.6](https://github.com/RookiePlayers/clockit/compare/v1.11.5...v1.11.6) (2026-01-02)
 
 
