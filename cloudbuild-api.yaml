@@ -32,7 +32,6 @@ steps:
         set -euo pipefail
         REDIS_URL="${_REDIS_URL}"
         FIREBASE_B64="${_FIREBASE_SERVICE_ACCOUNT_B64}"
-        API_BASE_URL="${_API_BASE_URL}"
         ALLOWED_ORIGINS="${_ALLOWED_ORIGINS}"
         RATE_LIMIT_WINDOW_MS="${_RATE_LIMIT_WINDOW_MS}"
         RATE_LIMIT_MAX_REQUESTS="${_RATE_LIMIT_MAX_REQUESTS}"
@@ -42,6 +41,27 @@ steps:
         INITIAL_ADMIN_EMAILS="${_INITIAL_ADMIN_EMAILS}"
         if [ -z "$$LOG_LEVEL" ]; then LOG_LEVEL="info"; fi
         if [ -z "$$ENABLE_ADMIN_SETUP" ]; then ENABLE_ADMIN_SETUP="false"; fi
+
+        # Auto-detect API_BASE_URL from existing Cloud Run service or use provided value
+        # First, try to get the existing service URL
+        EXISTING_URL=$(gcloud run services describe clockit-api \
+          --region europe-west4 \
+          --platform managed \
+          --format 'value(status.url)' 2>/dev/null || echo "")
+
+        # Use provided API_BASE_URL if available, otherwise use the existing service URL
+        if [ -n "${_API_BASE_URL}" ]; then
+          API_BASE_URL="${_API_BASE_URL}"
+          echo "Using provided API_BASE_URL: $$API_BASE_URL"
+        elif [ -n "$$EXISTING_URL" ]; then
+          API_BASE_URL="$$EXISTING_URL"
+          echo "Auto-detected API_BASE_URL from existing service: $$API_BASE_URL"
+        else
+          # Fallback for first deployment - will be set correctly on next deploy
+          API_BASE_URL="https://clockit-api-ie4o3wu3ta-ez.a.run.app"
+          echo "Using fallback API_BASE_URL (will auto-update on next deploy): $$API_BASE_URL"
+        fi
+
         ENV_VARS="NODE_ENV=production"
         if [ -n "$$REDIS_URL" ]; then
           ENV_VARS="$$ENV_VARS,REDIS_URL=$$REDIS_URL"
@@ -49,9 +69,8 @@ steps:
         if [ -n "$$FIREBASE_B64" ]; then
           ENV_VARS="$$ENV_VARS,FIREBASE_SERVICE_ACCOUNT_B64=$$FIREBASE_B64"
         fi
-        if [ -n "$$API_BASE_URL" ]; then
-          ENV_VARS="$$ENV_VARS,API_BASE_URL=$$API_BASE_URL"
-        fi
+        # Always set API_BASE_URL (either auto-detected or provided)
+        ENV_VARS="$$ENV_VARS,API_BASE_URL=$$API_BASE_URL"
         if [ -n "$$ALLOWED_ORIGINS" ]; then
           ENV_VARS="$$ENV_VARS,ALLOWED_ORIGINS=$$ALLOWED_ORIGINS"
         fi
