@@ -1,3 +1,10 @@
+## [1.11.11](https://github.com/RookiePlayers/clockit/compare/v1.11.10...v1.11.11) (2026-01-02)
+
+
+### Bug Fixes
+
+* Remove _API_BASE_URL substitution from Cloud Run deployment configuration ([336ad99](https://github.com/RookiePlayers/clockit/commit/336ad99dfc49cb420fdc24f7c1c817f899c510be))
+
 ## [1.11.10](https://github.com/RookiePlayers/clockit/compare/v1.11.9...v1.11.10) (2026-01-02)
 
 
