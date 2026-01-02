@@ -49,7 +49,7 @@ jobs:
         run: |
           gcloud builds submit \
             --config cloudbuild-api.yaml \
-            --substitutions=COMMIT_SHA=${{ github.sha }},_REDIS_URL=${{ secrets.REDIS_URL }},_FIREBASE_SERVICE_ACCOUNT_B64=${{ secrets.FIREBASE_SERVICE_ACCOUNT_B64 }},_API_BASE_URL=${{ secrets.API_BASE_URL }},_ALLOWED_ORIGINS=${{ secrets.ALLOWED_ORIGINS }},_RATE_LIMIT_WINDOW_MS=${{ secrets.API_RATE_LIMIT_WINDOW_MS }},_RATE_LIMIT_MAX_REQUESTS=${{ secrets.API_RATE_LIMIT_MAX_REQUESTS }},_LOG_LEVEL=${{ secrets.API_LOG_LEVEL }},_ENABLE_ADMIN_SETUP=${{ secrets.API_ENABLE_ADMIN_SETUP }},_ADMIN_SETUP_TOKEN=${{ secrets.API_ADMIN_SETUP_TOKEN }},_INITIAL_ADMIN_EMAILS=${{ secrets.API_INITIAL_ADMIN_EMAILS }}
+            --substitutions=COMMIT_SHA=${{ github.sha }},_REDIS_URL=${{ secrets.REDIS_URL }},_FIREBASE_SERVICE_ACCOUNT_B64=${{ secrets.FIREBASE_SERVICE_ACCOUNT_B64 }},_API_BASE_URL=${{ secrets.API_BASE_URL }},_ALLOWED_ORIGINS=${{ secrets.ALLOWED_ORIGINS }},_RATE_LIMIT_WINDOW_MS=${{ secrets.RATE_LIMIT_WINDOW_MS }},_RATE_LIMIT_MAX_REQUESTS=${{ secrets.RATE_LIMIT_MAX_REQUESTS }},_LOG_LEVEL=${{ secrets.LOG_LEVEL }},_ENABLE_ADMIN_SETUP=${{ secrets.ENABLE_ADMIN_SETUP }},_ADMIN_SETUP_TOKEN=${{ secrets.ADMIN_SETUP_TOKEN }},_INITIAL_ADMIN_EMAILS=${{ secrets.INITIAL_ADMIN_EMAILS }}
         # Note: API_BASE_URL is now auto-detected from the existing Cloud Run service in cloudbuild-api.yaml
 
       - name: Get Service URL
