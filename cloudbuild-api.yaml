@@ -111,6 +111,9 @@ images:
   - 'gcr.io/$PROJECT_ID/clockit-api:$COMMIT_SHA'
   - 'gcr.io/$PROJECT_ID/clockit-api:latest'
 
+# Define default substitutions for optional variables
+substitutions:
+  _API_BASE_URL: ''
 
 options:
   machineType: 'N1_HIGHCPU_8'
