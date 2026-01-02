@@ -1,3 +1,18 @@
+## [1.11.8](https://github.com/RookiePlayers/clockit/compare/v1.11.7...v1.11.8) (2026-01-02)
+
+
+### Bug Fixes
+
+* Add _API_BASE_URL substitution for Cloud Run deployments in API and Socket workflows ([6b22ce9](https://github.com/RookiePlayers/clockit/commit/6b22ce9dc8ad0f68511ed2feb1759d82f16b6c88))
+* Remove API_BASE_URL from socket deployment to prevent parsing errors ([32a05dd](https://github.com/RookiePlayers/clockit/commit/32a05dd26f947b6496c12a4d901645318eee8123))
+* Remove default substitutions for _API_BASE_URL in Cloud Build configurations ([6dd82be](https://github.com/RookiePlayers/clockit/commit/6dd82bed8ce31a9110496cebfd624adb35cc4605))
+* Update allowed origins substitution in deployment workflows ([0831108](https://github.com/RookiePlayers/clockit/commit/0831108610e56b989a5731736891b4ca6377e3d1))
+
+
+### Performance Improvements
+
+* Add caching to high-traffic routes and optimize Cloud Run configuration ([12e5bad](https://github.com/RookiePlayers/clockit/commit/12e5badb7762107085c886988795daab2bf24ac6)), closes [hi#traffic](https://github.com/hi/issues/traffic)
+
 ## [1.11.7](https://github.com/RookiePlayers/clockit/compare/v1.11.6...v1.11.7) (2026-01-02)
 
 
