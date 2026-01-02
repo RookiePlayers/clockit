@@ -1,3 +1,10 @@
+## [1.11.10](https://github.com/RookiePlayers/clockit/compare/v1.11.9...v1.11.10) (2026-01-02)
+
+
+### Bug Fixes
+
+* Properly remove API_BASE_URL from socket workflow to fix deployment ([ce199fc](https://github.com/RookiePlayers/clockit/commit/ce199fc0c87cfccfae9eb57b2265f41703e2610e))
+
 ## [1.11.9](https://github.com/RookiePlayers/clockit/compare/v1.11.8...v1.11.9) (2026-01-02)
 
 
