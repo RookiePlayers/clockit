@@ -144,13 +144,13 @@ export class BackupManager {
   }
 
   private resolveBaseDir(): string {
-    // Priority: explicit backup.directory → csvDirFallback → workspace root → cwd
+    // Priority: explicit backup.directory → workspace/.clockit → cwd/.clockit
     const explicit = (this.opts.directory || '').trim();
-    const fallback = (this.opts.csvDirFallback || '').trim();
     const ws = vscode?.workspace?.workspaceFolders?.[0]?.uri.fsPath;
 
     // If a file-looking path was provided (e.g., "backup_timelog.csv"), treat its dirname as the target folder.
-    const candidate = explicit || fallback || ws || process.cwd();
+    const defaultRoot = ws ?? process.cwd();
+    const candidate = explicit || path.join(defaultRoot, '.clockit');
     const looksLikeFile = /\.[^/\\]+$/.test(candidate);
     const dir = looksLikeFile ? path.dirname(candidate) : candidate;
 
@@ -186,6 +186,9 @@ export class BackupManager {
 
       const content = await fs.readFile(gitignore, 'utf8');
       const lines = content.split(/\r?\n/);
+      if (dirRel === '.clockit' && !lines.some((line) => line.trim() === '/.clockit/')) {
+        lines.push('/.clockit/');
+      }
       if (lines.some((line) => line.trim() === pattern)) { return; }
       lines.push(pattern);
       await fs.writeFile(gitignore, lines.join('\n'), 'utf8');
